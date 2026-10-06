@@ -5,6 +5,11 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build and publish
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,6 +21,8 @@ jobs:
     steps:
       - name: Check out release tag
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -24,7 +31,9 @@ jobs:
 
       - name: Match tag to package version
         run: |
-          python -c 'import os, tomllib; version = tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]; tag = os.environ["GITHUB_REF_NAME"]; assert tag == f"v{version}", f"tag {tag} does not match project version {version}"'
+          python -c 'import os, tomllib; version = tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]; tag = os.environ.get("RELEASE_TAG") or os.environ["GITHUB_REF_NAME"]; assert tag == f"v{version}", f"tag {tag} does not match project version {version}"'
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
 
       - name: Build source and wheel distributions
         run: |
