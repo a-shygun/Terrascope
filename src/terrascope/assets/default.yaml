@@ -1,0 +1,437 @@
+# terrascope: configuration (src/terrascope/assets/default.yaml)
+#
+# Every tunable value of the app lives here: colours, sizes, margins, paddings,
+# zoom levels, timings, thresholds, URLs, key letters and glyphs. The Python
+# files only read these values. Fixed UI wording (labels, hints, help text) and
+# protocol details (mouse escape codes, OpenSky field order) stay in the code.
+#
+# YAML tips:
+#   * Colours are "#rrggbb" and must be quoted (a bare # starts a comment).
+#     map.water_color / map.land_color also accept "#rrggbbaa", where aa is the
+#     opacity in hex (00 = transparent ... ff = opaque).
+#   * Quote single-character keys such as "p", "0", "?" so YAML does not read
+#     them as numbers, booleans or something else.
+#   * null means "use the built-in default" only for nullable settings; false
+#     means "off / transparent" where a setting supports that value.
+#   * "[a, b]" is a list; "[[a, b], [c, d]]" is a list of pairs.
+
+# ---------------------------------------------------------------------------
+# Files and network
+# ---------------------------------------------------------------------------
+paths:
+  # Where caches, downloaded map data and the log file live.
+  # null = $XDG_CACHE_HOME/terrascope, or ~/.cache/terrascope if that isn't set.
+  cache_dir: null
+
+data:
+  # Master switch for live API requests. `terrascope --offline` (or setting the
+  # environment variable terrascope_OFFLINE=1) forces it to false.
+  fetch_new_data_from_api: true
+  user_agent: "terrascope/1.0"            # sent with every HTTP request
+  # Natural Earth map data (downloaded once, then cached in paths.cache_dir).
+  natural_earth_base_url: "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/"
+  countries_file: "ne_50m_admin_0_countries.geojson"          # country outlines
+  provinces_file: "ne_50m_admin_1_states_provinces_lines.geojson"  # detailed state / province borders
+  places_file: "ne_10m_populated_places_simple.geojson"        # cities and capitals
+  download_timeout_seconds: 60
+
+# ---------------------------------------------------------------------------
+# Terminal colours
+# ---------------------------------------------------------------------------
+terminal:
+  # true  = redefine terminal palette slots 16+ to the exact colours below (best
+  #         look). The palette is reset on exit (OSC 104). If your terminal
+  #         shows wrong colours or stays garbled after the app quits, set false.
+  # false = snap every colour to the nearest of the standard 256 colours
+  #         (safe everywhere, slightly coarser dark blues).
+  redefine_palette: true
+  # Upper bound on curses colour pairs. null = automatic: the terminal's count,
+  # capped at 255 because curses can only store 8 bits of pair number in a
+  # cell (higher numbers corrupt text attributes: reversed / white blocks).
+  max_color_pairs: null
+
+# ---------------------------------------------------------------------------
+# Main loop, input and key bindings
+# ---------------------------------------------------------------------------
+app:
+  panel_visible_at_start: true     # bottom panel shown at launch
+  min_terminal_width: 60           # below this the app says "Terminal too small"
+  min_terminal_height: 20
+  max_keys_per_loop: 32            # input drained per pass so held keys don't lag
+  heartbeat_seconds: 1.0           # forced repaint interval when nothing changes
+  frame_delay_ms: 50               # loop sleep between passes
+  drag_frame_delay_ms: 5           # loop sleep while dragging the map
+  drag_resume_seconds: 0.3         # a "press" this long after the last drag event starts a new grab
+  arrow_hit_tolerance: 3           # columns terrascope the info box < > arrows that still count as a click
+  status_offset: [3, 2]            # (columns, rows) from the map box's top-left for status text
+  log_file: "terrascope.log"           # stderr goes here (inside the cache dir)
+  welcome_skip_file: "welcome_skip"  # marker file: skip the welcome modal at launch
+  # Key bindings. A string or list of characters; letters work in both cases.
+  # Layer toggle keys are set on each layer below and must not clash with these.
+  keys:
+    quit: "q"
+    toggle_panel: "h"
+    search: "/"
+    filter: "o"
+    about: "?"
+    prev_selection: "<"
+    next_selection: ">"
+    pan_up: "w"                    # arrow keys always work too
+    pan_down: "s"
+    pan_left: "a"
+    pan_right: "d"
+    zoom_in: ["+", "="]
+    zoom_out: ["-", "_"]
+    reset_view: "0"
+    slider_down: "["               # time slider (layers that have one)
+    slider_up: "]"
+
+# Lets every layer share these.
+layer_defaults:
+  click_radius: 1.5                # how close (in cells) a click must be to hit a marker
+  retry_base_seconds: 15           # failed refresh: wait this long, then double...
+  retry_max_seconds: 300           # ...up to this cap
+
+# ---------------------------------------------------------------------------
+# Tabs (top row). Numbered in this order; 1-9 select them from the keyboard.
+# ---------------------------------------------------------------------------
+tabs:
+  start_tab: 0                     # index of the tab shown at launch (0 = first)
+  # Per tab:  name / label (text on the tab) / color / blurb (line in the welcome
+  # modal) / layers (layer names switched ON) / detailed (state borders and every city name)
+  # / provinces (state / province borders only;
+  # defaults to the value of detailed) / place_names (false = basemap hides capital and city
+  # names) / country_names (false = basemap hides country names) / attribution
+  # (the layer's data source, shown above the always-present © OpenStreetMap credit at the map's bottom-left).
+  items:
+    - name: map
+      label: MAP
+      color: "#6bcb77"
+      blurb: "the plain world map (zoom in for state / province borders and detailed cities)"
+      layers: [basemap]
+      detailed: true
+      attribution: ""
+    - name: time
+      label: TIME
+      color: "#f2c14e"
+      blurb: "clock, sun phases, moon phase and the day/night line"
+      layers: [basemap, night]
+      attribution: "NOAA, Meeus"
+    - name: weather
+      label: WEATHER
+      color: "#5dade2"
+      blurb: "city temperatures, earthquakes, clouds and storms"
+      layers: [basemap, weather]
+      place_names: false
+      country_names: false
+      provinces: false         # keep the weather view visually clear
+      attribution: "Open-Meteo.com"
+    - name: planes
+      label: PLANES
+      color: "#ff9f43"
+      blurb: "live aircraft"
+      layers: [basemap, flights]
+      place_names: false      # no capital/city labels here: just country names and the flights layer's own airports
+      attribution: "OpenSky Network"
+
+# ---------------------------------------------------------------------------
+# The map itself
+# ---------------------------------------------------------------------------
+map:
+  country_color: "#ffffff"     # country outlines
+  province_color: "#8299ae"    # state / province boundaries
+  # Ocean / land background. "#rrggbb" = solid, "#rrggbbaa" = with opacity
+  # (aa = 00 transparent ... ff opaque), false = fully transparent (same as aa 00).
+  water_color: '#1E2C39'
+  land_color: '#0F0F15'
+  # Terminals have no real alpha, so partial opacity (and the coastline fade next
+  # to a transparent side) is blended against this colour. Set it to roughly your
+  # terminal's background colour. null = black.
+  transparent_blend_color: null
+  cell_aspect: 2.0             # terminal cell height / width (try 1.8-2.2 if the map looks stretched)
+  coast_fade_steps: 8          # shades between water and land. Fewer = fewer colour pairs used
+  coast_blur_horizontal: [1, 2, 3, 2, 1]  # coastline softness: blur weights (longer / flatter = softer)
+  coast_blur_vertical: [1, 2, 1]
+  lat_min: -58.0               # visible latitude band (Antarctica is not loaded)
+  lat_max: 84.0
+  # Labels for the world view: ISO alpha-2 code by default, these override it.
+  country_code_overrides: {US: "USA", GB: "UK"}
+  zoom:
+    min: 1                     # fully zoomed out = whole world (also the starting zoom)
+    max: 64
+    step: 1.5                  # zoom multiplier per key press / wheel notch
+    pan_step: 0.05             # fraction of the visible span moved per key press
+    province_min: 2            # state / province borders appear from this zoom on
+
+# ---------------------------------------------------------------------------
+# Screen layout, widgets, modals
+# ---------------------------------------------------------------------------
+ui:
+  outer_margin: [2, 1]         # (columns, rows) kept free terrascope the screen
+  tab_bar_height: 1            # rows used by the tab bar above the map
+  tab_gap: 1                   # blank columns between tabs
+  panel_height: 12             # bottom panel rows incl. borders
+  panel_min_height: 5          # hide the panel if it can't be this tall
+  panel_min_map_height: 8      # rows the map always keeps
+  box_gap: 1                   # blank columns between the boxes of the bottom row
+  live_box_max_label_width: 10 # label column of "live" boxes
+  info_box_min_width: 10       # nothing is drawn when the box would be narrower
+  info_box_label_width: 12     # also sets where the value column starts
+  # Gap kept between legend / scale bar / slider / attribution and the map edge
+  # (2 columns per row, since cells are about twice as tall as wide).
+  map_edge_pad_x: 2
+  map_edge_pad_y: 1
+  legend_text_color: "#ffffff" # legend text drawn on the map
+  # Scale bar
+  scale_bar_target_columns: 14
+  scale_bar_min_columns: 6     # the bar is hidden when there is less room
+  scale_bar_min_bar_columns: 3
+  scale_bar_end: "|"           # cap at each end
+  scale_bar_fill: "─"          # repeated between the caps
+  # Slider (map's bottom row, left of the scale bar)
+  slider_track_columns: 14
+  slider_caption_width: 10
+  slider_knob: "●"
+  slider_filled: "━"
+  slider_empty: "─"
+  # Top-right controls
+  help_min_gap: 2              # blank columns kept between the last tab and the key hints
+  help_separator: "  ·  "
+  controls_gap: 1              # blank columns between hints / [+] button / clock
+  controls_collapsed_button: "[+]"
+  controls_expanded_button: "[-]"
+  # Characters used to draw frames (plain ASCII "+", "-", "|" works without box glyphs).
+  box_chars:
+    top_left: "┌"
+    top_right: "┐"
+    bottom_left: "└"
+    bottom_right: "┘"
+    horizontal: "─"
+    vertical: "│"
+  # Timezone dropdown (click the clock)
+  dropdown_width: 36           # outer width incl. border
+  dropdown_max_height: 16
+  dropdown_min_height: 9
+  # Quick list: [label, IANA zone]; null = system local time.
+  timezones:
+    - ["Local", null]
+    - ["UTC", "UTC"]
+    - ["London", "Europe/London"]
+    - ["Paris / Berlin", "Europe/Paris"]
+    - ["Helsinki / Athens", "Europe/Helsinki"]
+    - ["Moscow", "Europe/Moscow"]
+    - ["Dubai", "Asia/Dubai"]
+    - ["Mumbai", "Asia/Kolkata"]
+    - ["Shanghai / Singapore", "Asia/Shanghai"]
+    - ["Tokyo / Seoul", "Asia/Tokyo"]
+    - ["Sydney", "Australia/Sydney"]
+    - ["New York", "America/New_York"]
+    - ["Chicago", "America/Chicago"]
+    - ["Denver", "America/Denver"]
+    - ["Los Angeles", "America/Los_Angeles"]
+  # Welcome modal and the shared modal look
+  github_url: "https://github.com/a-shygun/terrascope"
+  banner_fill: "█"
+  banner_wide_min_width: 80    # screens at least this wide get the 2x banner
+  banner_color: "#cfd4da"
+  link_color: "#5dade2"
+  modal_bg_color: null          # use the terminal's default background
+  modal_border_color: "#ffffff"
+  modal_text_color: "#e5e9ee"
+  modal_dim_color: "#7c8a98"
+  # Cells are ~2x taller than wide, so horizontal gaps are twice the vertical ones.
+  modal_padding_x: 2           # blank columns between a modal's border and its content
+  modal_padding_y: 1
+  modal_margin_x: 2            # background margin around the border
+  modal_margin_y: 1
+
+# ---------------------------------------------------------------------------
+# Layers. A layer's toggle_key is one character; it must not clash with another
+# layer or with a key bound under app.keys.
+# ---------------------------------------------------------------------------
+layers:
+  # Place-name labels (country names, capitals, cities). No toggle: tabs switch it on.
+  basemap:
+    country_click_expands: true  # clicking a country code toggles its full name
+    country_max_zoom: 8.0      # country names show up to this zoom, then give way to cities
+    capital_min_zoom: 1.0      # national capitals show from this zoom (room permitting)
+    # [min zoom, min population]: from that zoom on, non-capital cities of at least
+    # this many people are candidates. Zoom steps: 1, 1.5, 2.25, 3.4, 5.1, 7.6, 11.4, 17.1, 25.6 ...
+    city_levels: [[2.0, 5000000], [3.0, 2000000], [4.5, 1000000], [7.0, 500000], [10.0, 200000], [15.0, 100000], [22.0, 50000], [35.0, 15000], [50.0, 0]]
+    major_city_min_population: 2000000  # tabs without "detailed": only cities this big
+    country_color: "#ffffff"
+    capital_color: "#e3e9ef"
+    city_colors: [[1000000, "#cfd8e3"], [100000, "#a9b4c0"], [0, "#8c98a4"]]  # [min population, colour]
+    label_padding: 2           # blank columns required between two labels on a row
+    max_labels: 250            # hard cap regardless of space
+    load_retry_seconds: 30     # wait after a failed load                # colours the photo is reduced to (curses colour pairs are limited)
+  flights:
+    enabled: true                # start with the layer on; its toggle key switches it
+    toggle_key: "p"
+    color: "#41AEE1"             # fallback colour of the braille dots (planes use category_colors)
+    # Marker colour per aircraft category. A plane's category comes from its
+    # ADS-B category code when it sends one, otherwise it is guessed from speed
+    # and altitude (see categorize() in flights_layer.py). Every key is needed.
+    category_colors:
+      emergency:  "#ff3b3b"      # squawk 7500 / 7600 / 7700
+      heavy:      "#c77dff"      # widebodies, B757
+      airliner:   "#41AEE1"      # typical jets
+      regional:   "#2ec4b6"      # small jets and turboprops
+      light:      "#6bcb77"      # general aviation
+      helicopter: "#ffd93d"
+      fast:       "#ff9f43"      # high performance / military
+      other:      "#9aa7b4"      # gliders, balloons, drones, unknown
+    refresh_interval_seconds: 300   # minimum time between live requests (OpenSky rate-limits anonymous use)
+    api_url: "https://opensky-network.org/api/states/all?extended=1"
+    request_timeout_seconds: 30
+    history_points: 8            # positions remembered per aircraft (tail + time slider range)
+    arrow_zoom_threshold: 8.0    # at this zoom or higher dots become heading arrows
+    arrow_glyphs: ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"]  # north, then clockwise in 45 degree steps
+    unknown_heading_glyph: "●"
+    # Category guess for aircraft that report none (speed in m/s, altitude in m):
+    light_max_speed_ms: 95.0
+    regional_max_speed_ms: 150.0
+    high_altitude_m: 7000.0
+    legend_glyph: "●"
+    max_extrapolate_age_seconds: 1200  # never move a plane further than this from its last report
+    panel_ratios: [0.5, 0.25, 0.25]  # bottom row widths: [info, plane search, country filter]
+    # Bundled Natural Earth airport locations shown alongside planes. Airport
+    # coordinates come from Natural Earth, not OpenSky's live flight feed.
+    airports:
+      enabled: true               # start with airport markers on; its toggle key switches them
+      toggle_key: "k"
+      color: "#f2c14e"
+      label_color: "#f2c14e"      # airport glyphs and labels, distinct from country text
+      glyph: "▲"                  # marker drawn at every shown airport
+      # [min zoom, max scalerank shown]: from that zoom on, airports whose
+      # Natural Earth scalerank is at most this are candidates (scalerank 0 =
+      # the biggest international hubs). Zoom steps: 1, 1.5, 2.25, 3.4, 5.1, 7.6, 11.4 ...
+      levels: [[1.0, 2], [3.0, 4], [5.0, 6], [8.0, 8], [12.0, 10]]
+      label_min_zoom: 5.0         # IATA/ICAO codes appear from this zoom; click any marker for its full name
+      label_padding: 1            # blank columns required between two airport labels on a row
+      max_labels: 150             # hard cap regardless of space
+      load_retry_seconds: 30      # wait after a failed load
+
+  # The WEATHER tab: city temperatures (with a radar / cloud overlay) and
+  # earthquakes in one layer. The tab switches the whole layer on; inside it each
+  # part has its own toggle key. The cities themselves come from Natural Earth.
+  weather:
+    enabled: true
+    panel_ratios: [0.22, 0.78]  # bottom row widths: [info, forecast]
+    cities:
+      enabled: true              # start with the city labels on
+      toggle_key: "c"
+      color: "#66ff99"           # city label colour when there is no temperature reading yet
+      # Labels are coloured from cold to hot, relative to the coldest and hottest
+      # city currently known (not a fixed temperature scale).
+      temperature_cold_color: "#508cff"
+      temperature_hot_color: "#ff4646"
+      weather_refresh_interval_seconds: 900
+      color_steps: 12            # temperature gradient is snapped to this many colours (fewer = fewer colour pairs)
+      # Which cities get labelled (and weather-fetched):
+      capital_zoom: 1.0          # capitals appear at this zoom or higher...
+      capital_min_population: 2000000  # ...but below capital_all_zoom only capitals this big
+      capital_all_zoom: 5.0      # from this zoom every capital is labelled
+      # [min zoom, min population] for non-capital cities.
+      city_levels: [[2.0, 5000000], [3.0, 2000000], [4.5, 1000000], [7.0, 500000], [10.0, 200000]]
+      max_labels: 120            # most cities labelled at once
+      label_padding: 2           # blank columns required between two labels on a row
+      places_retry_seconds: 30   # wait after a failed city-list load
+      marker_prefix: "• "        # drawn before each city name
+      forecast_days_ahead: 4     # days after today in the forecast box (today is always the first column)
+      forecast_min_column_width: 21  # a day column is dropped rather than made narrower than this
+      forecast_cold_c: -15       # the forecast box colours temperatures on this fixed scale:
+      forecast_hot_c: 40         # temperature_cold_color at the first, temperature_hot_color at the second
+      forecast_today_color: "#5dade2"    # "TODAY" in the forecast box
+      forecast_weekend_color: "#f2c14e"  # Sat / Sun day names
+      # Conditions icon and colour per weather category, shown on a clicked city
+      # and in the forecast box. Keep them single-width glyphs: emoji are drawn
+      # two cells wide and shift the layout.
+      icons:
+        clear:   ["☀", "#ffd93d"]
+        partly:  ["◑", "#ffb347"]
+        cloud:   ["☁", "#aab4c0"]
+        fog:     ["≋", "#8fa3b5"]
+        drizzle: ["☂", "#6cb4ee"]
+        rain:    ["☂", "#3f8cff"]
+        snow:    ["❄", "#bfe9ff"]
+        storm:   ["↯", "#c77dff"]
+        unknown: ["?", "#888888"]
+      api_url: "https://api.open-meteo.com/v1/forecast"   # Open-Meteo, no key needed
+      retry_interval_seconds: 15 # a city whose last fetch failed is retried this soon
+      max_concurrent_requests: 4
+      request_timeout_seconds: 15
+    # Rain radar / clouds drawn under the city labels (LibreWXR). Observed frames
+    # are ~10 min apart and lag real time by about that much. Use the slider
+    # ([ and ]) to step back through history and forward into the forecast
+    # (nowcast) frames, as far as the server publishes them.
+    radar:
+      enabled: true
+      mode: "radar"              # "radar" (rain) or "satellite" (clouds)
+      url: "https://api.librewxr.net"   # or your own; env terrascope_LIBREWXR_URL overrides
+      catalog_refresh_seconds: 300      # LibreWXR publishes a new frame every ~10 min
+      catalog_retry_seconds: 15
+      request_timeout_seconds: 15
+      max_concurrent_tile_requests: 4
+      history_minutes: 0         # drop observed frames older than this many minutes; 0 = keep everything the server offers
+      past_frames: 48            # most observed frames kept (10 min apart; Rain Viewer-style servers publish ~12 = 2 h)
+      nowcast_frames: 12         # most forecast frames after LIVE (10 min apart); 0 = none
+      opacity: 0.65              # 1 = full palette colours, lower = fainter (blends towards blend_color)
+      blend_color: "#1a232d"     # roughly the map's water / land colour
+      satellite_frames: 6        # hourly cloud frames
+      animate: false             # false = hold the live frame still (slider to move); true = loop all frames
+      # The world is fetched as one Web-Mercator raster of 2^world_zoom squared
+      # tiles (z=2, 512px = 16 requests per frame). Raise for finer detail at 4x requests.
+      world_zoom: 2
+      tile_size: 512
+      intensity_min: 16          # raw 8-bit values mapped to 0..1 intensity
+      intensity_max: 200
+      frame_seconds: 0.6         # time each animation frame is shown
+      frame_hold_last_seconds: 1.8  # pause on the newest frame before looping
+      supersample: 2             # samples per half-cell along each axis (1 = fastest, 3 = smoothest)
+      # Number of intensity levels / colours. A cell can need one curses colour pair
+      # per (top, bottom) combination = steps^2 pairs, out of ~255 for the whole
+      # screen. Above ~10 colours start getting mixed up (black / wrong squares).
+      color_steps: 10
+      palette_stops: [[0.00, "#25346e"], [0.30, "#3f58c7"], [0.50, "#8a4fc4"], [0.70, "#f2507b"], [0.88, "#ff8a5a"], [1.00, "#ffd36b"]]
+      cloud_stops: [[0.0, "#2a2f3a"], [1.0, "#f2f4f8"]]
+    earthquakes:
+      enabled: true              # start with the earthquakes on
+      toggle_key: "e"
+      dim_after_hours: 24        # quakes older than this are drawn faded, fresh ones bright
+      min_magnitude: 2.5         # events below this are hidden
+      refresh_interval_seconds: 300
+      api_url: "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojson"
+      request_timeout_seconds: 30
+      filter_options: ["3.0+", "4.5+", "6.0+", "7.5+"]   # the O filter; keep the "X.Y+" format
+      # [upper limit, colour]: an event takes the colour of the first band whose
+      # limit is above its magnitude; at or above the last limit it gets major_color.
+      magnitude_bands: [[3.0, "#ffd93d"], [4.5, "#ff9f43"], [6.0, "#ff4d4d"], [7.5, "#c0392b"]]
+      major_color: "#7c2d92"
+      unknown_color: "#888888"   # events with no magnitude
+      # Marker symbol by size: [min magnitude, glyph], checked top down (unknown magnitude = first).
+      # Where quakes overlap, the strongest is drawn on top (< and > step through the stack).
+      glyphs: [[0.0, "•"], [4.5, "●"], [6.0, "◉"], [7.5, "★"]]
+
+  night:
+    enabled: false               # off at launch; its toggle key switches it on
+    toggle_key: "n"
+    update_seconds: 60           # how often the map phase bands are recalculated
+    panel_ratios: [0.28, 0.40, 0.32]  # bottom row widths: [clock, sun, moon]
+    # Solar elevation (degrees) at which each band starts, checked from the sun's
+    # highest point down. Below "astro" it is night.
+    thresholds: {day: 5.0, sunrise: 0.0, civil: -6.0, nautical: -12.0, astro: -18.0}
+    # Each phase has its own colour used for both the seam line and the
+    # filled-land stipple in that band.  null or false = skip that phase
+    # entirely (no seam, no stipple).
+    day_color:              "#ffee88"   # full day          (elevation above thresholds.day)
+    sunrise_color:          "#ffaa33"   # sunrise / sunset
+    civil_twilight_color:   "#cc6622"   # civil twilight
+    nautical_twilight_color: "#445577"  # nautical twilight
+    astro_twilight_color:   "#222244"   # astronomical twilight
+    # below the astro threshold = night → no colour, no tint
+    # Land in each phase is tinted with that phase's colour as a background, at this
+    # opacity (0 = no tint, 1 = the full bright colour). Country borders stay as usual.
+    tint_opacity: 0.25
+    look: "fill"                 # starting look: "tint" (coloured land background) or "fill" (dotted fill)
+    look_key: "l"                # key that switches between the two (also a button on the map's bottom border)

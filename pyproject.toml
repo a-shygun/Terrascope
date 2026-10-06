@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "terrascope"
+version = "0.1.0"
+description = "A Braille terminal map with live weather, aircraft, and earthquake layers."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Amir Shygun", email = "a-shygun@users.noreply.github.com" }]
+keywords = ["curses", "terminal", "tui", "map", "braille", "weather", "flight-tracking", "opensky"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console :: Curses",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS",
+    "Topic :: Terminals",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+dependencies = [
+    "numpy>=1.24",
+    "Pillow>=10.0",
+    "PyYAML>=6.0",
+    "pyshp>=2.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/a-shygun/terrascope"
+Repository = "https://github.com/a-shygun/terrascope"
+Issues = "https://github.com/a-shygun/terrascope/issues"
+
+[project.scripts]
+terrascope = "terrascope.__main__:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/terrascope"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/README.md",
+    "/LICENSE",
+    "/docs/RELEASING.md",
+]
