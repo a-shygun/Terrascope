@@ -42,6 +42,7 @@ from terrascope.core.world import Frame, WorldMap
 APP_CONFIG = CFG["app"]
 RESIZE_SETTLE_SECONDS = 0.3
 PANEL_VISIBLE_AT_START = bool(APP_CONFIG["panel_visible_at_start"])
+PANEL_ORIENTATION_AT_START = CFG["ui"].get("panel_orientation", "horizontal")
 MIN_TERMINAL_WIDTH = APP_CONFIG["min_terminal_width"]
 MIN_TERMINAL_HEIGHT = APP_CONFIG["min_terminal_height"]
 MAX_KEYS_PER_LOOP = APP_CONFIG["max_keys_per_loop"]

@@ -287,10 +287,15 @@ class Layer:
         """Title of the "rich" panel box called `title` (override to add to it)."""
         return title or ""
 
-    def rich_lines(self, title: str | None, width: int, height: int) -> list[list[tuple]]:
+    def rich_lines(
+        self, title: str | None, width: int, height: int,
+        vertical: bool = False, scroll: int = 0,
+    ) -> list[list[tuple]]:
         """Lines of the "rich" panel box called `title`; `width` x `height` is
         the room inside its border. Each line is a list of (text, "#rrggbb" or
-        None, style) pieces, style being "", "bold" or "dim"."""
+        None, style) pieces, style being "", "bold" or "dim". `vertical`
+        indicates that the panel is in a left-side column; `scroll` is its
+        vertical content offset."""
         return []
 
     def border_buttons(self) -> list[str]:

@@ -1,13 +1,14 @@
-name: Release
+name: Build and publish
 
 on:
+  pull_request:
   push:
-    tags:
-      - "v*"
+    branches: ["**"]
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag to build and publish
+        description: Existing version tag to package
         required: true
         type: string
 
@@ -16,10 +17,10 @@ permissions:
 
 jobs:
   build:
-    name: Build and validate distributions
+    name: Build and smoke-check Python package
     runs-on: ubuntu-latest
     steps:
-      - name: Check out release tag
+      - name: Check out source
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref }}
@@ -29,45 +30,206 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Match tag to package version
-        run: |
-          python -c 'import os, tomllib; version = tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]; tag = os.environ.get("RELEASE_TAG") or os.environ["GITHUB_REF_NAME"]; assert tag == f"v{version}", f"tag {tag} does not match project version {version}"'
+      - name: Check release tag version
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
 
-      - name: Build source and wheel distributions
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          tag = os.environ["RELEASE_TAG"]
+          if tag != f"v{version}":
+              raise SystemExit(f"tag {tag} does not match project version {version}")
+          PY
+
+      - name: Build distributions
         run: |
           python -m pip install --upgrade build twine
           python -m build
           python -m twine check dist/*
           python scripts/check_distributions.py dist
-          python -m pip install dist/*.whl
-          terrascope --version
-          terrascope --help
 
-      - name: Save distributions
+      - name: Smoke-check installed wheel
+        run: |
+          python -m venv .smoke-venv
+          .smoke-venv/bin/python -m pip install dist/*.whl
+          .smoke-venv/bin/terrascope --version
+          .smoke-venv/bin/terrascope --help
+
+      - name: Save Python distributions
         uses: actions/upload-artifact@v4
         with:
-          name: python-distributions
+          name: distributions
           path: dist/*
           if-no-files-found: error
           retention-days: 7
 
-  publish-pypi:
-    name: Publish to PyPI
+  release_packages:
+    name: Build ${{ matrix.platform }} download
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux_x86_64
+            deb_arch: amd64
+          - os: ubuntu-22.04-arm
+            platform: linux_arm64
+            deb_arch: arm64
+          - os: macos-15-intel
+            platform: macos_x86_64
+          - os: macos-15
+            platform: macos_arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build standalone CLI
+        run: |
+          python -m pip install --upgrade pyinstaller
+          python -m pip install .
+          cat > "$RUNNER_TEMP/terrascope_entrypoint.py" <<'PY'
+          from terrascope.core.cli import run
+
+          if __name__ == "__main__":
+              run()
+          PY
+          pyinstaller --clean --noconfirm --onefile \
+            --name terrascope \
+            --collect-all terrascope \
+            --collect-all numpy \
+            --collect-all PIL \
+            --collect-all yaml \
+            --copy-metadata terrascope \
+            "$RUNNER_TEMP/terrascope_entrypoint.py"
+
+      - name: Package macOS and Linux CLI archives
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          mkdir -p dist
+          tar -czf "dist/terrascope_${version}_${PLATFORM}.tar.gz" -C dist terrascope
+
+      - name: Package Debian installer
+        if: runner.os == 'Linux'
+        env:
+          DEB_ARCH: ${{ matrix.deb_arch }}
+          PLATFORM: ${{ matrix.platform }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          package_root="$(mktemp -d)"
+          install -D -m 755 dist/terrascope "$package_root/usr/bin/terrascope"
+          install -d "$package_root/DEBIAN"
+          cat > "$package_root/DEBIAN/control" <<EOF
+          Package: terrascope
+          Version: ${version}
+          Section: utils
+          Priority: optional
+          Architecture: ${DEB_ARCH}
+          Maintainer: Terrascope maintainers <a-shygun@users.noreply.github.com>
+          Depends: libc6, libncursesw6, libtinfo6
+          Description: Braille-rendered interactive world map for the terminal
+           Terrascope shows live weather, aircraft, earthquakes, and day/night layers.
+          EOF
+          dpkg-deb --root-owner-group --build \
+            "$package_root" "dist/terrascope_${version}_${PLATFORM}.deb"
+
+      - name: Save platform downloads
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: dist/terrascope_*
+          if-no-files-found: error
+          retention-days: 7
+
+  create_github_release:
+    name: Create GitHub Release and upload downloads
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: [build, release_packages]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download Python distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: release-assets/
+
+      - name: Download platform downloads
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets/
+          merge-multiple: true
+
+      - name: Generate SHA-256 checksums
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+
+          assets = sorted(path for path in Path("release-assets").iterdir() if path.is_file())
+          lines = [
+              f"{hashlib.sha256(asset.read_bytes()).hexdigest()}  {asset.name}"
+              for asset in assets
+          ]
+          (Path("release-assets") / "terrascope_checksums.txt").write_text(
+              "\n".join(lines) + "\n", encoding="utf-8"
+          )
+          PY
+
+      - name: Create release if needed and upload files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --generate-notes \
+              --title "Terrascope ${RELEASE_TAG#v}"
+          fi
+          gh release upload "$RELEASE_TAG" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+  publish_pypi:
+    name: Publish Python distributions to PyPI
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/p/terrascope
     permissions:
+      actions: read
       id-token: write
     steps:
-      - name: Download built distributions
+      - name: Download Python distributions
         uses: actions/download-artifact@v4
         with:
-          name: python-distributions
+          name: distributions
           path: dist/
 
-      - name: Publish distributions
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

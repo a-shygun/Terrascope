@@ -148,11 +148,28 @@ class MouseMixin:
                     if self.mode != "filter":
                         self.enter_filter_mode()
                     options = self.filter_suggestions()
-                    room = max(1, box_height - 3)
+                    room = max(1, box_height - 4)
                     delta = -1 if kind == "scroll_up" else 1
                     self.filter_scroll = max(0, min(max(0, len(options) - room), self.filter_scroll + delta))
                     self.world.dirty = True
                     return
+            forecast_rect = layout.rect_of("rich")
+            if (
+                self.panel_orientation == "vertical"
+                and forecast_rect is not None
+                and forecast_rect[1] <= mouse_x < forecast_rect[1] + forecast_rect[3]
+                and forecast_rect[0] <= mouse_y < forecast_rect[0] + forecast_rect[2]
+            ):
+                owner = self.panel_owner()
+                if owner is not None and owner.name == "weather":
+                    visible = max(0, forecast_rect[2] - 2)
+                    max_scroll = max(0, owner.forecast_line_count() - visible)
+                    direction = -1 if kind == "scroll_up" else 1
+                    self.forecast_scroll = max(
+                        0, min(max_scroll, self.forecast_scroll + direction * 3)
+                    )
+                    self.world.dirty = True
+                return
             # Wheel: zoom terrascope the pointer.
             if in_map(mouse_x, mouse_y):
                 self.world.zoom_at(
@@ -187,7 +204,7 @@ class MouseMixin:
                     if self.mode != "filter":
                         self.enter_filter_mode()
                     else:
-                        option_index = self.filter_scroll + mouse_y - (top + 2)
+                        option_index = self.filter_scroll + mouse_y - (top + 3)
                         options = self.filter_suggestions()
                         if 0 <= option_index < len(options):
                             option = options[option_index]
@@ -260,6 +277,16 @@ class MouseMixin:
                             return
                     if controls.button_x <= mouse_x < controls.button_x + controls.button_width:
                         self.controls_expanded = not self.controls_expanded
+                        self.world.dirty = True
+                        return
+                    if (
+                        controls.orientation_width
+                        and controls.orientation_x <= mouse_x
+                        < controls.orientation_x + controls.orientation_width
+                    ):
+                        self.panel_orientation = (
+                            "vertical" if self.panel_orientation == "horizontal" else "horizontal"
+                        )
                         self.world.dirty = True
                         return
                     if controls.datetime_x <= mouse_x < controls.datetime_x + controls.datetime_width:

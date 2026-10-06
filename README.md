@@ -1,9 +1,9 @@
 # terrascope
 
-[![CI](https://github.com/a-shygun/terrascope/actions/workflows/ci.yml/badge.svg)](https://github.com/a-shygun/terrascope/actions/workflows/ci.yml)
+[![CI](https://github.com/a-shygun/Terrascope/actions/workflows/ci.yml/badge.svg)](https://github.com/a-shygun/Terrascope/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/terrascope)](https://pypi.org/project/terrascope/)
 [![Python](https://img.shields.io/pypi/pyversions/terrascope)](https://pypi.org/project/terrascope/)
-[![License](https://img.shields.io/github/license/a-shygun/terrascope)](LICENSE)
+[![License](https://img.shields.io/github/license/a-shygun/Terrascope)](LICENSE)
 
 `terrascope` is an interactive world map for the terminal. It renders countries,
 place names, live aircraft, city weather, radar/cloud overlays, earthquakes, and
@@ -55,7 +55,8 @@ Terrascope also includes recipes for Nix and Homebrew:
 # Nix, from a Terrascope checkout
 nix run ./packaging/nix
 
-# Homebrew, after adding the tap
+# Homebrew
+brew tap a-shygun/terrascope
 brew install a-shygun/terrascope/terrascope
 ```
 
@@ -107,6 +108,7 @@ terrascope --offline
 ```bash
 terrascope --help                         # all options and defaults
 terrascope --tab weather --offline        # open a tab using cached data only
+terrascope --panel-orientation vertical   # put the panel in a left sidebar
 terrascope --no-radar --no-airports       # disable optional overlays
 terrascope --disable-layer night          # start with a layer disabled
 terrascope --config ~/terrascope.yaml     # load additional settings
@@ -139,10 +141,19 @@ map appears. Errors and background warnings are written to the log file shown by
 | `<` / `>` | Step through overlapping selections |
 | `/` | Search |
 | `O` | Open filter prompt |
-| `H` | Show or hide the bottom panel |
+| `H` | Show or hide the panel |
 | `?` | Open the welcome/help modal |
 | `Esc` | Close prompts or clear selection/filter state |
 | `Q` | Quit |
+
+Click `[+]` beside the clock to expand the top controls, then click the panel
+placement label (`PANEL: BOTTOM` or `PANEL: LEFT`) to switch the panel between
+the horizontal bottom row and vertical left sidebar. The default is vertical;
+`--panel-orientation vertical` or `--panel-orientation horizontal` selects the
+starting layout for one run. `--set ui.panel_orientation=vertical` also works.
+In the vertical weather panel, scroll over the forecast to move through each
+day's full detail, including its temperature graph, conditions, precipitation,
+wind, and sunrise/sunset.
 
 Layer-specific keys:
 

@@ -115,7 +115,7 @@ class DayNightLayer(Layer):
         """Scrub solar phases through the 24 hours before and after now."""
         index = self._time_offset_hours + 24
         caption = "NOW" if self._time_offset_hours == 0 else f"{self._time_offset_hours:+d}h"
-        return SliderSpec("TIME", 49, index, caption, marker=24)
+        return SliderSpec("TIME", 49, index, caption, marker=24, wide=True)
 
     def set_slider(self, index: int) -> None:
         self._time_offset_hours = max(-24, min(24, int(index) - 24))

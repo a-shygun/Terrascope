@@ -10,6 +10,7 @@ from .shared import (
     ColorManager,
     Frame,
     PANEL_VISIBLE_AT_START,
+    PANEL_ORIENTATION_AT_START,
     START_TAB,
     SimpleQueue,
     WorldMap,
@@ -40,6 +41,7 @@ class TerrascopeApp(LifecycleMixin, MouseMixin, TimezoneMixin, InputMixin, Rende
         self._frame_size: tuple[int, int] | None = None
         self.info_visible = False
         self.panel_visible = PANEL_VISIBLE_AT_START
+        self.panel_orientation = PANEL_ORIENTATION_AT_START
         self.map_data_queue: SimpleQueue = SimpleQueue()
         self.map_loading = False
         self.map_error = ""
@@ -71,6 +73,8 @@ class TerrascopeApp(LifecycleMixin, MouseMixin, TimezoneMixin, InputMixin, Rende
         # Controls bar (top-right): collapsed to the clock by default.
         self.controls_expanded = False
         self._controls_layout = None
+        self.forecast_scroll = 0
+        self._forecast_city_key = None
         # Timezone dropdown, opened by clicking the clock.
         self.tz_dropdown_open = False
         self.selected_timezone: str | None = None  # None = local system time

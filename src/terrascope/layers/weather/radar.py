@@ -11,7 +11,7 @@ import urllib.request
 from queue import Empty, Queue
 import numpy as np
 from PIL import Image
-from terrascope.core.config import USER_AGENT
+from terrascope.core.config import CACHE_DIR, USER_AGENT
 from terrascope.core.mapdata import set_live_progress
 from terrascope.core.ui import hex_to_rgb
 from terrascope.core.view import View
@@ -184,8 +184,106 @@ class RadarStore:
         self._rasters: dict[int, np.ndarray] = {}
         self._checked_at = 0.0
         self._failed = False
+        self._using_cache = False
         self._last_error = ""
         self._busy = False
+        self._load_cache()
+
+    def _cache_manifest(self):
+        return CACHE_DIR / f"radar-{self._mode}-cache.json"
+
+    def _cache_raster(self, timestamp: int):
+        return CACHE_DIR / f"radar-{self._mode}-{timestamp}.npy"
+
+    def _load_cache(self) -> None:
+        """Restore the last usable frames before trying the network."""
+        try:
+            data = json.loads(self._cache_manifest().read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return
+        if not isinstance(data, dict) or data.get("version") != 1:
+            return
+        entries = data.get("frames")
+        if not isinstance(entries, list):
+            return
+        side = (2**WORLD_ZOOM) * TILE_SIZE
+        frames = []
+        rasters = {}
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            try:
+                timestamp = int(entry["time"])
+                raster = np.load(self._cache_raster(timestamp), allow_pickle=False)
+            except (KeyError, TypeError, ValueError, OSError, EOFError, OverflowError):
+                continue
+            if not isinstance(raster, np.ndarray):
+                continue
+            if raster.shape != (side, side) or raster.dtype != np.uint8:
+                continue
+            frames.append({
+                "time": timestamp,
+                "path": "",
+                "nowcast": bool(entry.get("nowcast", False)),
+            })
+            rasters[timestamp] = raster
+        frames.sort(key=lambda frame: frame["time"])
+        with self._lock:
+            self._frames = frames
+            self._rasters = rasters
+            self._using_cache = bool(rasters)
+
+    def _save_raster(self, frame: dict, raster: np.ndarray) -> None:
+        try:
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            path = self._cache_raster(frame["time"])
+            temporary = path.with_suffix(path.suffix + ".tmp")
+            with temporary.open("wb") as stream:
+                np.save(stream, raster, allow_pickle=False)
+            temporary.replace(path)
+        except OSError:
+            return
+
+    def _save_cache(self) -> None:
+        """Persist the metadata for rasters represented by the current catalog."""
+        with self._lock:
+            frames = [
+                dict(frame) for frame in self._frames
+                if frame["time"] in self._rasters
+            ]
+        if not frames:
+            try:
+                self._cache_manifest().unlink(missing_ok=True)
+            except OSError:
+                pass
+            return
+        try:
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            manifest = self._cache_manifest()
+            temporary = manifest.with_suffix(manifest.suffix + ".tmp")
+            payload = {
+                "version": 1,
+                "frames": [
+                    {"time": frame["time"], "nowcast": bool(frame.get("nowcast"))}
+                    for frame in frames
+                ],
+            }
+            temporary.write_text(json.dumps(payload), encoding="utf-8")
+            temporary.replace(manifest)
+        except OSError:
+            return
+
+    def _prune_cache(self, keep: set[int]) -> None:
+        try:
+            for path in CACHE_DIR.glob(f"radar-{self._mode}-*.npy"):
+                try:
+                    timestamp = int(path.stem.rsplit("-", 1)[-1])
+                except ValueError:
+                    continue
+                if timestamp not in keep:
+                    path.unlink(missing_ok=True)
+        except OSError:
+            pass
 
     def ensure_fresh(self) -> None:
         with self._lock:
@@ -212,10 +310,15 @@ class RadarStore:
         with self._lock:
             return self._failed
 
+    def cached_fallback(self) -> bool:
+        with self._lock:
+            return self._using_cache and bool(self._rasters)
+
     def mark_failed(self, error: str) -> None:
         """Record a failed startup fetch so the normal retry path can recover."""
         with self._lock:
             self._failed = True
+            self._using_cache = bool(self._rasters)
             self._last_error = str(error)
             self._checked_at = time.time()
 
@@ -241,13 +344,19 @@ class RadarStore:
             self._frames = list(frames)
             wanted = {frame["time"] for frame in frames}
             self._rasters = {stamp: raster for stamp, raster in self._rasters.items() if stamp in wanted}
+            kept = set(self._rasters)
+        self._save_cache()
+        self._prune_cache(kept)
 
     def install_raster(self, frame: dict, raster: np.ndarray) -> None:
         with self._lock:
             self._rasters[frame["time"]] = raster
             self._failed = False
+            self._using_cache = False
             self._last_error = ""
             self._checked_at = time.time()
+        self._save_raster(frame, raster)
+        self._save_cache()
         if self._on_update is not None:
             self._on_update()
 
@@ -262,6 +371,7 @@ class RadarStore:
                 return
             with self._lock:
                 self._frames = frames
+                self._using_cache = False
                 wanted = {f["time"] for f in frames}
                 self._rasters = {t: r for t, r in self._rasters.items() if t in wanted}
                 missing = sorted(
@@ -269,6 +379,9 @@ class RadarStore:
                     key=lambda f: (f["nowcast"], -f["time"]),
                 )
                 completed = len(frames) - len(missing)
+                kept = set(self._rasters)
+            self._save_cache()
+            self._prune_cache(kept)
             set_live_progress(
                 "radar", state="downloading", downloaded=completed,
                 total=max(1, len(frames)),
@@ -299,6 +412,7 @@ class RadarStore:
                 threading.Thread(
                     target=fetch_worker, name=f"terrascope-radar-{index + 1}", daemon=True
                 ).start()
+            failed_frames = 0
             for _ in missing:
                 frame, raster = results.get()
                 completed += 1
@@ -307,15 +421,23 @@ class RadarStore:
                     total=max(1, len(frames)),
                 )
                 if raster is None:
+                    failed_frames += 1
                     continue
                 with self._lock:
                     self._rasters[frame["time"]] = raster
+                self._save_raster(frame, raster)
+                self._save_cache()
                 if self._on_update is not None:
                     self._on_update()
             with self._lock:
-                self._failed = not self._rasters
+                self._failed = not self._rasters or failed_frames > 0
+                self._using_cache = self._failed
                 self._checked_at = time.time()
-            error = "" if self._rasters else "No radar frames could be downloaded"
+            error = (
+                "Some radar frames could not be downloaded" if failed_frames
+                else "No radar frames could be downloaded" if not self._rasters
+                else ""
+            )
             set_live_progress(
                 "radar", state="failed" if self._failed else "ready",
                 downloaded=completed, total=max(1, len(frames)), error=error,

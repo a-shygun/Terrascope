@@ -138,5 +138,5 @@ class LifecycleMixin:
             )
         return compute_layout(
             height, width, self.panel_visible and self.panel_allowed(), owner,
-            panel_layout,
+            panel_layout, self.panel_orientation,
         )

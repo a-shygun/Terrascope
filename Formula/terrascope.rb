@@ -3,7 +3,7 @@ class Terrascope < Formula
 
   desc "Braille-rendered terminal world map with live weather and aircraft"
   homepage "https://github.com/a-shygun/terrascope"
-  url "https://github.com/a-shygun/terrascope.git", tag: "v0.1.0"
+  url "https://github.com/a-shygun/terrascope.git", tag: "v0.2.0"
   license "MIT"
 
   depends_on "python@3.13"

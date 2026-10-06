@@ -59,7 +59,9 @@ DEFAULT_CONFIG_FILE = _install_default_config()
 # Settings that are not in default.yaml (commented out / optional) but that
 # are valid to set. Without this, user config files and `--set` would flag
 # them as unknown.
-OPTIONAL_KEYS = frozenset({"map.province_color", "layers.night.seam_glyph"})
+OPTIONAL_KEYS = frozenset({
+    "map.province_color", "layers.night.seam_glyph", "ui.panel_orientation",
+})
 # Sections whose keys are free-form (users may add their own entries).
 FREE_FORM_KEYS = frozenset({"map.country_code_overrides"})
 
@@ -202,6 +204,10 @@ def validate_config(candidate: dict | None = None) -> None:
         value = get_path_from(values, path) if path not in OPTIONAL_KEYS else values.get("map", {}).get("province_color")
         if value is not None and not re.fullmatch(r"#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})", value):
             raise ConfigError(f"{path}: expected a hex color or null")
+
+    orientation = values.get("ui", {}).get("panel_orientation", "horizontal")
+    if orientation not in {"horizontal", "vertical"}:
+        raise ConfigError("ui.panel_orientation must be horizontal or vertical")
 
     log_file = values["app"]["log_file"]
     if (not log_file or log_file in {".", ".."}

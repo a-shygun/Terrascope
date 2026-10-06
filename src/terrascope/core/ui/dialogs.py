@@ -22,7 +22,6 @@ from .constants import (
     LIVE_BOX_MAX_LABEL_WIDTH,
     Layer,
     MODAL_BG_COLOR,
-    MODAL_BORDER_COLOR,
     MODAL_CONTENT,
     MODAL_DIM_COLOR,
     MODAL_MARGIN_X,
@@ -40,7 +39,6 @@ from .constants import (
     WELCOME_SKIP_BUTTON,
     WELCOME_TAGLINE,
     _BANNER_FONT,
-    _BOX,
     curses,
     dataclass,
     textwrap
@@ -48,52 +46,18 @@ from .constants import (
 from .layout import (
     concise_error_message,
     draw_box,
+    _draw_modal_frame,
     safe_addstr
 )
 from .map import (
     _put_clipped
 )
 
+@dataclass
 class LinkLayout:
     row: int
     left: int
     width: int
-
-def _draw_filled_box(
-    window, top: int, left: int, height: int, width: int, title: str, pair: int
-) -> None:
-    """Draw a modal outline over spaces using the terminal's default background."""
-    blank = " " * width
-    for row in range(top, top + height):
-        safe_addstr(window, row, left, blank, pair)
-    if height < 2 or width < 2:
-        return
-    horizontal = _BOX["horizontal"] * (width - 2)
-    safe_addstr(window, top, left, _BOX["top_left"] + horizontal + _BOX["top_right"], pair)
-    for row in range(top + 1, top + height - 1):
-        safe_addstr(window, row, left, _BOX["vertical"], pair)
-        safe_addstr(window, row, left + width - 1, _BOX["vertical"], pair)
-    safe_addstr(window, top + height - 1, left, _BOX["bottom_left"] + horizontal + _BOX["bottom_right"], pair)
-    if title:
-        title_text = f" {title} "
-        if len(title_text) < width - 2:
-            safe_addstr(window, top, left + 2, title_text, pair | curses.A_BOLD)
-
-def _draw_modal_frame(
-    window, top: int, left: int, height: int, width: int, title: str, colors
-) -> None:
-    """Draw a white modal outline over the terminal's default background."""
-    screen_height, screen_width = window.getmaxyx()
-    margin_pair = colors.get_pair(MODAL_TEXT_COLOR, MODAL_BG_COLOR)
-    first_col = max(0, left - MODAL_MARGIN_X)
-    last_col = min(screen_width, left + width + MODAL_MARGIN_X)
-    blank = " " * max(0, last_col - first_col)
-    for row in range(
-        max(0, top - MODAL_MARGIN_Y), min(screen_height, top + height + MODAL_MARGIN_Y)
-    ):
-        safe_addstr(window, row, first_col, blank, margin_pair)
-    card_pair = colors.get_pair(MODAL_BORDER_COLOR, MODAL_BG_COLOR)
-    _draw_filled_box(window, top, left, height, width, title, card_pair)
 
 def _banner_lines(scale: int, text: str = BANNER_TEXT) -> list[str]:
     rows = ["" for _ in range(BANNER_ROWS)]
@@ -108,17 +72,16 @@ def _banner_lines(scale: int, text: str = BANNER_TEXT) -> list[str]:
                 rows[row] += gap
     return rows
 
-def _flatten_modal_body() -> list[tuple[str, bool]]:
-    """(text, bold) rows for the modal body, with "@tabs" expanded into one
-    row per tab."""
-    rows: list[tuple[str, bool]] = []
+def _flatten_modal_body() -> list[tuple[str, bool, bool]]:
+    """(text, bold, left-aligned) rows with "@tabs" expanded into tab rows."""
+    rows: list[tuple[str, bool, bool]] = []
     for text, kind in MODAL_CONTENT:
         if text == "@tabs":
             for index, tab in enumerate(TABS):
                 label = f" {index + 1} {tab.label}".ljust(12)
-                rows.append((f"{label}{tab.blurb}", False))
+                rows.append((f"{label}{tab.blurb}", False, True))
             continue
-        rows.append((text, kind is None and bool(text)))
+        rows.append((text, kind is None and bool(text), text == "EXPLORE"))
     return rows
 
 def draw_welcome_modal(
@@ -133,9 +96,9 @@ def draw_welcome_modal(
     compact = screen_height < 42 or screen_width < 100
     body = (
         [
-            ("MAP  ·  TIME  ·  WEATHER  ·  PLANES", False),
-            ("WASD / arrows pan  ·  +/- zoom  ·  click markers", False),
-            ("? guide  ·  Esc close  ·  H panel  ·  Q quit", False),
+            ("MAP  ·  TIME  ·  WEATHER  ·  PLANES", False, False),
+            ("WASD / arrows pan  ·  +/- zoom  ·  click markers", False, False),
+            ("? guide  ·  Esc close  ·  H panel  ·  Q quit", False, False),
         ]
         if compact
         else _flatten_modal_body()
@@ -153,14 +116,29 @@ def draw_welcome_modal(
     preferred_width = max(96, banner_width + 2 + 2 * MODAL_PADDING_X + 8)
     width = max(40, min(screen_width - MODAL_MARGIN_X * 2, preferred_width))
     inner_width = max(1, width - 2 - 2 * MODAL_PADDING_X)
-    wrapped_body: list[tuple[str, bool]] = []
-    for text, bold in body:
+    wrapped_body: list[tuple[str, bool, bool]] = []
+    for text, bold, left_aligned in body:
         if text:
-            wrapped_body.extend((line, bold) for line in textwrap.wrap(text, width=inner_width) or [""])
+            wrapped_body.extend(
+                (line, bold, left_aligned)
+                for line in textwrap.wrap(text, width=inner_width) or [""]
+            )
         else:
-            wrapped_body.append(("", bold))
+            wrapped_body.append(("", bold, left_aligned))
     body = wrapped_body
-    content_rows = len(banner) + 1 + 2 + 2 + len(body) + (13 if province_prompt else 11)
+    content_rows = len(banner) + 1 + (1 if not compact else 0)
+    if not compact:
+        content_rows += 1  # space below the tagline
+    content_rows += 3  # first-run heading, status, and progress bar
+    if not compact:
+        content_rows += 1  # space between progress and guide text
+    content_rows += len(body)
+    if not compact:
+        content_rows += 1  # space before the GitHub link
+    content_rows += 4  # link, close hint, reopen hint, and button spacing
+    if province_prompt:
+        content_rows += 3  # prompt, choices, and gap before the skip button
+    content_rows += 1  # skip button
     height = max(12, min(screen_height - MODAL_MARGIN_Y * 2, content_rows + 2 + MODAL_PADDING_Y * 2))
     top = max(0, (screen_height - height) // 2)
     left = max(0, (screen_width - width) // 2)
@@ -193,6 +171,8 @@ def draw_welcome_modal(
             window, y, banner_left + terra_width + scale,
             scope_line, limit_x, curses.A_BOLD | scope_pair,
         )
+        y += 1
+    if not compact:
         y += 1
     if y < bottom:
         centered(tagline, dim_pair)
@@ -257,11 +237,18 @@ def draw_welcome_modal(
     if not compact:
         y += 1
 
-    for text, bold in body:
+    aligned_width = max(
+        (len(text) for text, _bold, left_aligned in body if left_aligned),
+        default=0,
+    )
+    aligned_left = left + max(1 + MODAL_PADDING_X, (width - aligned_width) // 2)
+    for text, bold, left_aligned in body:
         if y >= bottom:
             break
         if text:
-            x = left + max(1 + MODAL_PADDING_X, (width - len(text)) // 2)
+            x = aligned_left if left_aligned else left + max(
+                1 + MODAL_PADDING_X, (width - len(text)) // 2
+            )
             _put_clipped(window, y, x, text, limit_x, text_pair | (curses.A_BOLD if bold else 0))
         y += 1
     if not compact:
@@ -288,9 +275,9 @@ def draw_welcome_modal(
     if province_prompt and y < bottom:
         centered("Optional: download state / province borders (~25MB)?", dim_pair)
         y += 1
-        yes_text = "[Y DOWNLOAD]"
-        no_text = "[N KEEP OFF]"
-        gap = "   "
+        yes_text = " [Y DOWNLOAD] "
+        no_text = " [N KEEP OFF] "
+        gap = "  "
         total_width = len(yes_text) + len(gap) + len(no_text)
         yes_x = left + max(1 + MODAL_PADDING_X, (width - total_width) // 2)
         no_x = yes_x + len(yes_text) + len(gap)
@@ -299,7 +286,7 @@ def draw_welcome_modal(
         no_end = _put_clipped(window, y, no_x, no_text, limit_x, curses.A_BOLD | curses.A_REVERSE | text_pair)
         province_yes_layout = LinkLayout(y, yes_x, max(0, yes_end - yes_x))
         province_no_layout = LinkLayout(y, no_x, max(0, no_end - no_x))
-        y += 1
+        y += 2
     if y < bottom:
         x = left + max(1 + MODAL_PADDING_X, (width - len(WELCOME_SKIP_BUTTON)) // 2)
         attrs = curses.A_BOLD | curses.A_REVERSE | text_pair

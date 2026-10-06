@@ -39,6 +39,8 @@ LAYER_TAB_GAP = UI["tab_gap"]
 
 PANEL_HEIGHT = UI["panel_height"]
 
+PANEL_WIDTH = 32
+
 PANEL_MIN_HEIGHT = UI["panel_min_height"]
 
 PANEL_MIN_MAP_HEIGHT = UI["panel_min_map_height"]
@@ -63,7 +65,7 @@ SCALE_BAR_MIN_BAR_COLUMNS = UI["scale_bar_min_bar_columns"]
 
 MAP_EDGE_PAD_X = UI["map_edge_pad_x"]
 
-MAP_EDGE_PAD_Y = UI["map_edge_pad_y"]
+MAP_EDGE_PAD_Y = max(0, UI["map_edge_pad_y"] - 1)
 
 SLIDER_TRACK_COLUMNS = UI["slider_track_columns"]
 
@@ -143,11 +145,19 @@ TIMEZONE_OPTIONS: tuple[tuple[str, str | None], ...] = tuple(
 
 DROPDOWN_TITLE = "TIMEZONE"
 
-DROPDOWN_WIDTH = UI["dropdown_width"]
+DROPDOWN_WIDTH = min(UI["dropdown_width"], 34)
 
-DROPDOWN_MAX_HEIGHT = UI["dropdown_max_height"]
+DROPDOWN_PADDING_X = UI.get("dropdown_padding_x", 1)
 
-DROPDOWN_MIN_HEIGHT = UI["dropdown_min_height"]
+DROPDOWN_PADDING_Y = UI.get("dropdown_padding_y", 0)
+
+DROPDOWN_MARGIN_X = UI.get("dropdown_margin_x", 1)
+
+DROPDOWN_MARGIN_Y = UI.get("dropdown_margin_y", 0)
+
+DROPDOWN_MAX_HEIGHT = min(UI["dropdown_max_height"], 14)
+
+DROPDOWN_MIN_HEIGHT = min(UI["dropdown_min_height"], 8)
 
 DROPDOWN_PLACEHOLDER = "> search all timezones"
 
@@ -196,9 +206,9 @@ _BANNER_FONT: dict[str, tuple[str, ...]] = {
 
 WELCOME_TAGLINE = "A live map of the world, drawn in braille, right in your terminal."
 
-WELCOME_DISMISS_HINT = "Press Esc or click outside to continue"
+WELCOME_DISMISS_HINT = "Esc/click outside: close"
 
-WELCOME_REOPEN_HINT = "Press ? to open this guide again"
+WELCOME_REOPEN_HINT = "? to reopen this guide"
 
 WELCOME_SKIP_BUTTON = "[ DON'T SHOW AGAIN ]"
 

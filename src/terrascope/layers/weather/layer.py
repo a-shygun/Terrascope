@@ -67,9 +67,13 @@ from terrascope.layers.weather.earthquakes import (
     magnitude_to_glyph,
 )
 from terrascope.layers.weather.forecast import (
+    FORECAST_ROWS,
+    VERTICAL_DAY_SEPARATOR_ROWS,
     city_key,
     city_population_floor,
     forecast_lines,
+    forecast_vertical_lines,
+    forecast_vertical_placeholder,
     forecast_placeholder,
     item_kind,
     weather_icon,
@@ -172,31 +176,20 @@ class WeatherLayer(Layer):
 
     # ---- clicking and the forecast box ---------------------------------------------
 
-    def hit_test_all(self, x: int, y: int, radius: float | None = None):
-        """Like the base class, but a click anywhere on a city's name selects it,
-        not just a click near its first character."""
-        if radius is None:
-            radius = CLICK_RADIUS
-        hits = []
-        for marker in self.last_markers:
-            if marker.item is None:
-                continue
-            span = len(marker.label) if marker.label else 1
-            dx = max(marker.x - x, 0, x - (marker.x + span - 1))
-            distance = math.hypot(dx, marker.y - y)
-            if distance <= radius:
-                hits.append((distance, marker.item))
-        return sorted(hits, key=lambda hit: hit[0])
-
     def rich_title(self, title: str | None) -> str:
         title = title or ""
         if self.selected is not None and self._selected_kind() == "city":
             return f"{title} \u00b7 {self.selected['name']}".strip()
         return title
 
-    def rich_lines(self, title: str | None, width: int, height: int) -> list[list]:
+    def rich_lines(
+        self, title: str | None, width: int, height: int,
+        vertical: bool = False, scroll: int = 0,
+    ) -> list[list]:
         """The FORECAST box: the selected city's next days, or a how-to / key."""
         if self.selected is None or self._selected_kind() != "city":
+            if vertical:
+                return forecast_vertical_placeholder(width, height)
             return forecast_placeholder()
         reading = self.weather.get(self.selected["key"])
         if reading is None:
@@ -204,7 +197,18 @@ class WeatherLayer(Layer):
         days = [day for day in reading.get("forecast") or [] if isinstance(day, dict)]
         if reading.get("schema") != WEATHER_SCHEMA or not days:
             return [[(reading.get("error") or "loading forecast...", None, "dim")]]
+        if vertical:
+            return forecast_vertical_lines(days, width, height, scroll)
         return forecast_lines(days, width)
+
+    def forecast_line_count(self) -> int:
+        """Number of stacked detail rows available for the selected city."""
+        if self.selected is None or self._selected_kind() != "city":
+            return 0
+        reading = self.weather.get(self.selected["key"])
+        days = reading.get("forecast") or [] if reading else []
+        day_count = sum(isinstance(day, dict) for day in days)
+        return day_count * FORECAST_ROWS + max(0, day_count - 1) * VERTICAL_DAY_SEPARATOR_ROWS
 
     # ---- data refresh (earthquakes; weather and radar fetch themselves) --------
 
@@ -314,11 +318,20 @@ class WeatherLayer(Layer):
         return messages
 
     def hit_test_all(self, x: int, y: int, radius: float | None = None):
-        # Radar/cloud cells are a visual overlay, not selectable observations.
-        return [
-            hit for hit in super().hit_test_all(x, y, radius)
-            if not (isinstance(hit[1], dict) and hit[1].get("radar"))
-        ]
+        """Select cities anywhere along their drawn label, not just at its dot."""
+        if radius is None:
+            radius = CLICK_RADIUS
+        hits = []
+        for marker in self.last_markers:
+            item = marker.item
+            if item is None or (isinstance(item, dict) and item.get("radar")):
+                continue
+            span = len(marker.label) if marker.label else 1
+            dx = max(marker.x - x, 0, x - (marker.x + span - 1))
+            distance = math.hypot(dx, marker.y - y)
+            if distance <= radius:
+                hits.append((distance, item))
+        return sorted(hits, key=lambda hit: hit[0])
 
     def _city_label(
         self, key: str, name: str, selected: bool
@@ -426,6 +439,8 @@ class WeatherLayer(Layer):
     def _radar_shown_index(self, frames) -> int:
         if self._radar_pin is not None:
             return min(range(len(frames)), key=lambda i: abs(frames[i][0]["time"] - self._radar_pin))
+        if self.radar.cached_fallback():
+            return self._radar_live_index(frames)
         if ANIMATE:
             return min(self._radar_index, len(frames) - 1)
         return self._radar_live_index(frames)
@@ -464,22 +479,41 @@ class WeatherLayer(Layer):
         if not (self.enabled and RADAR_ENABLED):
             return None
         catalog = self.radar.catalog_frames()
+        loaded_frames = self.radar.loaded_frames()
+        using_cache = self.radar.cached_fallback()
+        if not catalog and loaded_frames:
+            catalog = [frame for frame, _raster in loaded_frames]
         if len(catalog) < 2:
+            if using_cache and loaded_frames:
+                frame = max(
+                    (item for item, _raster in loaded_frames if not item["nowcast"]),
+                    key=lambda item: item["time"],
+                    default=loaded_frames[-1][0],
+                )
+                age = self._radar_age_caption(frame["time"])
+                return SliderSpec(
+                    "RADAR", 2, 0, age, status="CACHED",
+                    loaded_steps=(0,), disabled=True,
+                )
             status = "RADAR UNAVAILABLE" if self.radar.failed() else RADAR_LOADING_TEXT
             return SliderSpec("RADAR", 2, 0, "LIVE", status=status, disabled=True)
         live = self._catalog_live_index(catalog)
         live_time = catalog[live]["time"]
         index = self._catalog_shown_index(catalog)
-        minutes = round((catalog[index]["time"] - live_time) / 60)
-        caption = "LIVE" if minutes == 0 else f"{minutes:+d}m"
-        loaded_frames = self.radar.loaded_frames()
-        if self.radar.failed():
-            status = "RADAR UNAVAILABLE"
-        elif not loaded_frames:
-            status = RADAR_LOADING_TEXT
-        elif len(loaded_frames) < len(catalog):
-            status = f"RADAR {len(loaded_frames)}/{len(catalog)} TIMES READY"
+        if using_cache and loaded_frames:
+            shown = loaded_frames[self._radar_shown_index(loaded_frames)][0]
+            caption = self._radar_age_caption(shown["time"])
+            status = "CACHED"
         else:
+            minutes = round((catalog[index]["time"] - live_time) / 60)
+            caption = "LIVE" if minutes == 0 else f"{minutes:+d}m"
+        if not using_cache and self.radar.failed():
+            status = "RADAR UNAVAILABLE"
+        elif not using_cache and not loaded_frames:
+            status = RADAR_LOADING_TEXT
+        elif not using_cache and len(loaded_frames) < len(catalog):
+            status = f"RADAR {len(loaded_frames)}/{len(catalog)} TIMES READY"
+        elif not using_cache:
             status = ""
         loaded_times = {frame["time"] for frame, _raster in loaded_frames}
         loaded_steps = tuple(
@@ -490,6 +524,18 @@ class WeatherLayer(Layer):
             "RADAR", len(catalog), index, caption, marker=live, wide=True,
             status=status, loaded_steps=loaded_steps,
         )
+
+    @staticmethod
+    def _radar_age_caption(timestamp: int) -> str:
+        """Compact age label for a cached radar frame, sized for the slider."""
+        minutes = max(0, int((time.time() - timestamp) // 60))
+        if minutes < 60:
+            return f"{minutes}m AGO"
+        hours, minute = divmod(minutes, 60)
+        if hours < 24:
+            return f"{hours}h{minute:02d}m AGO"
+        days = hours // 24
+        return f"{days}d AGO"
 
     @staticmethod
     def _catalog_live_index(catalog: list[dict]) -> int:

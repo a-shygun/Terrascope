@@ -184,19 +184,23 @@ class WorldMap:
         self.dirty = True
 
     def select_at(self, x: int, y: int) -> None:
-        # A layer may claim the click first (basemap: country code <-> full name).
-        for layer in self.active_layers():
-            if layer.click_at(x, y):
-                self.clear_selection()
-                return
+        layers = self.active_layers()
         hits = sorted(
             (
                 (distance, layer, item)
-                for layer in self.active_layers()
+                for layer in layers
                 for distance, item in layer.hit_test_all(x, y)
             ),
             key=lambda hit: hit[0],
         )
+        # Selectable markers take priority over label actions (e.g. a city
+        # name drawn over a country code in the weather view). A label action
+        # still handles a click when no marker occupies that cell.
+        if not hits:
+            for layer in layers:
+                if layer.click_at(x, y):
+                    self.clear_selection()
+                    return
         self._selection_candidates = [(layer, item) for _, layer, item in hits]
         self._selection_index = 0
         self._activate_selection()
@@ -252,6 +256,14 @@ class WorldMap:
             self.center_lat,
             *calculate_viewport(self.zoom, self.aspect),
         )
+
+    def focus_location(self, longitude: float, latitude: float, zoom: float = 8.0) -> None:
+        """Center on a searched location and zoom in enough to find it."""
+        self._set_zoom(max(self.zoom, zoom))
+        self.center_lon = longitude
+        self.center_lat = latitude
+        self._clamp_center()
+        self.dirty = True
 
     def pan(self, lon_direction: int, lat_direction: int) -> None:
         lon_span, lat_span = calculate_viewport(self.zoom, self.aspect)

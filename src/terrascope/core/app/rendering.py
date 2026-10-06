@@ -61,6 +61,7 @@ class RenderingMixin:
                 self.colors,
                 self.controls_expanded,
                 current_time_text(self.selected_timezone),
+                self.panel_orientation,
             )
         frame_size = (map_width - 4, map_height - 2)
         if self._frame_size != frame_size:
@@ -90,6 +91,12 @@ class RenderingMixin:
             ],
         )
         owner = self.panel_owner()
+        if owner is not None and owner.name == "weather":
+            selected = owner.selected
+            city_key = selected.get("key") if isinstance(selected, dict) and "key" in selected else None
+            if city_key != self._forecast_city_key:
+                self.forecast_scroll = 0
+                self._forecast_city_key = city_key
         for box, rect in layout.boxes:
             if box.kind == "info":
                 selected = self.world.selected_layer if self.info_visible else None
@@ -114,11 +121,20 @@ class RenderingMixin:
                     self.stdscr, rect, box.title or "", owner.live_rows(box.title)
                 )
             elif box.kind == "rich" and owner is not None:
+                title = owner.rich_title(box.title)
+                if self.panel_orientation == "vertical" and owner.name == "weather":
+                    title = f"{title} · SCROLL"
                 draw_rich_box(
                     self.stdscr,
                     rect,
-                    owner.rich_title(box.title),
-                    owner.rich_lines(box.title, max(0, rect[3] - 4), max(0, rect[2] - 2)),
+                    title,
+                    owner.rich_lines(
+                        box.title,
+                        max(0, rect[3] - 4),
+                        max(0, rect[2] - 2),
+                        vertical=self.panel_orientation == "vertical",
+                        scroll=self.forecast_scroll,
+                    ),
                     self.colors,
                 )
         offset_x, offset_y = STATUS_OFFSET
@@ -189,7 +205,7 @@ class RenderingMixin:
                     radar_unavailable = True
                 else:
                     statuses.append(message)
-        if radar_unavailable:
+        if radar_unavailable and TABS[self.active_tab].name == "weather":
             statuses.append("RADAR UNAVAILABLE")
         if not self.welcome_visible:
             first_status_row = map_top + offset_y

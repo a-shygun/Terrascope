@@ -7,7 +7,6 @@ from .colors import (
     hex_to_rgb,
 )
 from .constants import (
-    ATTRIBUTION_COLOR,
     BLANK_BRAILLE,
     EDGE_STEPS,
     KM_PER_DEGREE_LAT,
@@ -27,6 +26,9 @@ from .constants import (
     SHADE_MIN_DENSITY,
     SHADE_SOLID_DENSITY,
     SLIDER_CAPTION_WIDTH,
+    SLIDER_EMPTY,
+    SLIDER_FILLED,
+    SLIDER_KNOB,
     SLIDER_TRACK_COLUMNS,
     SliderSpec,
     _SCALE_SYMBOLS,
@@ -519,15 +521,69 @@ def slider_track(
     label_width = max(5, len(spec.label))
     # Keep all tabs on the same fixed-width track; steps map proportionally
     # onto it even when a layer has a long history range.
-    length = SLIDER_TRACK_COLUMNS
     # Reserve a fixed scale-bar slot at the right edge. The slider therefore
     # stays put while the displayed scale length or distance label changes.
     scale_slot = SCALE_BAR_TARGET_COLUMNS * 2 + 4
     right = width - MAP_EDGE_PAD_X - scale_slot - 2
+    if spec.wide:
+        room = right - SLIDER_CAPTION_WIDTH - 1 - MAP_EDGE_PAD_X - label_width - 1
+        length = min(spec.steps, room)
+    else:
+        length = SLIDER_TRACK_COLUMNS
+    if spec.wide and spec.steps % 2 and length % 2 == 0:
+        length -= 1  # keep the middle value directly selectable
+    if length < 1:
+        return None
     first = right - SLIDER_CAPTION_WIDTH - 1 - length
     if first - label_width - 1 < MAP_EDGE_PAD_X:
         return None
     return first, length
+
+def draw_slider(area: _MapArea, spec: SliderSpec, center_lat: float) -> None:
+    """Draw the active layer's time slider on the map footer row."""
+    track = slider_track(spec, area.width, area.frame, center_lat)
+    row = area.height - 1 - MAP_EDGE_PAD_Y
+    if track is None or not 0 <= row < area.height:
+        return
+
+    first, length = track
+    label_x = first - len(spec.label) - 1
+    dim = curses.A_DIM if spec.disabled else 0
+    _put_on_map(area, row, label_x, spec.label, extra=dim)
+
+    last_step = max(0, spec.steps - 1)
+    knob = round(max(0, min(last_step, spec.index)) * (length - 1) / max(1, last_step))
+    loaded = set(spec.loaded_steps) if spec.loaded_steps is not None else None
+    for offset in range(length):
+        step = round(offset * last_step / max(1, length - 1))
+        if spec.disabled:
+            glyph = SLIDER_EMPTY
+            extra = curses.A_DIM
+        elif offset == knob:
+            glyph = SLIDER_KNOB
+            extra = 0
+        elif spec.marker is not None and step == spec.marker:
+            glyph = "|"
+            extra = curses.A_BOLD
+        elif loaded is not None and step in loaded:
+            glyph = SLIDER_FILLED
+            extra = 0
+        else:
+            glyph = SLIDER_FILLED if offset < knob else SLIDER_EMPTY
+            extra = curses.A_DIM if glyph == SLIDER_EMPTY else 0
+        _put_on_map(area, row, first + offset, glyph, extra=extra)
+
+    caption = spec.caption[:SLIDER_CAPTION_WIDTH]
+    caption_x = first + length + 1
+    if caption:
+        _put_on_map(area, row, caption_x, caption, extra=dim)
+
+    if spec.status:
+        status_end = label_x - 1
+        status_start = MAP_EDGE_PAD_X
+        status = spec.status[:max(0, status_end - status_start)]
+        if status:
+            _put_on_map(area, row, status_start, status, extra=curses.A_DIM)
 
 def panel_button_slot(
     map_rect: Rect, panel_visible: bool, enabled: bool = True

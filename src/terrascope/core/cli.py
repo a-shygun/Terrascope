@@ -167,7 +167,7 @@ def _o(group, flags, path, kind, help, metavar=None, choices=None) -> Opt:
 OPTIONS: tuple[Opt, ...] = (
     # -- startup
     _o(G_STARTUP, "--panel", "app.panel_visible_at_start", "bool",
-       "Show the bottom panel at launch (the H key toggles it)."),
+       "Show the panel at launch (the H key toggles it)."),
     # -- data and network
     _o(G_DATA, "--download-timeout", "data.download_timeout_seconds", POS_FLOAT,
        "Timeout for downloading Natural Earth map data.", "SECONDS"),
@@ -225,7 +225,10 @@ OPTIONS: tuple[Opt, ...] = (
     _o(G_LAYOUT, "--outer-margin", "ui.outer_margin", _pair,
        "Columns,rows kept free around the screen, e.g. 2,1.", "COLS,ROWS"),
     _o(G_LAYOUT, "--panel-height", "ui.panel_height", _number(int, 5),
-       "Bottom panel height in rows, borders included.", "ROWS"),
+       "Horizontal panel height in rows, borders included.", "ROWS"),
+    _o(G_LAYOUT, "--panel-orientation", "ui.panel_orientation", str,
+       "Panel placement: horizontal along the bottom or vertical on the left.",
+       "MODE", ("horizontal", "vertical")),
     _o(G_LAYOUT, "--tab-gap", "ui.tab_gap", NONNEG_INT, "Blank columns between tabs.", "COLS"),
     _o(G_LAYOUT, "--legend-color", "ui.legend_text_color", _color, "Legend text on the map.", "HEX"),
     # -- basemap

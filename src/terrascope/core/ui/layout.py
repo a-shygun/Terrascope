@@ -11,8 +11,12 @@ from .constants import (
     DROPDOWN_ACTIVE_MARK,
     DROPDOWN_INACTIVE_MARK,
     DROPDOWN_MAX_HEIGHT,
+    DROPDOWN_MARGIN_X,
+    DROPDOWN_MARGIN_Y,
     DROPDOWN_MIN_HEIGHT,
     DROPDOWN_NO_MATCH,
+    DROPDOWN_PADDING_X,
+    DROPDOWN_PADDING_Y,
     DROPDOWN_PLACEHOLDER,
     DROPDOWN_TITLE,
     DROPDOWN_WIDTH,
@@ -24,6 +28,7 @@ from .constants import (
     LAYER_TAB_GAP,
     Layer,
     MODAL_BG_COLOR,
+    MODAL_BORDER_COLOR,
     MODAL_DIM_COLOR,
     MODAL_MARGIN_X,
     MODAL_MARGIN_Y,
@@ -34,6 +39,7 @@ from .constants import (
     PANEL_HEIGHT,
     PANEL_MIN_HEIGHT,
     PANEL_MIN_MAP_HEIGHT,
+    PANEL_WIDTH,
     PanelBox,
     Rect,
     TIMEZONE_OPTIONS,
@@ -48,9 +54,6 @@ from .constants import (
     lru_cache,
     replace,
     timezone
-)
-from .dialogs import (
-    _draw_modal_frame
 )
 
 def safe_addstr(window, y: int, x: int, text: str, attributes: int = 0) -> None:
@@ -99,6 +102,50 @@ def draw_box(window, top: int, left: int, height: int, width: int, title: str) -
         if len(title_text) < width - 2:
             safe_addstr(window, top, left + 2, title_text)
 
+def _draw_filled_box(
+    window, top: int, left: int, height: int, width: int, title: str, pair: int
+) -> None:
+    """Draw a modal outline over spaces using the terminal's default background."""
+    blank = " " * width
+    for row in range(top, top + height):
+        safe_addstr(window, row, left, blank, pair)
+    if height < 2 or width < 2:
+        return
+    horizontal = _BOX["horizontal"] * (width - 2)
+    safe_addstr(window, top, left, _BOX["top_left"] + horizontal + _BOX["top_right"], pair)
+    for row in range(top + 1, top + height - 1):
+        safe_addstr(window, row, left, _BOX["vertical"], pair)
+        safe_addstr(window, row, left + width - 1, _BOX["vertical"], pair)
+    safe_addstr(
+        window,
+        top + height - 1,
+        left,
+        _BOX["bottom_left"] + horizontal + _BOX["bottom_right"],
+        pair,
+    )
+    if title:
+        title_text = f" {title} "
+        if len(title_text) < width - 2:
+            safe_addstr(window, top, left + 2, title_text, pair | curses.A_BOLD)
+
+def _draw_modal_frame(
+    window, top: int, left: int, height: int, width: int, title: str, colors,
+    margin_x: int = MODAL_MARGIN_X, margin_y: int = MODAL_MARGIN_Y,
+) -> None:
+    """Draw a white modal outline over the terminal's default background."""
+    screen_height, screen_width = window.getmaxyx()
+    margin_pair = colors.get_pair(MODAL_TEXT_COLOR, MODAL_BG_COLOR)
+    first_col = max(0, left - margin_x)
+    last_col = min(screen_width, left + width + margin_x)
+    blank = " " * max(0, last_col - first_col)
+    for row in range(
+        max(0, top - margin_y), min(screen_height, top + height + margin_y)
+    ):
+        safe_addstr(window, row, first_col, blank, margin_pair)
+    card_pair = colors.get_pair(MODAL_BORDER_COLOR, MODAL_BG_COLOR)
+    _draw_filled_box(window, top, left, height, width, title, card_pair)
+
+@dataclass
 class Layout:
     map: Rect
     # (box, rect) for every box of the bottom row; empty = panel hidden.
@@ -116,11 +163,11 @@ class Layout:
 def compute_layout(
     height: int, width: int, panel_visible: bool, owner: Layer | None = None,
     panel_layout: tuple[PanelBox, ...] | None = None,
+    panel_orientation: str = "horizontal",
 ) -> Layout:
-    """Split the terminal into the map box and (optionally) the bottom row.
-    `owner` is the layer whose panel_layout defines the bottom
-    row (None = defaults). Shared by drawing and mouse handling so the two can
-    never disagree."""
+    """Split the terminal into a map and optional bottom or left-side panel.
+    `owner` supplies the active layer's panel layout. Shared by drawing and
+    mouse handling so the two can never disagree."""
     margin_x, margin_y = OUTER_MARGIN
     box_width = width - margin_x * 2
     tab_height = LAYER_BAR_HEIGHT
@@ -128,6 +175,25 @@ def compute_layout(
     tabs_rect = (margin_y, margin_x, tab_height, box_width)
     map_top = margin_y + tab_height
     spec = panel_layout or (owner.panel_layout if owner is not None else None) or DEFAULT_PANEL_LAYOUT
+    if panel_visible and panel_orientation == "vertical":
+        panel_width = min(PANEL_WIDTH, box_width - 28)
+        if panel_width >= 16 and total_height >= PANEL_MIN_MAP_HEIGHT:
+            map_left = margin_x + panel_width + BOX_GAP
+            map_width = box_width - panel_width - BOX_GAP
+            map_rect = (map_top, map_left, total_height, map_width)
+            panel_left = margin_x
+            panel_inner_height = total_height
+            boxes = []
+            top = map_top
+            for index, box in enumerate(spec):
+                box_height = (
+                    panel_inner_height - sum(rect[2] for _, rect in boxes)
+                    if index == len(spec) - 1
+                    else max(1, int(panel_inner_height * box.ratio))
+                )
+                boxes.append((box, (top, panel_left, box_height, panel_width)))
+                top += box_height
+            return Layout(map_rect, tuple(boxes), tabs_rect)
     panel_height = 0
     if panel_visible:
         panel_height = min(PANEL_HEIGHT, total_height - PANEL_MIN_MAP_HEIGHT)
@@ -169,7 +235,8 @@ def tab_slots(tabs, left: int, width: int) -> list[tuple[int, int, str]]:
     return slots
 
 def draw_tab_bar(
-    window, rect: Rect, tabs, active: int, colors, controls_expanded: bool, time_text: str
+    window, rect: Rect, tabs, active: int, colors, controls_expanded: bool,
+    time_text: str, panel_orientation: str = "horizontal",
 ) -> ControlsLayout | None:
     """Top row: one numbered tab per entry in tabs.py; the active one is lit.
     Returns the controls bar's layout (for click handling), or None if there
@@ -186,7 +253,9 @@ def draw_tab_bar(
         safe_addstr(window, top, x, text, attrs)
     slots = tab_slots(tabs, left, width)
     tabs_end = (slots[-1][1] + len(slots[-1][2])) if slots else left
-    return draw_controls_bar(window, rect, tabs_end, controls_expanded, time_text)
+    return draw_controls_bar(
+        window, rect, tabs_end, controls_expanded, time_text, panel_orientation
+    )
 
 def _help_segments(level: int) -> list[tuple[str, bool, str | None]]:
     """(text, bold, click action) pieces of the key hints. level 0 = full
@@ -225,6 +294,7 @@ def draw_help_bar(
             return tuple((action, start, end - start) for action, (start, end) in spans.items())
     return ()
 
+@dataclass
 class ControlsLayout:
     """Clickable columns of the controls bar. Shared by drawing and mouse
     handling so the two can never disagree."""
@@ -233,23 +303,35 @@ class ControlsLayout:
     datetime_width: int
     button_x: int
     button_width: int
+    orientation_x: int = 0
+    orientation_width: int = 0
     help_hits: tuple[tuple[str, int, int], ...] = ()
 
-def controls_bar_slots(tabs_end: int, right: int, time_text: str) -> ControlsLayout | None:
+def controls_bar_slots(
+    tabs_end: int, right: int, time_text: str,
+    expanded: bool = False, panel_orientation: str = "horizontal",
+) -> ControlsLayout | None:
     button_width = len(CONTROLS_COLLAPSED_BUTTON)
     datetime_width = len(time_text)
     datetime_x = right - datetime_width
-    button_x = datetime_x - CONTROLS_GAP - button_width
+    orientation_text = "PANEL: LEFT" if panel_orientation == "vertical" else "PANEL: BOTTOM"
+    orientation_width = len(orientation_text) if expanded else 0
+    orientation_x = datetime_x - CONTROLS_GAP - orientation_width
+    button_x = orientation_x - (CONTROLS_GAP if expanded else 0) - button_width
     if button_x < tabs_end:
         return None  # no room: draw nothing rather than overlap the tabs
-    return ControlsLayout(datetime_x, datetime_width, button_x, button_width)
+    return ControlsLayout(
+        datetime_x, datetime_width, button_x, button_width,
+        orientation_x, orientation_width,
+    )
 
 def draw_controls_bar(
-    window, rect: Rect, tabs_end: int, expanded: bool, time_text: str
+    window, rect: Rect, tabs_end: int, expanded: bool, time_text: str,
+    panel_orientation: str = "horizontal",
 ) -> ControlsLayout | None:
     top, left, _height, width = rect
     right = left + width
-    layout = controls_bar_slots(tabs_end, right, time_text)
+    layout = controls_bar_slots(tabs_end, right, time_text, expanded, panel_orientation)
     if layout is None:
         return None
     help_hits: tuple[tuple[str, int, int], ...] = ()
@@ -257,6 +339,9 @@ def draw_controls_bar(
         help_hits = draw_help_bar(window, top, tabs_end, layout.button_x - CONTROLS_GAP)
     button_text = CONTROLS_EXPANDED_BUTTON if expanded else CONTROLS_COLLAPSED_BUTTON
     safe_addstr(window, top, layout.button_x, button_text, curses.A_DIM)
+    if expanded:
+        orientation_text = "PANEL: LEFT" if panel_orientation == "vertical" else "PANEL: BOTTOM"
+        safe_addstr(window, top, layout.orientation_x, orientation_text, curses.A_BOLD | curses.A_DIM)
     safe_addstr(window, top, layout.datetime_x, time_text, curses.A_BOLD)
     return replace(layout, help_hits=help_hits)
 
@@ -307,6 +392,7 @@ def current_time_text(timezone_name: str | None) -> str:
         label = "UTC"
     return f"{now:%Y-%m-%d} {now:%H:%M:%S} {label}".rstrip()
 
+@dataclass
 class DropdownLayout:
     rect: Rect
     option_rows: tuple[int, ...]  # screen row of each listed entry, top to bottom
@@ -316,16 +402,16 @@ def dropdown_rect(anchor_top: int, anchor_right: int, screen_height: int, screen
     """Box just under the clock, right-aligned under it, leaving the modal margin
     free terrascope it. Shared by drawing and mouse handling so the two can never
     disagree."""
-    width = max(10, min(DROPDOWN_WIDTH, screen_width - 2 * MODAL_MARGIN_X))
-    top = anchor_top + MODAL_MARGIN_Y
-    room = screen_height - top - MODAL_MARGIN_Y - 1
+    width = max(10, min(DROPDOWN_WIDTH, screen_width - 2 * DROPDOWN_MARGIN_X))
+    top = anchor_top + DROPDOWN_MARGIN_Y
+    room = screen_height - top - DROPDOWN_MARGIN_Y - 1
     height = max(DROPDOWN_MIN_HEIGHT, min(DROPDOWN_MAX_HEIGHT, room))
-    left = max(MODAL_MARGIN_X, min(screen_width - width - MODAL_MARGIN_X, anchor_right - width))
+    left = max(DROPDOWN_MARGIN_X, min(screen_width - width - DROPDOWN_MARGIN_X, anchor_right - width))
     return top, left, height, width
 
 def _dropdown_list_rows(height: int) -> int:
     # border (2) + padding (top and bottom) + search row + rule row
-    return max(0, height - 2 - 2 * MODAL_PADDING_Y - 2)
+    return max(0, height - 2 - 2 * DROPDOWN_PADDING_Y - 2)
 
 def dropdown_first_index(cursor: int, visible: int, total: int) -> int:
     """First listed entry so the highlighted one is always on screen."""
@@ -342,12 +428,15 @@ def draw_dropdown(
     cursor: int = 0,
 ) -> DropdownLayout:
     top, left, height, width = rect
-    _draw_modal_frame(window, top, left, height, width, DROPDOWN_TITLE, colors)
+    _draw_modal_frame(
+        window, top, left, height, width, DROPDOWN_TITLE, colors,
+        DROPDOWN_MARGIN_X, DROPDOWN_MARGIN_Y,
+    )
     text_pair = colors.get_pair(MODAL_TEXT_COLOR, MODAL_BG_COLOR)
     dim_pair = colors.get_pair(MODAL_DIM_COLOR, MODAL_BG_COLOR)
-    x = left + 1 + MODAL_PADDING_X
-    inner = max(1, width - 2 - 2 * MODAL_PADDING_X)
-    y = top + 1 + MODAL_PADDING_Y
+    x = left + 1 + DROPDOWN_PADDING_X
+    inner = max(1, width - 2 - 2 * DROPDOWN_PADDING_X)
+    y = top + 1 + DROPDOWN_PADDING_Y
 
     # Search row.
     if query:

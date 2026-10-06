@@ -73,6 +73,17 @@ class InputMixin:
         rest = [option for option in options if query in option.lower() and option not in starts]
         return starts + rest
 
+    def _plane_count_line(self) -> str:
+        flights = next((layer for layer in self.world.layers if layer.name == "flights"), None)
+        if flights is None:
+            return "TOTAL PLANES: 0"
+        count = len(flights.visible_flights())
+        label = "TOTAL PLANES" if not flights.filter_countries and not flights.search_text else "SHOWN"
+        if label == "TOTAL PLANES":
+            return f"{label}: {count}"
+        noun = "PLANE" if count == 1 else "PLANES"
+        return f"{label}: {count} {noun}"
+
     def current_filter_suggestion(self) -> str | None:
         if not self.filter_buffer.strip():
             return None
@@ -90,17 +101,28 @@ class InputMixin:
 
     def filter_box_lines(self, hint: str | None, room: int) -> list[tuple[str, int]]:
         if self.mode == "filter":
-            lines = [(self.filter_buffer + "█", curses.A_BOLD)]
+            lines = [
+                (self.filter_buffer + "█", curses.A_BOLD),
+                (self._plane_count_line(), curses.A_DIM),
+            ]
             suggestions = self.filter_suggestions()
             if not suggestions:
                 lines.append(("no match", curses.A_DIM))
-            for option in suggestions[self.filter_scroll : self.filter_scroll + max(0, room)]:
+            for option in suggestions[self.filter_scroll : self.filter_scroll + max(0, room - 1)]:
                 selected = option in self.filter_selected
                 lines.append((("[x] " if selected else "[ ] ") + option, curses.A_BOLD if selected else curses.A_DIM))
             return lines
         if self.world.filter_value:
-            return [(self.world.filter_value, curses.A_BOLD), ("", 0), ("O edit  Esc clear", curses.A_DIM)]
-        return [("O or click to filter", 0), (hint or "", curses.A_DIM)]
+            return [
+                (self.world.filter_value, curses.A_BOLD),
+                (self._plane_count_line(), curses.A_DIM),
+                ("O edit  Esc clear", curses.A_DIM),
+            ]
+        return [
+            (self._plane_count_line(), curses.A_BOLD),
+            ("O or click to filter", 0),
+            (hint or "", curses.A_DIM),
+        ]
 
     def _slider_spec(self):
         layer = self.world.slider_layer()
@@ -136,7 +158,13 @@ class InputMixin:
 
     def commit_input_mode(self) -> None:
         if self.mode == "search":
+            query = self.search_buffer.strip()
             self.world.set_search(self.search_buffer)
+            if query:
+                flights = next((layer for layer in self.world.layers if layer.name == "flights"), None)
+                target = flights.search_target(query) if flights is not None else None
+                if target is not None:
+                    self.world.focus_location(*target)
             self.mode = "normal"
             return
         if self.mode == "filter":

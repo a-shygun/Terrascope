@@ -163,6 +163,34 @@ class FlightsLayer(Layer):
         self.search_text = text
         self.dirty = True
 
+    def search_target(self, query: str) -> tuple[float, float] | None:
+        """Return the position of the strongest current callsign/ICAO match."""
+        needle = query.strip().lower()
+        if not needle:
+            return None
+        candidates = self.visible_flights()
+        if not candidates:
+            return None
+
+        def rank(entry: tuple[int, dict]) -> tuple[int, int]:
+            index, flight = entry
+            terms = (
+                str(flight.get("callsign") or "").strip().lower(),
+                str(flight.get("icao24") or "").lower(),
+            )
+            score = 0 if needle in terms else 1 if any(term.startswith(needle) for term in terms) else 2
+            return score, index
+
+        flight = min(enumerate(candidates), key=rank)[1]
+        position = self._live.get(flight.get("icao24"))
+        if position is None:
+            longitude = finite_float(flight.get("longitude"))
+            latitude = finite_float(flight.get("latitude"))
+            if longitude is None or latitude is None:
+                return None
+            position = (longitude, latitude)
+        return position
+
     def apply_filter(self, value) -> None:
         values = {value} if isinstance(value, str) else set(value or ())
         self.filter_countries = values.intersection(self.filter_options())

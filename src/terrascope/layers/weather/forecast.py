@@ -46,6 +46,7 @@ def item_kind(item) -> str:
 # being "", "bold" or "dim"; ui.draw_rich_box paints them.
 
 FORECAST_ROWS = 10  # lines in one day column (the bottom panel has room for 10)
+VERTICAL_DAY_SEPARATOR_ROWS = 3  # blank, divider, blank
 FORECAST_SEPARATOR = " │ "
 SPARK_BLOCKS = "▁▂▃▄▅▆▇█"
 NO_DATA = [("—", None, "dim")]
@@ -302,6 +303,22 @@ def forecast_lines(days: list[dict], width: int) -> list[list]:
         lines.append(line)
     return lines
 
+def forecast_vertical_lines(
+    days: list[dict], width: int, height: int, scroll: int = 0
+) -> list[list]:
+    """Stack each complete 10-row day forecast, then return the visible slice."""
+    if not days or height <= 0:
+        return []
+    known = [value for day in days for value in (day.get("tmin"), day.get("tmax")) if value is not None]
+    low, high = (min(known), max(known)) if known else (0.0, 0.0)
+    lines = []
+    for index, day in enumerate(days):
+        lines.extend(_day_rows(day, index == 0, width, low, high))
+        if index < len(days) - 1:
+            lines.extend(([], [("─" * width, None, "dim")], []))
+    start = max(0, min(scroll, max(0, len(lines) - height)))
+    return lines[start : start + height]
+
 def forecast_placeholder() -> list[list]:
     """What the forecast box shows while no city is selected: how to use it and
     a key to the icons, colours and glyphs."""
@@ -333,3 +350,33 @@ def forecast_placeholder() -> list[list]:
         key,
     ]
 
+def forecast_vertical_placeholder(width: int, height: int) -> list[list]:
+    """Compact legend for the narrow forecast sidebar; keep every line readable."""
+    sun = WEATHER_ICONS["clear"]
+    partly = WEATHER_ICONS["partly"]
+    cloud = WEATHER_ICONS["cloud"]
+    fog = WEATHER_ICONS["fog"]
+    rain = WEATHER_ICONS["rain"]
+    snow = WEATHER_ICONS["snow"]
+    storm = WEATHER_ICONS["storm"]
+    lines = [
+        [("CLICK A CITY NAME", None, "bold")],
+        [("to show its forecast here.", None, "dim")],
+        [],
+        [("ICONS", None, "dim")],
+        [(f"{sun[0]} clear", sun[1], "bold"), (" · ", None, "dim"), (f"{partly[0]} partly", partly[1], "bold")],
+        [
+            (f"{cloud[0]} cloud", cloud[1], "bold"), (" · ", None, "dim"),
+            (f"{fog[0]} fog", fog[1], "bold"), (" · ", None, "dim"),
+            (f"{rain[0]} rain", rain[1], "bold"),
+        ],
+        [(f"{snow[0]} snow", snow[1], "bold"), (" · ", None, "dim"), (f"{storm[0]} storm", storm[1], "bold")],
+        [("TEMP ", None, "dim"), ("COLD ", None, "dim")]
+        + [("██", forecast_temp_color(value), "") for value in range(-10, 31, 10)]
+        + [(" HOT", None, "dim")],
+        [("READ", None, "dim")],
+        [("━━ daily low–high", forecast_temp_color(15), "bold")],
+        [("▁ hourly temperature", forecast_temp_color(25), "")],
+        [("██ hourly conditions", weather_icon(63)[1], "")],
+    ]
+    return [_fit(line, width) for line in lines[:height]]
