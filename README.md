@@ -1,8 +1,8 @@
 # terrascope
 
 [![CI](https://github.com/a-shygun/Terrascope/actions/workflows/ci.yml/badge.svg)](https://github.com/a-shygun/Terrascope/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/terrascope)](https://pypi.org/project/terrascope/)
-[![Python](https://img.shields.io/pypi/pyversions/terrascope)](https://pypi.org/project/terrascope/)
+[![PyPI](https://img.shields.io/pypi/v/Terrascope)](https://pypi.org/project/Terrascope/)
+[![Python](https://img.shields.io/pypi/pyversions/Terrascope)](https://pypi.org/project/Terrascope/)
 [![License](https://img.shields.io/github/license/a-shygun/Terrascope)](LICENSE)
 
 `terrascope` is an interactive world map for the terminal. It renders countries,
