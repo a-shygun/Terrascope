@@ -56,7 +56,7 @@ Terrascope also includes recipes for Nix and Homebrew:
 nix run ./packaging/nix
 
 # Homebrew
-brew tap a-shygun/terrascope
+brew tap a-shygun/terrascope https://github.com/a-shygun/Terrascope.git
 brew install a-shygun/terrascope/terrascope
 ```
 

@@ -10,7 +10,7 @@ class Terrascope < Formula
 
   def install
     virtualenv = virtualenv_create(libexec, "python3.13")
-    virtualenv.pip_install "numpy", "Pillow", "PyYAML", "pyshp", buildpath
+    virtualenv.pip_install ["numpy", "Pillow", "PyYAML", "pyshp", buildpath]
     bin.install_symlink libexec/"bin/terrascope"
   end
 
