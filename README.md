@@ -1,9 +1,11 @@
-# terrascope
+# Terrascope
 
 [![CI](https://github.com/a-shygun/Terrascope/actions/workflows/ci.yml/badge.svg)](https://github.com/a-shygun/Terrascope/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/Terrascope)](https://pypi.org/project/Terrascope/)
 [![Python](https://img.shields.io/pypi/pyversions/Terrascope)](https://pypi.org/project/Terrascope/)
 [![License](https://img.shields.io/github/license/a-shygun/Terrascope)](LICENSE)
+
+![Terrascope animated UI demo](docs/images/terrascope-ui-promo.gif)
 
 `terrascope` is an interactive world map for the terminal. It renders countries,
 place names, live aircraft, city weather, a radar overlay, earthquakes, and
@@ -15,9 +17,6 @@ runs.
 
 Country names and abbreviations, plus airport names and locations, are bundled
 from Natural Earth so they are available offline without a first-run download.
-
-<!-- TODO: Add a short terminal demo GIF at docs/images/terrascope-demo.gif. -->
-<!-- TODO: Add screenshots for the map, weather, planes, and time tabs under docs/images/. -->
 
 ## Status
 
@@ -60,9 +59,9 @@ brew tap a-shygun/terrascope https://github.com/a-shygun/Terrascope.git
 brew install a-shygun/terrascope/terrascope
 ```
 
-PyPI publishing is automated for version tags. The Nix recipe lives in
-`packaging/nix/`, and the Homebrew formula lives in `Formula/`; update their
-version references when preparing a release.
+PyPI publishing is automated for version tags. The Nix and Arch recipes,
+Homebrew formula, and distribution-check helper live under `packaging/`; update
+their version references when preparing a release.
 
 For local development:
 
@@ -183,6 +182,68 @@ terrascope --list-keys
   earthquakes.
 - `PLANES`: OpenSky aircraft positions, trails, categories, and Natural Earth
   airport markers.
+
+## Screenshots
+
+### Map
+
+![Global map view](docs/images/map-global.png)
+
+*Global map view.*
+
+![Europe map close-up without province boundaries](docs/images/map-eu-close-up-no-province.png)
+
+*Europe close-up without province boundaries.*
+
+![Europe map close-up with province boundaries](docs/images/map-eu-close-up-with-province.png)
+
+*Europe close-up with province boundaries.*
+
+### Time
+
+![Global time view with day and night fill](docs/images/time-global-fill.png)
+
+*Global view with day and night fill.*
+
+![Global time view with day and night tint](docs/images/time-global-tint.png)
+
+*Global view with day and night tint.*
+
+![Global time view with fill and no panel](docs/images/time-global-fill-no-panel.png)
+
+*Global view with fill and the panel hidden.*
+
+![Time tab with horizontal panel layout](docs/images/time-horizontal-layout.png)
+
+*Time tab with the horizontal panel layout.*
+
+### Weather
+
+![Global weather view with vertical panel](docs/images/weather-global-vertical.png)
+
+*Global weather view with the vertical panel.*
+
+![Global weather view without panel](docs/images/weather-global-no-panel.png)
+
+*Global weather view with the panel hidden.*
+
+![Europe weather view with radar close-up](docs/images/weather-eu-radar-close-up.png)
+
+*Europe close-up with the radar overlay.*
+
+![Weather tab with horizontal panel layout](docs/images/weather-horizontal-layout.png)
+
+*Weather tab with the horizontal panel layout.*
+
+### Planes
+
+![Global planes view](docs/images/planes-global.png)
+
+*Global aircraft view.*
+
+![Planes view close-up over the United Kingdom](docs/images/planes-uk-close-up.png)
+
+*Aircraft close-up over the United Kingdom.*
 
 ## Configuration
 

@@ -51,7 +51,7 @@ jobs:
           python -m pip install --upgrade build twine
           python -m build
           python -m twine check dist/*
-          python scripts/check_distributions.py dist
+          python packaging/scripts/check_distributions.py dist
 
       - name: Smoke-check installed wheel
         run: |

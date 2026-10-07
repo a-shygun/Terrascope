@@ -36,8 +36,9 @@ SHA-256.
    distributions, checks their metadata, then publishes the exact build
    artifacts to PyPI through Trusted Publishing. Confirm the release appears
    on PyPI before moving on.
-4. Update `Formula/terrascope.rb` to the new version tag, then copy it into the
-   tap repository. The formula uses the versioned Git tag as its source.
+4. Update `packaging/Formula/terrascope.rb` to the new version tag, then copy it
+   into the tap repository's `Formula/` directory. The formula uses the
+   versioned Git tag as its source.
    Homebrew's `brew bump-formula-pr` can calculate/update these fields and open
    a pull request; check `brew bump-formula-pr --help` for the current options.
 5. Validate the formula in the tap checkout with `brew audit --strict` and

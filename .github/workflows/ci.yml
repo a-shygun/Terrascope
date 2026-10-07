@@ -35,7 +35,7 @@ jobs:
           python -m twine check dist/*
 
       - name: Check built files and bundled assets
-        run: python scripts/check_distributions.py dist
+        run: python packaging/scripts/check_distributions.py dist
 
       - name: Install wheel and check CLI startup
         run: |
