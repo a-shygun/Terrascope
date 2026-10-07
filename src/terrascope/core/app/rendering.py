@@ -131,7 +131,7 @@ class RenderingMixin:
                     owner.rich_lines(
                         box.title,
                         max(0, rect[3] - 4),
-                        max(0, rect[2] - 2),
+                        max(0, rect[2] - 3),
                         vertical=self.panel_orientation == "vertical",
                         scroll=self.forecast_scroll,
                     ),

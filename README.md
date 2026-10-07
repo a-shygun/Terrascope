@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/github/license/a-shygun/Terrascope)](LICENSE)
 
 `terrascope` is an interactive world map for the terminal. It renders countries,
-place names, live aircraft, city weather, radar/cloud overlays, earthquakes, and
+place names, live aircraft, city weather, a radar overlay, earthquakes, and
 day/night bands with `curses`, Unicode Braille cells, and terminal colors.
 
 The app is intentionally lightweight at install time. Large map data is
@@ -147,7 +147,7 @@ map appears. Errors and background warnings are written to the log file shown by
 | `Q` | Quit |
 
 Click `[+]` beside the clock to expand the top controls, then click the panel
-placement label (`PANEL: BOTTOM` or `PANEL: LEFT`) to switch the panel between
+placement label (`BOTTOM` or `LEFT`) to switch the panel between
 the horizontal bottom row and vertical left sidebar. The default is vertical;
 `--panel-orientation vertical` or `--panel-orientation horizontal` selects the
 starting layout for one run. `--set ui.panel_orientation=vertical` also works.
@@ -179,7 +179,7 @@ terrascope --list-keys
   zoom allows.
 - `TIME`: day/night bands, sun information, moon information, and timezone
   selection.
-- `WEATHER`: city weather, forecast panel, radar/cloud overlay, and USGS
+- `WEATHER`: city weather, forecast panel, radar overlay, and USGS
   earthquakes.
 - `PLANES`: OpenSky aircraft positions, trails, categories, and Natural Earth
   airport markers.
@@ -216,7 +216,7 @@ Important environment variables:
 | --- | --- |
 | `terrascope_OFFLINE=1` | Disable live network requests |
 | `terrascope_CONFIG=/path/file.yaml` | Load a config file before CLI flags |
-| `terrascope_LIBREWXR_URL=https://...` | Override the radar/cloud server |
+| `terrascope_RAINVIEWER_URL=https://...` | Override the RainViewer catalog API |
 | `XDG_CACHE_HOME=/path` | Change the default cache root |
 
 ## Project Layout
@@ -248,7 +248,7 @@ terrascope = "terrascope.__main__:run"
 - Natural Earth: country and province/state outlines, populated places
 - OpenSky Network: aircraft positions
 - Open-Meteo: city weather and forecasts
-- LibreWXR-compatible public endpoint: radar/cloud tiles
+- RainViewer Weather Maps API: past radar tiles (personal/educational use; attribution required)
 - USGS GeoJSON feeds: earthquakes
 - NOAA/Meeus-style calculations in code: day/night and moon information
 

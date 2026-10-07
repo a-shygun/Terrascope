@@ -1,4 +1,4 @@
-"""LibreWXR radar/cloud catalog, tile fetching, and raster sampling."""
+"""RainViewer radar catalog, tile fetching, and raster sampling."""
 
 from __future__ import annotations
 
@@ -20,14 +20,12 @@ from terrascope.layers.weather.config import (
     CATALOG_RETRY_SECONDS,
     HISTORY_MINUTES,
     INTENSITY_MIN,
-    LIBREWXR_URL,
+    RAINVIEWER_URL,
     MAX_CONCURRENT_TILE_REQUESTS,
-    NOWCAST_FRAMES,
     PAST_FRAMES,
     RADAR_MODE,
     RADAR_OPACITY,
     REQUEST_TIMEOUT_SECONDS,
-    SATELLITE_FRAMES,
     SUPERSAMPLE,
     TILE_SIZE,
     WORLD_ZOOM,
@@ -89,7 +87,7 @@ def radar_level_color(fraction: float) -> str:
     return RADAR_LEVEL_COLORS[max(0, min(_LEVEL_COUNT - 1, int(fraction * _LEVEL_COUNT)))]
 
 # ---------------------------------------------------------------------------
-# LibreWXR (Rain Viewer v2 compatible) client
+# RainViewer Weather Maps API client
 # ---------------------------------------------------------------------------
 
 class RadarFetchError(Exception):
@@ -106,30 +104,29 @@ def _http_get(url: str) -> bytes:
 def fetch_catalog(mode: str) -> list[dict]:
     """Return the frames to animate, oldest first.
 
-    Each frame is {"time": unix, "path": "/v2/radar/<unix>", "nowcast": bool}.
+    Each frame includes the tile host from the catalog, its path, timestamp,
+    and a nowcast flag (RainViewer currently publishes past radar frames only).
     """
+    if mode == "satellite":
+        raise RadarFetchError("RainViewer no longer provides satellite frames")
     try:
-        payload = json.loads(_http_get(f"{LIBREWXR_URL}/public/weather-maps.json"))
+        payload = json.loads(_http_get(f"{RAINVIEWER_URL}/public/weather-maps.json"))
     except json.JSONDecodeError as error:
         raise RadarFetchError(f"Bad catalog JSON: {error}") from error
 
+    host = payload.get("host")
+    if not isinstance(host, str) or not host.startswith(("https://", "http://")):
+        raise RadarFetchError("Catalog did not include a valid tile host")
+    host = host.rstrip("/")
     frames: list[dict] = []
-    if mode == "satellite":
-        infrared = (payload.get("satellite") or {}).get("infrared") or []
-        for item in infrared[-SATELLITE_FRAMES:]:
-            frames.append({**item, "nowcast": False})
-    else:
-        radar = payload.get("radar") or {}
-        past = radar.get("past") or []
-        nowcast = radar.get("nowcast") or []
-        past = sorted((item for item in past if "time" in item), key=lambda item: item["time"])
-        if past and HISTORY_MINUTES > 0:
-            cutoff = past[-1]["time"] - HISTORY_MINUTES * 60
-            past = [item for item in past if item["time"] >= cutoff]
-        for item in past[-PAST_FRAMES:]:
-            frames.append({**item, "nowcast": False})
-        for item in nowcast[:NOWCAST_FRAMES]:
-            frames.append({**item, "nowcast": True})
+    radar = payload.get("radar") or {}
+    past = radar.get("past") or []
+    past = sorted((item for item in past if "time" in item), key=lambda item: item["time"])
+    if past and HISTORY_MINUTES > 0:
+        cutoff = past[-1]["time"] - HISTORY_MINUTES * 60
+        past = [item for item in past if item["time"] >= cutoff]
+    for item in past[-PAST_FRAMES:]:
+        frames.append({**item, "host": host, "nowcast": False})
     frames = [f for f in frames if "time" in f and "path" in f]
     if not frames:
         raise RadarFetchError("Catalog contained no frames")
@@ -137,11 +134,10 @@ def fetch_catalog(mode: str) -> list[dict]:
     return frames
 
 def tile_url(frame: dict, mode: str, x: int, y: int) -> str:
-    base = f"{LIBREWXR_URL}{frame['path']}/{TILE_SIZE}/{WORLD_ZOOM}/{x}/{y}"
-    if mode == "satellite":
-        return f"{base}/0/0_0.png"
-    # color 255 = raw grayscale (we colour it ourselves), smooth=1, snow=0
-    return f"{base}/255/1_0.png"
+    # RainViewer's free API currently offers only its Universal Blue palette.
+    # Its tile host is supplied in the catalog and color scheme 2 is Universal Blue.
+    base = f"{frame['host']}{frame['path']}/{TILE_SIZE}/{WORLD_ZOOM}/{x}/{y}"
+    return f"{base}/2/1_0.png"
 
 def fetch_frame_raster(frame: dict, mode: str) -> np.ndarray:
     """Stitch every tile of the world at WORLD_ZOOM into one uint8 array.
@@ -166,9 +162,34 @@ def fetch_frame_raster(frame: dict, mode: str) -> np.ndarray:
     return rgba_to_intensity(np.asarray(canvas))
 
 def rgba_to_intensity(rgba: np.ndarray) -> np.ndarray:
-    red = rgba[..., 0]
-    alpha = rgba[..., 3]
-    return np.where(alpha > 0, np.maximum(red, 1), 0).astype(np.uint8)
+    # Convert RainViewer's Universal Blue colors back to a monotonic intensity
+    # scale so the existing terminal palette and opacity controls still apply.
+    # These representative RGB/dBZ pairs follow RainViewer's published color table.
+    stops = np.array([
+        (130, 123, 105, -10), (206, 192, 135, 10), (136, 221, 238, 15),
+        (0, 163, 224, 20), (0, 119, 170, 25), (0, 85, 136, 30),
+        (255, 238, 0, 35), (255, 170, 0, 40), (255, 68, 0, 45),
+        (193, 0, 0, 50), (255, 170, 255, 55), (255, 119, 255, 60),
+        (255, 255, 255, 65),
+    ], dtype=np.float32)
+    pixels = rgba.reshape(-1, 4)
+    result = np.zeros(len(pixels), dtype=np.uint8)
+    # Work in chunks to avoid allocating a full-world (pixels × stops × RGB)
+    # temporary array for every radar frame.
+    chunk_size = 16_384
+    for start in range(0, len(pixels), chunk_size):
+        end = min(start + chunk_size, len(pixels))
+        chunk = pixels[start:end]
+        visible = chunk[:, 3] > 0
+        if not np.any(visible):
+            continue
+        colors = chunk[visible, :3].astype(np.float32)
+        distances = ((colors[:, None, :] - stops[None, :, :3]) ** 2).sum(axis=-1)
+        dbz = stops[np.argmin(distances, axis=-1), 3]
+        result[start:end][visible] = np.clip(
+            (dbz + 10) * (255.0 / 75.0), 1, 255
+        ).astype(np.uint8)
+    return result.reshape(rgba.shape[:2])
 
 class RadarStore:
     """Keeps the catalog and one stitched raster per frame, refreshed on a
@@ -201,7 +222,7 @@ class RadarStore:
             data = json.loads(self._cache_manifest().read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             return
-        if not isinstance(data, dict) or data.get("version") != 1:
+        if not isinstance(data, dict) or data.get("version") != 2:
             return
         entries = data.get("frames")
         if not isinstance(entries, list):
@@ -262,7 +283,7 @@ class RadarStore:
             manifest = self._cache_manifest()
             temporary = manifest.with_suffix(manifest.suffix + ".tmp")
             payload = {
-                "version": 1,
+                "version": 2,
                 "frames": [
                     {"time": frame["time"], "nowcast": bool(frame.get("nowcast"))}
                     for frame in frames

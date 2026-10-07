@@ -162,7 +162,7 @@ class MouseMixin:
             ):
                 owner = self.panel_owner()
                 if owner is not None and owner.name == "weather":
-                    visible = max(0, forecast_rect[2] - 2)
+                    visible = max(0, forecast_rect[2] - 3)
                     max_scroll = max(0, owner.forecast_line_count() - visible)
                     direction = -1 if kind == "scroll_up" else 1
                     self.forecast_scroll = max(

@@ -52,24 +52,27 @@ WEATHER_CACHE_FILE = CACHE_DIR / "weather_cache.json"  # inside the cache dir
 WEATHER_SCHEMA = 3  # refetch old entries after migrating to Open-Meteo's current response fields
 MAX_CONCURRENT_WEATHER_REQUESTS = CITY_CONFIG["max_concurrent_requests"]
 WEATHER_TIMEOUT_SECONDS = CITY_CONFIG["request_timeout_seconds"]
-WEATHER_ERROR_MAX_CHARS = 24  # a fetch error shown in the info box is cut to this
 # Number of discrete colour pairs the temperature gradient is snapped to.
 # Curses has a limited colour-pair budget, so nearby readings share a pair.
 _COLOR_STEPS = int(CITY_CONFIG["color_steps"])
 
 # ---------------------------------------------------------------------------
-# Radar / cloud overlay settings (LibreWXR), from default.yaml (layers: weather: radar:).
+# Radar overlay settings (RainViewer), from default.yaml (layers: weather: radar:).
 # ---------------------------------------------------------------------------
 
 # Everything below comes from default.yaml (layers: weather: radar:).
 RADAR_CONFIG = WEATHER_CONFIG["radar"]
 RADAR_ENABLED = bool(RADAR_CONFIG["enabled"])
 RADAR_MODE = RADAR_CONFIG["mode"]  # "radar" | "satellite"
-# Public LibreWXR instance (the one linecast defaults to). Point this at your
-# own instance with terrascope_LIBREWXR_URL=http://localhost:8080
-LIBREWXR_URL = os.environ.get("terrascope_LIBREWXR_URL", RADAR_CONFIG["url"]).rstrip("/")
+# RainViewer catalog API. Tile requests use the host returned by its catalog.
+# Older user config files keep the bundled default copied at first launch, so
+# translate that former default while preserving any custom API URL.
+_configured_radar_url = str(RADAR_CONFIG["url"]).rstrip("/")
+if _configured_radar_url == "https://api.librewxr.net":
+    _configured_radar_url = "https://api.rainviewer.com"
+RAINVIEWER_URL = os.environ.get("terrascope_RAINVIEWER_URL", _configured_radar_url).rstrip("/")
 
-CATALOG_REFRESH_SECONDS = RADAR_CONFIG["catalog_refresh_seconds"]  # LibreWXR publishes a new frame every ~10 min
+CATALOG_REFRESH_SECONDS = RADAR_CONFIG["catalog_refresh_seconds"]  # RainViewer updates frames about every 10 min
 CATALOG_RETRY_SECONDS = RADAR_CONFIG["catalog_retry_seconds"]  # retry sooner after a failure
 REQUEST_TIMEOUT_SECONDS = RADAR_CONFIG["request_timeout_seconds"]
 MAX_CONCURRENT_TILE_REQUESTS = RADAR_CONFIG["max_concurrent_tile_requests"]
@@ -78,8 +81,7 @@ PAST_FRAMES = RADAR_CONFIG["past_frames"]  # most observed frames kept (10 min a
 HISTORY_MINUTES = float(RADAR_CONFIG["history_minutes"])  # drop observed frames older than this (0 = keep all the server offers)
 RADAR_OPACITY = float(RADAR_CONFIG["opacity"])  # 1 = full palette colours, lower = fainter
 _RADAR_BLEND_RGB = hex_to_rgb(RADAR_CONFIG["blend_color"])  # what the colours fade towards
-NOWCAST_FRAMES = RADAR_CONFIG["nowcast_frames"]  # forecast frames to animate (10 min apart, up to 60 min)
-SATELLITE_FRAMES = RADAR_CONFIG["satellite_frames"]  # hourly cloud frames
+# Legacy configuration values kept readable for existing user config files.
 
 # The whole world is fetched as one Web-Mercator raster of 2^Z x 2^Z tiles.
 # Z=2 with 512px tiles = 16 requests per frame and a 2048px raster (~0.18 deg
@@ -87,8 +89,8 @@ SATELLITE_FRAMES = RADAR_CONFIG["satellite_frames"]  # hourly cloud frames
 WORLD_ZOOM = RADAR_CONFIG["world_zoom"]
 TILE_SIZE = RADAR_CONFIG["tile_size"]
 
-# Raw (grayscale, color=255) tiles are mapped to 0..1 intensity between these
-# 8-bit values, then through the palette below.
+# Radar intensities are mapped to 0..1 between these 8-bit values, then through
+# the configured terminal palette.
 INTENSITY_MIN = RADAR_CONFIG["intensity_min"]
 INTENSITY_MAX = RADAR_CONFIG["intensity_max"]
 
