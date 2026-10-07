@@ -1,7 +1,7 @@
-# Draft recipe only. Replace SKIP with the release archive SHA-256 before AUR submission.
+# Draft recipe; finalize the checksum before submitting to the AUR.
 # Maintainer: Amir Shygun <a-shygun@users.noreply.github.com>
 pkgname=terrascope
-pkgver=0.2.0
+pkgver=0.2.2
 pkgrel=1
 pkgdesc="Braille-rendered terminal world map with live weather and aircraft"
 arch=('any')
