@@ -183,6 +183,10 @@ def compute_layout(
             map_rect = (map_top, map_left, total_height, map_width)
             panel_left = margin_x
             panel_inner_height = total_height
+            if panel_layout is None and owner is not None:
+                layout_for = getattr(owner, "panel_layout_for", None)
+                if callable(layout_for):
+                    spec = layout_for(panel_inner_height, panel_width)
             boxes = []
             top = map_top
             for index, box in enumerate(spec):
@@ -314,11 +318,11 @@ def controls_bar_slots(
     button_width = len(CONTROLS_COLLAPSED_BUTTON)
     datetime_width = len(time_text)
     datetime_x = right - datetime_width
-    orientation_text = "PANEL: LEFT" if panel_orientation == "vertical" else "PANEL: BOTTOM"
+    orientation_text = "LEFT" if panel_orientation == "vertical" else "BOTTOM"
     orientation_width = len(orientation_text) if expanded else 0
-    orientation_x = datetime_x - CONTROLS_GAP - orientation_width
-    button_x = orientation_x - (CONTROLS_GAP if expanded else 0) - button_width
-    if button_x < tabs_end:
+    button_x = datetime_x - CONTROLS_GAP - button_width
+    orientation_x = button_x - CONTROLS_GAP - orientation_width
+    if (orientation_x if expanded else button_x) < tabs_end:
         return None  # no room: draw nothing rather than overlap the tabs
     return ControlsLayout(
         datetime_x, datetime_width, button_x, button_width,
@@ -336,12 +340,12 @@ def draw_controls_bar(
         return None
     help_hits: tuple[tuple[str, int, int], ...] = ()
     if expanded:
-        help_hits = draw_help_bar(window, top, tabs_end, layout.button_x - CONTROLS_GAP)
+        help_hits = draw_help_bar(window, top, tabs_end, layout.orientation_x - CONTROLS_GAP)
     button_text = CONTROLS_EXPANDED_BUTTON if expanded else CONTROLS_COLLAPSED_BUTTON
-    safe_addstr(window, top, layout.button_x, button_text, curses.A_DIM)
     if expanded:
-        orientation_text = "PANEL: LEFT" if panel_orientation == "vertical" else "PANEL: BOTTOM"
+        orientation_text = "LEFT" if panel_orientation == "vertical" else "BOTTOM"
         safe_addstr(window, top, layout.orientation_x, orientation_text, curses.A_BOLD | curses.A_DIM)
+    safe_addstr(window, top, layout.button_x, button_text, curses.A_DIM)
     safe_addstr(window, top, layout.datetime_x, time_text, curses.A_BOLD)
     return replace(layout, help_hits=help_hits)
 

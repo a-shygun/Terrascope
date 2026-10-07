@@ -170,7 +170,7 @@ ui:
   outer_margin: [2, 1]         # (columns, rows) kept free terrascope the screen
   tab_bar_height: 1            # rows used by the tab bar above the map
   tab_gap: 1                   # blank columns between tabs
-  panel_height: 12             # bottom panel rows incl. borders
+  panel_height: 13             # bottom panel rows incl. borders and a blank inner row
   panel_orientation: vertical   # horizontal = bottom; vertical = left sidebar
   panel_min_height: 5          # hide the panel if it can't be this tall
   panel_min_map_height: 8      # rows the map always keeps
@@ -181,7 +181,7 @@ ui:
   # Gap kept between legend / scale bar / slider / attribution and the map edge
   # (2 columns per row, since cells are about twice as tall as wide).
   map_edge_pad_x: 2
-  map_edge_pad_y: 0
+  map_edge_pad_y: 0            # one extra row is added at render time for bottom breathing room
   legend_text_color: "#ffffff" # legend text drawn on the map
   # Scale bar
   scale_bar_target_columns: 14
@@ -366,24 +366,23 @@ layers:
       retry_interval_seconds: 15 # a city whose last fetch failed is retried this soon
       max_concurrent_requests: 4
       request_timeout_seconds: 15
-    # Rain radar / clouds drawn under the city labels (LibreWXR). Observed frames
+    # Rain radar drawn under the city labels (RainViewer). Observed frames
     # are ~10 min apart and lag real time by about that much. Use the slider
-    # ([ and ]) to step back through history and forward into the forecast
-    # (nowcast) frames, as far as the server publishes them.
+    # ([ and ]) to step back through the recent history.
     radar:
       enabled: true
-      mode: "radar"              # "radar" (rain) or "satellite" (clouds)
-      url: "https://api.librewxr.net"   # or your own; env terrascope_LIBREWXR_URL overrides
-      catalog_refresh_seconds: 300      # LibreWXR publishes a new frame every ~10 min
+      mode: "radar"              # RainViewer's free API provides radar only
+      url: "https://api.rainviewer.com" # catalog API; tile host comes from the catalog
+      catalog_refresh_seconds: 300      # RainViewer publishes a new frame about every 10 min
       catalog_retry_seconds: 15
       request_timeout_seconds: 15
       max_concurrent_tile_requests: 4
-      history_minutes: 0         # drop observed frames older than this many minutes; 0 = keep everything the server offers
-      past_frames: 48            # most observed frames kept (10 min apart; Rain Viewer-style servers publish ~12 = 2 h)
-      nowcast_frames: 12         # most forecast frames after LIVE (10 min apart); 0 = none
+      history_minutes: 0         # drop observed frames older than this many minutes; 0 = keep all selected frames
+      past_frames: 6             # keep at most 1 hour; stays within RainViewer's free tile request allowance
+      nowcast_frames: 0          # RainViewer no longer publishes forecast frames
       opacity: 0.65              # 1 = full palette colours, lower = fainter (blends towards blend_color)
       blend_color: "#1a232d"     # roughly the map's water / land colour
-      satellite_frames: 6        # hourly cloud frames
+      satellite_frames: 6        # legacy setting; RainViewer no longer supplies satellite data
       animate: false             # false = hold the live frame still (slider to move); true = loop all frames
       # The world is fetched as one Web-Mercator raster of 2^world_zoom squared
       # tiles (z=2, 512px = 16 requests per frame). Raise for finer detail at 4x requests.

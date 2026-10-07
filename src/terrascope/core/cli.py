@@ -281,9 +281,9 @@ OPTIONS: tuple[Opt, ...] = (
     # -- weather: radar
     _o(G_RADAR, "--radar", "layers.weather.radar.enabled", "bool", "Rain radar / cloud overlay."),
     _o(G_RADAR, "--radar-mode", "layers.weather.radar.mode", str,
-       "Show rain radar or satellite clouds.", "MODE", ("radar", "satellite")),
+       "RainViewer provides radar only; satellite mode is unavailable.", "MODE", ("radar", "satellite")),
     _o(G_RADAR, "--radar-url", "layers.weather.radar.url", str,
-       "LibreWXR server (the terrascope_LIBREWXR_URL variable overrides this).", "URL"),
+       "RainViewer catalog API (terrascope_RAINVIEWER_URL overrides this).", "URL"),
     _o(G_RADAR, "--radar-opacity", "layers.weather.radar.opacity", UNIT_FLOAT,
        "1 = full palette colours, lower = fainter.", "0-1"),
     _o(G_RADAR, "--radar-animate", "layers.weather.radar.animate", "bool",
@@ -291,7 +291,7 @@ OPTIONS: tuple[Opt, ...] = (
     _o(G_RADAR, "--radar-past-frames", "layers.weather.radar.past_frames", NONNEG_INT,
        "Most observed frames kept (10 minutes apart).", "N"),
     _o(G_RADAR, "--radar-nowcast-frames", "layers.weather.radar.nowcast_frames", NONNEG_INT,
-       "Most forecast frames after LIVE (0 = none).", "N"),
+       "Legacy setting; RainViewer no longer provides forecast frames.", "N"),
     _o(G_RADAR, "--radar-history-minutes", "layers.weather.radar.history_minutes", NONNEG_FLOAT,
        "Drop observed frames older than this (0 = keep everything offered).", "MINUTES"),
     _o(G_RADAR, "--radar-world-zoom", "layers.weather.radar.world_zoom", _number(int, 1, 4),
@@ -354,7 +354,7 @@ def build_parser() -> argparse.ArgumentParser:
 examples:
   terrascope                                   start on the first tab
   terrascope --tab planes --offline            planes tab, cached data only
-  terrascope -t 3 --radar-mode satellite --radar-opacity 0.8
+  terrascope -t 3 --radar-mode radar --radar-opacity 0.8
   terrascope --water-color '#0b1d2e' --land-color none
   terrascope --no-airports --flights-refresh 600
   terrascope --disable-layer night --no-redefine-palette
@@ -375,7 +375,7 @@ notes:
 environment variables:
   terrascope_OFFLINE=1        same as --offline
   terrascope_CONFIG=FILE      same as --config FILE (applied first)
-  terrascope_LIBREWXR_URL     LibreWXR radar server (beats --radar-url)
+  terrascope_RAINVIEWER_URL   RainViewer catalog API (beats --radar-url)
   XDG_CACHE_HOME            cache location when --cache-dir is not given
 
 in-app keys: run `terrascope --list-keys`.

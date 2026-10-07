@@ -65,7 +65,7 @@ SCALE_BAR_MIN_BAR_COLUMNS = UI["scale_bar_min_bar_columns"]
 
 MAP_EDGE_PAD_X = UI["map_edge_pad_x"]
 
-MAP_EDGE_PAD_Y = max(0, UI["map_edge_pad_y"] - 1)
+MAP_EDGE_PAD_Y = max(0, UI["map_edge_pad_y"]) + 1
 
 SLIDER_TRACK_COLUMNS = UI["slider_track_columns"]
 

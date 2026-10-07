@@ -1,16 +1,17 @@
-"""Weather tab layer: city weather, radar/cloud overlay, and earthquakes."""
+"""Weather tab layer: city weather, radar overlay, and earthquakes."""
 
 from __future__ import annotations
 
 import math
 import sys
+import textwrap
 import threading
 import time
 import numpy as np
 from terrascope.core.config import FETCH_NEW_DATA_FROM_API
 from terrascope.core.layer import CLICK_RADIUS, Layer, LayerRender, Marker, PanelBox, SidebarLine, SliderSpec
 from terrascope.core.mapdata import MapDataError, load_places
-from terrascope.core.ui import concise_error_message
+from terrascope.core.ui.constants import INFO_BOX_LABEL_WIDTH
 from terrascope.core.view import View
 from terrascope.layers.weather.city_weather import (
     WeatherStationCache,
@@ -42,7 +43,6 @@ from terrascope.layers.weather.config import (
     RADAR_LOADING_TEXT,
     RADAR_MODE,
     WEATHER_CONFIG,
-    WEATHER_ERROR_MAX_CHARS,
     WEATHER_SCHEMA,
     _CITY_LABELS,
     _CITY_TEXT,
@@ -174,6 +174,23 @@ class WeatherLayer(Layer):
     def info_title(self) -> str:
         return "EARTHQUAKE INFO" if self._selected_kind() == "quake" else "CITY INFO"
 
+    def panel_layout_for(self, available_height: int, panel_width: int) -> tuple[PanelBox, ...]:
+        """Size the left info box to its wrapped content; give the rest to forecast."""
+        rows = self.info_rows()
+        value_width = max(1, panel_width - INFO_BOX_LABEL_WIDTH - 5)
+        content_height = sum(
+            len(textwrap.wrap(str(value), width=value_width, break_long_words=True,
+                              break_on_hyphens=False) or [""])
+            for _label, value in rows
+        )
+        # Two border rows plus one blank row below the final value.
+        info_height = min(max(3, content_height + 3), max(3, available_height - 3))
+        ratio = info_height / max(1, available_height)
+        return (
+            PanelBox("info", ratio),
+            PanelBox("rich", 1.0 - ratio, "FORECAST"),
+        )
+
     # ---- clicking and the forecast box ---------------------------------------------
 
     def rich_title(self, title: str | None) -> str:
@@ -196,7 +213,7 @@ class WeatherLayer(Layer):
             return [[(_CITY_TEXT["fetching"], None, "dim")]]
         days = [day for day in reading.get("forecast") or [] if isinstance(day, dict)]
         if reading.get("schema") != WEATHER_SCHEMA or not days:
-            return [[(reading.get("error") or "loading forecast...", None, "dim")]]
+            return [[("FORECAST UNAVAILABLE", None, "dim")]]
         if vertical:
             return forecast_vertical_lines(days, width, height, scroll)
         return forecast_lines(days, width)
@@ -305,12 +322,11 @@ class WeatherLayer(Layer):
             messages.append("CITY LIST UNAVAILABLE · RETRYING")
         weather_loading = self.weather.loading_count()
         if weather_loading:
-            messages.append(f"LOADING CITY WEATHER · {weather_loading}")
-        elif (weather_failed := self.weather.failed_count()):
-            detail = concise_error_message(self.weather.first_error(), 30)
-            messages.append(f"CITY WEATHER · {weather_failed} FAILED · {detail}")
+            messages.append("UPDATING CITY WEATHER")
+        elif self.weather.failed_count():
+            messages.append("WEATHER UNAVAILABLE · RETRYING")
         if self.radar.loading():
-            messages.append("LOADING RADAR / CLOUDS")
+            messages.append("LOADING RADAR")
         elif self.radar.failed():
             messages.append("RADAR UNAVAILABLE · RETRYING")
         if self.refresh_in_progress:
@@ -471,11 +487,12 @@ class WeatherLayer(Layer):
     # ---- time slider (same widget as the planes layer) -------------------------
 
     def slider(self) -> SliderSpec | None:
-        """Steps through the radar frames the server offers: observed ones to the
-        left of LIVE, forecast (nowcast) ones to the right. The range comes from
-        the catalogue, not from what has downloaded so far, so it does not grow
-        while frames are still arriving; a step whose frame is not loaded yet
-        shows the nearest loaded one."""
+        """Steps through radar frames in the catalog, oldest to newest.
+
+        The range comes from the catalog, not from what has downloaded so far,
+        so it does not grow while frames are still arriving; a step whose frame
+        is not loaded yet shows the nearest loaded one.
+        """
         if not (self.enabled and RADAR_ENABLED):
             return None
         catalog = self.radar.catalog_frames()
@@ -492,11 +509,11 @@ class WeatherLayer(Layer):
                 )
                 age = self._radar_age_caption(frame["time"])
                 return SliderSpec(
-                    "RADAR", 2, 0, age, status="CACHED",
+                    "RAINVIEWER", 2, 0, age, status="CACHED",
                     loaded_steps=(0,), disabled=True,
                 )
             status = "RADAR UNAVAILABLE" if self.radar.failed() else RADAR_LOADING_TEXT
-            return SliderSpec("RADAR", 2, 0, "LIVE", status=status, disabled=True)
+            return SliderSpec("RAINVIEWER", 2, 0, "LIVE", status=status, disabled=True)
         live = self._catalog_live_index(catalog)
         live_time = catalog[live]["time"]
         index = self._catalog_shown_index(catalog)
@@ -512,7 +529,7 @@ class WeatherLayer(Layer):
         elif not using_cache and not loaded_frames:
             status = RADAR_LOADING_TEXT
         elif not using_cache and len(loaded_frames) < len(catalog):
-            status = f"RADAR {len(loaded_frames)}/{len(catalog)} TIMES READY"
+            status = "LOADING RADAR"
         elif not using_cache:
             status = ""
         loaded_times = {frame["time"] for frame, _raster in loaded_frames}
@@ -521,7 +538,7 @@ class WeatherLayer(Layer):
             if frame["time"] in loaded_times
         )
         return SliderSpec(
-            "RADAR", len(catalog), index, caption, marker=live, wide=True,
+            "RAINVIEWER", len(catalog), index, caption, marker=live, wide=True,
             status=status, loaded_steps=loaded_steps,
         )
 
@@ -807,6 +824,7 @@ class WeatherLayer(Layer):
     def _radar_info_rows(self, cell: dict) -> list[tuple[str, str]]:
         stamp = time.strftime("%Y-%m-%d %H:%M", time.gmtime(cell["time"]))
         return [
+            ("SOURCE", "RAINVIEWER.COM"),
             (_RADAR_LABELS["name"], cell["name"]),
             (_RADAR_LABELS["kind"], cell["kind"]),
             (_RADAR_LABELS["intensity"], f"{cell['intensity'] * 100:.0f}%"),
@@ -819,8 +837,7 @@ class WeatherLayer(Layer):
         if reading is None:
             return [(_CITY_LABELS["weather"], _CITY_TEXT["fetching"])]
         if reading.get("temperature") is None:
-            message = reading.get("error") or _CITY_TEXT["unavailable"]
-            return [(_CITY_LABELS["weather"], message.upper()[:WEATHER_ERROR_MAX_CHARS])]
+            return [(_CITY_LABELS["weather"], "UNAVAILABLE")]
         rows = [
             (_CITY_LABELS["temperature"], f"{reading['temperature']:.1f}\u00b0C"),
             (_CITY_LABELS["conditions"], describe_weather_code(reading.get("weathercode"))),

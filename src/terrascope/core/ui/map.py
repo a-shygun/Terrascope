@@ -620,7 +620,7 @@ def border_button_slots(
         x += len(text) + 1
     return slots
 
-def draw_attribution(area: _MapArea, text: str, slider_visible: bool = False) -> None:
+def draw_attribution(area: _MapArea, text: str) -> None:
     """Credits at the map's bottom-left: the layer's own data source(s) on top,
     always \u00a9 OpenStreetMap contributors on the bottom row. `text` is the tab's
     credit(s), separated by " \u00b7 "; a "Flights: " style prefix is dropped."""
@@ -631,8 +631,8 @@ def draw_attribution(area: _MapArea, text: str, slider_visible: bool = False) ->
             layer_credits.append(part)
     lines = layer_credits + [OSM_CREDIT]
     room = max(0, area.width - 2 * MAP_EDGE_PAD_X)
-    # Keep provider credits above the shared slider / scale footer row.
-    bottom = area.height - 1 - MAP_EDGE_PAD_Y - int(slider_visible)
+    # Align the OSM credit with the shared slider / scale footer row.
+    bottom = area.height - 1 - MAP_EDGE_PAD_Y
     for offset, line in enumerate(reversed(lines)):
         row = bottom - offset
         if row < 0:
@@ -668,7 +668,7 @@ def draw_map_box(
     draw_background(area)
     draw_layer_symbols(area)
     draw_markers(area)
-    draw_attribution(area, attribution, slider_visible=slider is not None)
+    draw_attribution(area, attribution)
     draw_scale_bar(area, center_lat)
     if slider is not None:
         draw_slider(area, slider, center_lat)
