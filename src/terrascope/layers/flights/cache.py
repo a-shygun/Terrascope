@@ -14,7 +14,7 @@ from terrascope.layers.flights.api import (
     normalize_flights,
     normalize_states,
 )
-from terrascope.layers.flights.formatting import distance_between_points, valid_history_point
+from terrascope.layers.flights.formatting import distance_between_points, finite_float, valid_history_point
 from terrascope.layers.flights.settings import (
     FLIGHT_CACHE_FILE,
     FLIGHT_HISTORY_POINTS,
@@ -116,8 +116,12 @@ class FlightCache:
         }
         now = time.time()
         for icao, flight in current_by_icao.items():
+            # The feed sometimes sends last_contact in an odd type. Coerce
+            # here so a bad value never reaches history or the saved cache.
+            # An explicit None check keeps a real 0.0 from falling back.
+            stamp = finite_float(flight.get("last_contact"))
             point = {
-                "timestamp": flight.get("last_contact") or now,
+                "timestamp": stamp if stamp is not None else now,
                 "latitude": flight["latitude"],
                 "longitude": flight["longitude"],
             }
