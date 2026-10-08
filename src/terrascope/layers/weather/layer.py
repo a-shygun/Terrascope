@@ -357,9 +357,16 @@ class WeatherLayer(Layer):
         place of the plain dot."""
         if selected:
             reading = self.weather.get(key)
-            if reading and reading.get("temperature") is not None:
+            # Stored entries predate the ingest coercion and may hold
+            # strings, so check the type here instead of trusting it.
+            temp = reading.get("temperature") if reading else None
+            if (
+                isinstance(temp, (int, float))
+                and not isinstance(temp, bool)
+                and math.isfinite(temp)
+            ):
                 icon = weather_icon(reading.get("weathercode"))
-                return f"{icon[0]} {name} {reading['temperature']:.0f}\u00b0C", icon
+                return f"{icon[0]} {name} {temp:.0f}\u00b0C", icon
         return f"{MARKER_PREFIX}{name}", None
 
     def _place_cities(
@@ -836,12 +843,31 @@ class WeatherLayer(Layer):
         reading = self.weather.get(city_name)
         if reading is None:
             return [(_CITY_LABELS["weather"], _CITY_TEXT["fetching"])]
-        if reading.get("temperature") is None:
+        temp = reading.get("temperature")
+        if not (
+            isinstance(temp, (int, float))
+            and not isinstance(temp, bool)
+            and math.isfinite(temp)
+        ):
             return [(_CITY_LABELS["weather"], "UNAVAILABLE")]
+        # Wind fields share the same legacy risk, so fall back to N/A
+        # per field instead of letting one bad value kill the panel.
+        wind = reading.get("windspeed")
+        wind_text = (
+            f"{wind:.0f}"
+            if isinstance(wind, (int, float)) and not isinstance(wind, bool) and math.isfinite(wind)
+            else _CITY_TEXT["not_available"]
+        )
+        direction = reading.get("winddirection")
+        direction_text = (
+            f"{direction:.0f}"
+            if isinstance(direction, (int, float)) and not isinstance(direction, bool) and math.isfinite(direction)
+            else _CITY_TEXT["not_available"]
+        )
         rows = [
-            (_CITY_LABELS["temperature"], f"{reading['temperature']:.1f}\u00b0C"),
+            (_CITY_LABELS["temperature"], f"{temp:.1f}\u00b0C"),
             (_CITY_LABELS["conditions"], describe_weather_code(reading.get("weathercode"))),
-            (_CITY_LABELS["wind"], f"{reading['windspeed']:.0f} km/h @ {reading['winddirection']:.0f}\u00b0"),
+            (_CITY_LABELS["wind"], f"{wind_text} km/h @ {direction_text}\u00b0"),
             (_CITY_LABELS["observed"], str(reading.get("observed_at") or _CITY_TEXT["not_available"])),
         ]
         return rows
