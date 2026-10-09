@@ -120,8 +120,24 @@ def fetch_catalog(mode: str) -> list[dict]:
     host = host.rstrip("/")
     frames: list[dict] = []
     radar = payload.get("radar") or {}
-    past = radar.get("past") or []
-    past = sorted((item for item in past if "time" in item), key=lambda item: item["time"])
+    raw_past = radar.get("past") or []
+    # Catalog times come from the network and end up in cache filenames,
+    # so coerce them here. Bad values get dropped early instead of
+    # reaching the sort, the cutoff math, or the cache save. This matches
+    # the int(entry["time"]) check the cache loader already does.
+    past: list[dict] = []
+    for item in raw_past:
+        if not isinstance(item, dict) or "time" not in item:
+            continue
+        stamp = item["time"]
+        if isinstance(stamp, bool):
+            continue
+        try:
+            stamp = int(stamp)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        past.append({**item, "time": stamp})
+    past.sort(key=lambda item: item["time"])
     if past and HISTORY_MINUTES > 0:
         cutoff = past[-1]["time"] - HISTORY_MINUTES * 60
         past = [item for item in past if item["time"] >= cutoff]
