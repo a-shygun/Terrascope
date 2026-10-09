@@ -256,10 +256,14 @@ class InputMixin:
             self.world.clear_filters()
             self.info_visible = False
             return
-        if key in KEYS["search"]:
+        # Search and country filtering currently belong to the Planes tab.
+        # On other tabs the modal fields are not rendered, so consuming these
+        # keys there would leave input captured with no visible prompt.
+        planes_tab = TABS[self.active_tab].name == "planes"
+        if planes_tab and key in KEYS["search"]:
             self.enter_search_mode()
             return
-        if key in KEYS["filter"]:
+        if planes_tab and key in KEYS["filter"]:
             self.enter_filter_mode()
             return
         if key == curses.KEY_MOUSE:
