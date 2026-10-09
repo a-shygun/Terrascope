@@ -36,10 +36,11 @@ Python dependencies are declared in `pyproject.toml`:
 - `numpy`
 - `Pillow`
 - `PyYAML`
+- `pyshp`
 
 ## Installation
 
-For normal use:
+For the latest published release:
 
 ```bash
 pipx install terrascope
@@ -48,20 +49,28 @@ terrascope
 
 ### Package managers
 
-Terrascope also includes recipes for Nix and Homebrew:
+Homebrew can install the latest tagged release or the latest code on `main`:
 
 ```bash
-# Nix, from a Terrascope checkout
-nix run ./packaging/nix
-
-# Homebrew
+# Homebrew, latest published release
 brew tap a-shygun/terrascope https://github.com/a-shygun/Terrascope.git
 brew install a-shygun/terrascope/terrascope
+
+# Homebrew, latest code on main before the next tagged release
+brew install --HEAD a-shygun/terrascope/terrascope
+
+# pipx, latest code on main before the next tagged release
+pipx install --force "git+https://github.com/a-shygun/Terrascope.git@main"
+
+# Nix, from a Terrascope checkout (uses that checkout's source and version)
+nix run ./packaging/nix
 ```
 
-PyPI publishing is automated for version tags. The Nix and Arch recipes,
-Homebrew formula, and distribution-check helper live under `packaging/`; update
-their version references when preparing a release.
+PyPI and Homebrew's default install use tagged releases. Their version comes
+from `pyproject.toml`; the Homebrew formula reads it directly. Homebrew's
+`--HEAD` option, the pipx VCS install, and the Nix checkout recipe use the
+current `main` source. The Arch VCS recipe also tracks `main`, but remains a
+draft and has not been submitted to the AUR.
 
 For local development:
 

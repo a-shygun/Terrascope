@@ -1,24 +1,34 @@
-# Draft recipe; finalize the checksum before submitting to the AUR.
+# Draft VCS recipe; review before submitting to the AUR.
 # Maintainer: Amir Shygun <a-shygun@users.noreply.github.com>
-pkgname=terrascope
-pkgver=0.2.2
+pkgname=terrascope-git
+pkgver=0
 pkgrel=1
 pkgdesc="Braille-rendered terminal world map with live weather and aircraft"
 arch=('any')
 url="https://github.com/a-shygun/terrascope"
 license=('MIT')
 depends=('python>=3.10' 'python-numpy' 'python-pillow' 'python-pyyaml' 'python-shapefile')
-makedepends=('python-build' 'python-installer' 'python-hatchling')
-source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP') # Replace with the release archive checksum before submitting to the AUR.
+makedepends=('git' 'python-build' 'python-installer' 'python-hatchling')
+provides=('terrascope')
+conflicts=('terrascope')
+source=("$pkgname::git+https://github.com/a-shygun/Terrascope.git#branch=main")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$srcdir/$pkgname"
+  local version
+  version="$(git describe --long --tags --abbrev=7)"
+  version="${version#v}"
+  printf '%s\n' "$version" | sed -E 's/-([0-9]+)-g/.r\1.g/; s/-/./g'
+}
 
 build() {
-  cd "$srcdir/$pkgname-$pkgver"
+  cd "$srcdir/$pkgname"
   python -m build --wheel --no-isolation
 }
 
 package() {
-  cd "$srcdir/$pkgname-$pkgver"
+  cd "$srcdir/$pkgname"
   python -m installer --destdir="$pkgdir" dist/*.whl
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
