@@ -39,6 +39,18 @@ def describe_weather_code(code) -> str:
     except (TypeError, ValueError):
         return _CITY_TEXT["unknown_weather"]
 
+def _as_finite(value) -> float | None:
+    # Feed values arrive as whatever JSON gave us. Coerce here so a
+    # string never reaches min/max or :.0f formatting in the layer.
+    # Explicit None keeps the callers honest about missing readings.
+    if isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
 def temperature_to_color(
     temperature: float | None, cold_c: float, hot_c: float
 ) -> str | None:
@@ -49,11 +61,16 @@ def temperature_to_color(
     reflects how hot or cold it is *relative to the other cities*, not a
     fixed absolute threshold.
 
-    Returns None when there is no reading yet, so callers can fall back to
-    a neutral default color.
+    Returns None when the reading is missing or not a finite number, so
+    callers can fall back to a neutral default color. The type check sits
+    here rather than at each call site because entries loaded from older
+    cache files can hold strings, and the range is built from the valid
+    ones only, which leaves those legacy values to be colored on their own.
     """
-    if temperature is None:
+    temp = _as_finite(temperature)
+    if temp is None:
         return None
+    temperature = temp
     span = hot_c - cold_c
     if span <= 0:
         # Only one distinct temperature known so far -- nothing to scale
@@ -257,10 +274,12 @@ class WeatherStationCache:
         least one reading is known.
         """
         with self._lock:
+            # Entries predating the coercion below may hold strings,
+            # so filter again here instead of trusting stored types.
             temperatures = [
-                entry["temperature"]
+                temp
                 for entry in self._entries.values()
-                if entry.get("temperature") is not None
+                if (temp := _as_finite(entry.get("temperature"))) is not None
             ]
         if not temperatures:
             return None
@@ -344,20 +363,25 @@ class WeatherStationCache:
                 error = str(fetch_error)
             with self._lock:
                 previous = self._entries.get(city_key, {})
+                # Coerce on the way in. A bad feed value keeps the
+                # previous good reading instead of poisoning the cache.
+                fresh_temp = _as_finite(current.get("temperature")) if current else None
+                fresh_wind = _as_finite(current.get("windspeed")) if current else None
+                fresh_dir = _as_finite(current.get("winddirection")) if current else None
                 self._entries[city_key] = {
                     "temperature": (
-                        current.get("temperature")
-                        if current
+                        fresh_temp
+                        if fresh_temp is not None
                         else previous.get("temperature")
                     ),
                     "windspeed": (
-                        current.get("windspeed")
-                        if current
+                        fresh_wind
+                        if fresh_wind is not None
                         else previous.get("windspeed")
                     ),
                     "winddirection": (
-                        current.get("winddirection")
-                        if current
+                        fresh_dir
+                        if fresh_dir is not None
                         else previous.get("winddirection")
                     ),
                     "weathercode": (
