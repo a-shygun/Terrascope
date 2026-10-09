@@ -342,10 +342,15 @@ class FlightsLayer(Layer):
     def _history_range_minutes(self) -> int:
         longest_span = 0.0
         for points in self.history.values():
+            # valid_history_point only checks lon and lat, so filter the
+            # timestamp here too. Old cache entries may hold strings.
+            # Same guard position_at uses, keeps one bad point from
+            # raising out of the render path.
             timestamps = [
                 float(point["timestamp"])
                 for point in points
                 if valid_history_point(point)
+                and finite_float(point.get("timestamp")) is not None
             ]
             if len(timestamps) > 1:
                 longest_span = max(longest_span, max(timestamps) - min(timestamps))
