@@ -61,11 +61,16 @@ def temperature_to_color(
     reflects how hot or cold it is *relative to the other cities*, not a
     fixed absolute threshold.
 
-    Returns None when there is no reading yet, so callers can fall back to
-    a neutral default color.
+    Returns None when the reading is missing or not a finite number, so
+    callers can fall back to a neutral default color. The type check sits
+    here rather than at each call site because entries loaded from older
+    cache files can hold strings, and the range is built from the valid
+    ones only, which leaves those legacy values to be colored on their own.
     """
-    if temperature is None:
+    temp = _as_finite(temperature)
+    if temp is None:
         return None
+    temperature = temp
     span = hot_c - cold_c
     if span <= 0:
         # Only one distinct temperature known so far -- nothing to scale
