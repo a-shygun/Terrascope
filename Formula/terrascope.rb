@@ -4,7 +4,7 @@ class Terrascope < Formula
   desc "Braille-rendered terminal world map with live weather and aircraft"
   homepage "https://github.com/a-shygun/terrascope"
 
-  project_root = File.expand_path("../..", __dir__)
+  project_root = File.expand_path("..", __dir__)
   project_version = File.read(File.join(project_root, "pyproject.toml"))
                          .match(/^version\s*=\s*"([^\"]+)"$/)[1]
 
