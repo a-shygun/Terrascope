@@ -16,6 +16,11 @@ class InputMixin:
         """Show / hide the bottom panel (H key or the button on the map's
         bottom-left border)."""
         self.panel_visible = not self.panel_visible
+        if not self.panel_visible:
+            # The search / filter prompt lives in the panel: don't leave it
+            # capturing keys once it can't be seen (the button is clickable
+            # while the prompt is open).
+            self.cancel_input_mode()
         self.world.dirty = True  # the map box changes size
 
     def select_tab(self, index: int) -> None:
@@ -42,6 +47,10 @@ class InputMixin:
         self.world.clear_selection()
         self.info_visible = False
         self._drag = None
+        # A tab clicked while the Planes search / filter prompt is open: the
+        # new tab doesn't draw that prompt, so leaving its mode on would send
+        # every key into an invisible text box (issue #3, via the mouse).
+        self.cancel_input_mode()
         self.world.dirty = True
 
     def enter_search_mode(self) -> None:
