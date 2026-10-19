@@ -234,6 +234,13 @@ class InputMixin:
             else:
                 self.handle_tz_key(key)
             return
+        if self.place_search_open:
+            # Modal, like the timezone dropdown.
+            if key == curses.KEY_MOUSE:
+                self.handle_mouse()
+            else:
+                self.handle_place_key(key)
+            return
         if self.mode != "normal":
             self.handle_text_input(key)
             return
@@ -256,12 +263,16 @@ class InputMixin:
             self.world.clear_filters()
             self.info_visible = False
             return
-        # Search and country filtering currently belong to the Planes tab.
-        # On other tabs the modal fields are not rendered, so consuming these
-        # keys there would leave input captured with no visible prompt.
+        # The Planes tab searches its own panel box (callsign / ICAO) and is
+        # the only tab with a country filter. Every other tab opens the place
+        # search dropdown, which is drawn wherever the map is, so the key is
+        # never captured without a visible prompt.
         planes_tab = TABS[self.active_tab].name == "planes"
-        if planes_tab and key in KEYS["search"]:
-            self.enter_search_mode()
+        if key in KEYS["search"]:
+            if planes_tab:
+                self.enter_search_mode()
+            else:
+                self.open_place_search()
             return
         if planes_tab and key in KEYS["filter"]:
             self.enter_filter_mode()

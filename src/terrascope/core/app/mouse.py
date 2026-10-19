@@ -92,8 +92,8 @@ class MouseMixin:
 
     def _mouse_event(self, kind: str, mouse_x: int, mouse_y: int) -> None:
         """kind: "press" | "motion" | "release" | "scroll_up" | "scroll_down"."""
-        # The welcome modal and the timezone dropdown are modal: while either
-        # is open it alone decides what a click does, and nothing underneath
+        # The welcome modal and the timezone / place dropdowns are modal: while
+        # one is open it alone decides what a click does, and nothing underneath
         # (panning, zooming, tabs...) reacts to the mouse.
         if self.welcome_visible:
             if kind == "press":
@@ -106,6 +106,14 @@ class MouseMixin:
                 self._tz_move(-1)
             elif kind == "scroll_down":
                 self._tz_move(1)
+            return
+        if self.place_search_open:
+            if kind == "press":
+                self._click_place_search(mouse_x, mouse_y)
+            elif kind == "scroll_up":
+                self._place_move(-1)
+            elif kind == "scroll_down":
+                self._place_move(1)
             return
 
         height, width = self.stdscr.getmaxyx()

@@ -205,6 +205,12 @@ class WorldMap:
         self._selection_index = 0
         self._activate_selection()
 
+    def select_item(self, layer: Layer, item) -> None:
+        """Select one known item without a click (e.g. a searched city)."""
+        self._selection_candidates = [(layer, item)]
+        self._selection_index = 0
+        self._activate_selection()
+
     def clear_selection(self) -> None:
         self._selection_candidates = []
         self._selection_index = 0
