@@ -91,6 +91,21 @@ _POSITIVE_PATHS = (
     "layers.weather.earthquakes.refresh_interval_seconds",
     "layers.weather.earthquakes.request_timeout_seconds",
 )
+# Real-valued settings that default.yaml happens to write as whole numbers
+# (60, 64, ...). They take fractions too: the CLI parses their flags as floats
+# (--zoom-min 1.5), and the int check would otherwise reject every value. A
+# user's installed default.yaml keeps the whole numbers, so this can't be fixed
+# in the bundled file alone.
+_REAL_NUMBER_PATHS = frozenset({
+    "data.download_timeout_seconds",
+    "map.zoom.min",
+    "map.zoom.max",
+    "map.zoom.province_min",
+    "layers.flights.request_timeout_seconds",
+    "layers.weather.radar.history_minutes",
+    "layers.weather.earthquakes.dim_after_hours",
+    "layers.night.update_seconds",
+})
 _UNIT_INTERVAL_PATHS = (
     "layers.weather.radar.opacity",
     "layers.night.tint_opacity",
@@ -160,10 +175,10 @@ def _check_types(default: Any, value: Any, path: str) -> None:
     elif isinstance(default, bool):
         if not isinstance(value, bool):
             raise ConfigError(f"{path}: expected true or false")
-    elif isinstance(default, int):
+    elif isinstance(default, int) and path not in _REAL_NUMBER_PATHS:
         if isinstance(value, bool) or not isinstance(value, int):
             raise ConfigError(f"{path}: expected an integer")
-    elif isinstance(default, float):
+    elif isinstance(default, (int, float)):
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
             raise ConfigError(f"{path}: expected a finite number")
     elif isinstance(default, str):
