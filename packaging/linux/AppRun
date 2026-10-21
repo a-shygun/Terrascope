@@ -1,0 +1,5 @@
+#!/bin/sh
+# AppRun for the Terrascope AppImage (PyInstaller onefile binary).
+# $APPDIR is set by the AppImage runtime.
+set -e
+exec "$APPDIR/usr/bin/terrascope" "$@"

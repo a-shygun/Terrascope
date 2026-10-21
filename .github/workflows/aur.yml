@@ -1,0 +1,137 @@
+name: Publish AUR packages
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish (for example v0.3.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish-aur:
+    name: Publish terrascope and terrascope-git to the AUR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Sync stable AUR version with tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import tomllib
+          import urllib.request
+          import hashlib
+          from pathlib import Path
+
+          tag = os.environ["RELEASE_TAG"]
+          if not tag.startswith("v"):
+              raise SystemExit(f"tag must start with v: {tag}")
+          version = tag[1:]
+          project_version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          if version != project_version:
+              raise SystemExit(f"tag {tag} does not match project version {project_version}")
+
+          tarball_url = f"https://github.com/a-shygun/Terrascope/archive/refs/tags/{tag}.tar.gz"
+          print(f"downloading {tarball_url}")
+          with urllib.request.urlopen(tarball_url) as response:
+              sha256 = hashlib.sha256(response.read()).hexdigest()
+          print(f"sha256: {sha256}")
+
+          pkgbuild = Path("packaging/aur/terrascope/PKGBUILD")
+          text = pkgbuild.read_text(encoding="utf-8")
+          text = re.sub(r"^pkgver=.*$", f"pkgver={version}", text, count=1, flags=re.M)
+          # Replace the first sha256 entry (the upstream tarball checksum).
+          text = re.sub(
+              r"^sha256sums=\('[^']*'\)$",
+              f"sha256sums=('{sha256}')",
+              text,
+              count=1,
+              flags=re.M,
+          )
+          pkgbuild.write_text(text, encoding="utf-8")
+
+          # Regenerate .SRCINFO without needing makepkg (kept in sync with PKGBUILD).
+          lines = [
+              "pkgbase = terrascope",
+              "\tpkgdesc = Braille-rendered terminal world map with live weather and aircraft",
+              f"\tpkgver = {version}",
+              "\tpkgrel = 1",
+              "\turl = https://github.com/a-shygun/terrascope",
+              "\tarch = any",
+              "\tlicense = MIT",
+              "\tmakedepends = python-build",
+              "\tmakedepends = python-installer",
+              "\tmakedepends = python-hatchling",
+              "\tdepends = python>=3.10",
+              "\tdepends = python-numpy",
+              "\tdepends = python-pillow",
+              "\tdepends = python-yaml",
+              "\tdepends = python-pyshp",
+              f"\tsource = terrascope-{version}.tar.gz::https://github.com/a-shygun/Terrascope/archive/refs/tags/v{version}.tar.gz",
+              f"\tsha256sums = {sha256}",
+              "",
+              "pkgname = terrascope",
+              "",
+          ]
+          Path("packaging/aur/terrascope/.SRCINFO").write_text("\n".join(lines), encoding="utf-8")
+          print("updated packaging/aur/terrascope/PKGBUILD and .SRCINFO")
+          PY
+          git diff -- packaging/aur/terrascope/PKGBUILD packaging/aur/terrascope/.SRCINFO || true
+
+      - name: Set up AUR SSH key
+        if: env.AUR_SSH_PRIVATE_KEY != ''
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          cat >> ~/.ssh/config <<'EOF'
+          Host aur.archlinux.org
+            IdentityFile ~/.ssh/aur
+            StrictHostKeyChecking yes
+          EOF
+          # Add AUR host key without requiring manual approval.
+          ssh-keyscan -t ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+
+      - name: Push to the AUR
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "${AUR_SSH_PRIVATE_KEY:-}" ]; then
+            echo "AUR_SSH_PRIVATE_KEY is not set; skipping push."
+            echo "Add an AUR SSH key as the AUR_SSH_PRIVATE_KEY secret, then re-run this workflow."
+            echo "See docs/RELEASING.md for the one-time AUR setup."
+            exit 0
+          fi
+          set -euo pipefail
+          workdir="$(mktemp -d)"
+          trap 'rm -rf "$workdir"' EXIT
+          for pkg in terrascope terrascope-git; do
+            rm -rf "$workdir/$pkg"
+            git clone "ssh://aur@aur.archlinux.org/$pkg.git" "$workdir/$pkg"
+            cp "packaging/aur/$pkg/PKGBUILD" "packaging/aur/$pkg/.SRCINFO" "$workdir/$pkg/"
+            cd "$workdir/$pkg"
+            if git status --porcelain | grep -q .; then
+              git add PKGBUILD .SRCINFO
+              git -c user.name="terrascope-bot" -c user.email="a-shygun@users.noreply.github.com" \
+                commit -m "Update $pkg from ${GITHUB_REF_NAME:-manual run}"
+              git push origin master
+            else
+              echo "$pkg is already up to date on the AUR."
+            fi
+            cd - >/dev/null
+          done

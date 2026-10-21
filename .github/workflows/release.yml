@@ -79,9 +79,13 @@ jobs:
           - os: ubuntu-22.04
             platform: linux_x86_64
             deb_arch: amd64
+            rpm_arch: x86_64
+            appimage_arch: x86_64
           - os: ubuntu-22.04-arm
             platform: linux_arm64
             deb_arch: arm64
+            rpm_arch: aarch64
+            appimage_arch: aarch64
           - os: macos-15-intel
             platform: macos_x86_64
           - os: macos-15
@@ -134,22 +138,57 @@ jobs:
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           version="${RELEASE_TAG#v}"
-          package_root="$(mktemp -d)"
-          install -D -m 755 dist/terrascope "$package_root/usr/bin/terrascope"
-          install -d "$package_root/DEBIAN"
-          cat > "$package_root/DEBIAN/control" <<EOF
-          Package: terrascope
-          Version: ${version}
-          Section: utils
-          Priority: optional
-          Architecture: ${DEB_ARCH}
-          Maintainer: Terrascope maintainers <a-shygun@users.noreply.github.com>
-          Depends: libc6, libncursesw6, libtinfo6
-          Description: Braille-rendered interactive world map for the terminal
-           Terrascope shows live weather, aircraft, earthquakes, and day/night layers.
-          EOF
-          dpkg-deb --root-owner-group --build \
-            "$package_root" "dist/terrascope_${version}_${PLATFORM}.deb"
+          chmod +x packaging/linux/build_deb.sh
+          packaging/linux/build_deb.sh \
+            --version "$version" \
+            --arch "$DEB_ARCH" \
+            --binary dist/terrascope \
+            --output dist
+
+      - name: Package RPM installer
+        if: runner.os == 'Linux'
+        env:
+          RPM_ARCH: ${{ matrix.rpm_arch }}
+          PLATFORM: ${{ matrix.platform }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rpm
+          chmod +x packaging/linux/build_rpm.sh
+          packaging/linux/build_rpm.sh \
+            --version "$version" \
+            --arch "$RPM_ARCH" \
+            --platform "$PLATFORM" \
+            --binary dist/terrascope \
+            --output dist
+
+      - name: Package AppImage
+        if: runner.os == 'Linux'
+        env:
+          APPIMAGE_ARCH: ${{ matrix.appimage_arch }}
+          PLATFORM: ${{ matrix.platform }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          case "$APPIMAGE_ARCH" in
+            x86_64) tool_url="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" ;;
+            aarch64) tool_url="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage" ;;
+            *) echo "unsupported AppImage arch: $APPIMAGE_ARCH" >&2; exit 1 ;;
+          esac
+          curl -LsSf -o "$RUNNER_TEMP/appimagetool" "$tool_url"
+          chmod +x "$RUNNER_TEMP/appimagetool"
+          # Runners lack FUSE; extract once and run the inner AppRun.
+          "$RUNNER_TEMP/appimagetool" --appimage-extract
+          chmod +x packaging/linux/build_appimage.sh
+          APPIMAGETOOL="$PWD/squashfs-root/AppRun" \
+          packaging/linux/build_appimage.sh \
+            --version "$version" \
+            --platform "$PLATFORM" \
+            --arch "$APPIMAGE_ARCH" \
+            --binary "$PWD/dist/terrascope" \
+            --output "$PWD/dist" \
+            --appimagetool "$PWD/squashfs-root/AppRun"
 
       - name: Save platform downloads
         uses: actions/upload-artifact@v4

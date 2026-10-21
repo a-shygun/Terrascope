@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Terrascope
+Comment=Braille-rendered interactive world map for the terminal
+Exec=terrascope
+Icon=terrascope
+Terminal=true
+Type=Application
+Categories=Science;Geography;
+Keywords=map;weather;flight;terminal;
+StartupNotify=false

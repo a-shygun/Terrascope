@@ -64,13 +64,54 @@ pipx install --force "git+https://github.com/a-shygun/Terrascope.git@main"
 
 # Nix, from a Terrascope checkout (uses that checkout's source and version)
 nix run ./packaging/nix
+
+# Arch Linux, stable release from the AUR
+yay -S terrascope
+
+# Arch Linux, latest code on main from the AUR
+yay -S terrascope-git
 ```
 
 PyPI and Homebrew's default install use tagged releases. Their version comes
-from `pyproject.toml`; the Homebrew formula reads it directly. Homebrew's
-`--HEAD` option, the pipx VCS install, and the Nix checkout recipe use the
-current `main` source. The Arch VCS recipe also tracks `main`, but remains a
-draft and has not been submitted to the AUR.
+from `pyproject.toml`; the Homebrew formula reads it directly. The AUR
+`terrascope` package tracks tagged releases while `terrascope-git` tracks
+`main`. Homebrew's `--HEAD` option, the pipx VCS install, and the Nix checkout
+recipe use the current `main` source.
+
+### Linux downloads (.deb, .rpm, AppImage, tarball)
+
+Every tagged GitHub Release attaches standalone builds for
+`linux_x86_64` and `linux_arm64` (plus macOS tarballs). Pick the files that
+match your machine from the
+[Releases page](https://github.com/a-shygun/Terrascope/releases):
+
+```bash
+VERSION=0.3.0
+ARCH=linux_x86_64  # or linux_arm64
+
+# Debian / Ubuntu
+sudo apt install ./terrascope_${VERSION}_${ARCH}.deb
+
+# Fedora / RHEL / openSUSE
+sudo dnf install ./terrascope_${VERSION}_${ARCH}.rpm
+# or: sudo rpm -i ./terrascope_${VERSION}_${ARCH}.rpm
+# or on openSUSE: sudo zypper install ./terrascope_${VERSION}_${ARCH}.rpm
+
+# AppImage (no root needed)
+chmod +x ./terrascope_${VERSION}_${ARCH}.AppImage
+./terrascope_${VERSION}_${ARCH}.AppImage
+
+# Portable tarball
+tar -xzf ./terrascope_${VERSION}_${ARCH}.tar.gz
+./terrascope --help
+```
+
+The `.deb`, `.rpm`, and `.tar.gz` builds all ship the same PyInstaller
+`terrascope` binary installed as `/usr/bin/terrascope` (`.deb`/`.rpm`) or as
+`./terrascope` (tarball). The AppImage bundles the same binary with its
+desktop entry and icon, so it runs without installation. SHA-256 checksums
+for every file are published as `terrascope_checksums.txt` next to the
+release assets.
 
 For local development:
 
@@ -357,8 +398,10 @@ PYTHONPATH=src python3 -c "from terrascope.core.registry import build_layers; pr
 
 ## Releasing
 
-Versioned tags build and publish the wheel and source distribution to PyPI.
-Update the separate Homebrew tap after PyPI confirms the release. See
+Versioned tags build and publish the wheel and source distribution to PyPI,
+plus standalone `.tar.gz`, `.deb`, `.rpm`, and `.AppImage` downloads for each
+platform. The AUR `terrascope` and `terrascope-git` packages are published
+from `packaging/aur/`. See
 [docs/RELEASING.md](docs/RELEASING.md) for the release and Git steps.
 
 
