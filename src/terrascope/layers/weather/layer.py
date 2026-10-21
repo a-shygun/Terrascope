@@ -26,6 +26,8 @@ from terrascope.layers.weather.config import (
     CITY_CONFIG,
     CITY_LABEL_PADDING,
     FORECAST_DAYS_AHEAD,
+    FRAME_HOLD_LAST_SECONDS,
+    FRAME_SECONDS,
     HALF_BLOCK_LOWER,
     HALF_BLOCK_UPPER,
     INTENSITY_MAX,
