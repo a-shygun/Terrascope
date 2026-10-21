@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0
+
+- First stable release of Terrascope.
+
 ## 0.2.3
 
 - Handle malformed flight `last_contact` values and skip invalid cached history timestamps. (PR #8)

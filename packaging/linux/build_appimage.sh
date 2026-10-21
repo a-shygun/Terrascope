@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build an AppImage from a PyInstaller onefile binary.
-# Usage: build_appimage.sh --version 0.3.0 --platform linux_x86_64 --arch x86_64 --binary dist/terrascope --output dist
+# Usage: build_appimage.sh --version VERSION --platform linux_x86_64 --arch x86_64 --binary dist/terrascope --output dist
 set -euo pipefail
 
 VERSION=""

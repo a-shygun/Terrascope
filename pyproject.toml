@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "terrascope"
-version = "0.3.0"
+version = "1.0.0"
 description = "A Braille terminal map with live weather, aircraft, and earthquake layers."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,7 +12,7 @@ license = { text = "MIT" }
 authors = [{ name = "Amir Shygun", email = "a-shygun@users.noreply.github.com" }]
 keywords = ["curses", "terminal", "tui", "map", "braille", "weather", "flight-tracking", "opensky"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console :: Curses",
     "Intended Audience :: End Users/Desktop",
     "Programming Language :: Python :: 3",

@@ -71,7 +71,7 @@ Checksums for all assets are published as `terrascope_checksums.txt`.
    about, for example:
 
    ```bash
-   VERSION=0.3.0
+   VERSION=1.0.0
    ARCH=linux_x86_64
    sudo apt install ./terrascope_${VERSION}_${ARCH}.deb
    sudo dnf install ./terrascope_${VERSION}_${ARCH}.rpm

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build an RPM package from a PyInstaller onefile binary.
-# Usage: build_rpm.sh --version 0.3.0 --arch x86_64|aarch64 --platform linux_x86_64 --binary dist/terrascope --output dist
+# Usage: build_rpm.sh --version VERSION --arch x86_64|aarch64 --platform linux_x86_64 --binary dist/terrascope --output dist
 set -euo pipefail
 
 VERSION=""

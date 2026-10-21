@@ -86,7 +86,7 @@ match your machine from the
 [Releases page](https://github.com/a-shygun/Terrascope/releases):
 
 ```bash
-VERSION=0.3.0
+VERSION=1.0.0
 ARCH=linux_x86_64  # or linux_arm64
 
 # Debian / Ubuntu

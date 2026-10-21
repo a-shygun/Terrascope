@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build a Debian package from a PyInstaller onefile binary.
-# Usage: build_deb.sh --version 0.3.0 --arch amd64|arm64 --binary dist/terrascope --output dist
+# Usage: build_deb.sh --version VERSION --arch amd64|arm64 --binary dist/terrascope --output dist
 set -euo pipefail
 
 VERSION=""
