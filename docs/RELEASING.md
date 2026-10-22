@@ -32,17 +32,13 @@ Checksums for all assets are published as `terrascope_checksums.txt`.
 3. The project repository is the Homebrew tap. Keep the root
    `Formula/terrascope.rb` in place; it reads its stable version from
    `pyproject.toml`, so no separate tap copy or version edit is needed.
-4. AUR publishing uses `.github/workflows/aur.yml`:
-   - Create an AUR account for the maintainer and register an SSH key at
-     https://aur.archlinux.org/account.
-   - Add the private key as the `AUR_SSH_PRIVATE_KEY` repository secret.
-   - Create the empty `terrascope` and `terrascope-git` AUR packages once
-     (clone `ssh://aur@aur.archlinux.org/terrascope.git`, commit the initial
-     `PKGBUILD`/`.SRCINFO` from `packaging/aur/`, push). Later releases update
-     them automatically.
-   - Without the secret the workflow still updates
-     `packaging/aur/terrascope/PKGBUILD` and `.SRCINFO` in its run log but
-     skips the push with instructions.
+4. AUR publishing uses `.github/workflows/aur.yml`. The AUR packages are
+   maintained and published by `9M2PJU`; the repository owner contributes and
+   is planned to be added as a co-maintainer after registering an AUR account.
+   The `AUR_SSH_PRIVATE_KEY` repository secret belongs to the current AUR
+   maintainer. If it is absent, the workflow still prepares the updated package
+   files and skips the push with instructions. Do not replace the maintainer's
+   publishing key during the co-maintainer setup.
 
 ## Release a version
 
