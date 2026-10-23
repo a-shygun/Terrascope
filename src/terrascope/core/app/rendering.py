@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from .shared import (
     COLOR_RESET_MIN_SECONDS,
+    DROPDOWN_NO_MATCH,
     MIN_TERMINAL_HEIGHT,
     MIN_TERMINAL_WIDTH,
+    PLACE_SEARCH_LOADING,
+    PLACE_SEARCH_PLACEHOLDER,
+    PLACE_SEARCH_TITLE,
     STATUS_OFFSET,
     TABS,
     TIMEZONE_KEY,
@@ -300,6 +304,23 @@ class RenderingMixin:
                 )
             else:
                 self.tz_dropdown_open = False  # the clock it hangs from is off screen
+
+        self._place_search_layout = None
+        if self.place_search_open:
+            # Hangs from the map's top-left corner, below its title.
+            rect = dropdown_rect(map_top + 1, 0, height, width, anchor_left=map_left + 2)
+            self._place_search_layout = draw_dropdown(
+                self.stdscr,
+                rect,
+                None,
+                self.colors,
+                self.place_query,
+                self.place_index,
+                choices=self.place_choices(),
+                title=PLACE_SEARCH_TITLE,
+                placeholder=PLACE_SEARCH_PLACEHOLDER,
+                empty_text=DROPDOWN_NO_MATCH if self.places_loaded() else PLACE_SEARCH_LOADING,
+            )
 
         self._welcome_rect = None
         self._welcome_link = None

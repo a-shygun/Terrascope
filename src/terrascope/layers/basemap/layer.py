@@ -117,6 +117,12 @@ class BaseMapLayer(Layer):
         self._country_hits: list[tuple[int, int, int, str]] = []  # (x0, x1, row, full name) of clickable labels
         self._capitals: list[tuple[float, float, str]] = []
         self._cities: list[tuple[float, float, str, int]] = []  # + population
+        # Every place as loaded (lon, lat, name, is_capital, population,
+        # country), biggest first: what the place search (the / key) looks in.
+        self._places: list[tuple] = []
+        # (lon, lat, name, colour) of the place picked in the place search.
+        # Always labelled first (highlighted) until the selection is cleared.
+        self.highlight: tuple[float, float, str, str] | None = None
         self._pending = None
         self._pending_detail = None
         self._state = "idle"  # idle | loading | ready | failed
@@ -160,7 +166,7 @@ class BaseMapLayer(Layer):
             for lon, lat, name, is_capital, population, *_ in by_population
             if not is_capital
         ]
-        return countries, capitals, cities
+        return countries, capitals, cities, by_population
 
     def set_prepared_detail(self, places) -> None:
         with self.lock:
@@ -173,11 +179,11 @@ class BaseMapLayer(Layer):
             pending, self._pending = self._pending, None
             pending_detail, self._pending_detail = self._pending_detail, None
         if pending is not None:
-            self._countries, self._capitals, self._cities = pending  # swap in on the UI thread
+            self._countries, self._capitals, self._cities, self._places = pending  # swap in on the UI thread
             self._state = "ready"
             self.dirty = True
         if pending_detail is not None:
-            self._countries, self._capitals, self._cities = pending_detail
+            self._countries, self._capitals, self._cities, self._places = pending_detail
             self.dirty = True
         if self._state == "idle" or (
             self._state == "failed" and time.monotonic() >= self._load_retry_at
@@ -189,6 +195,25 @@ class BaseMapLayer(Layer):
         if self._state == "loading":
             messages.append("LOADING PLACE NAMES")
         return messages
+
+    # ---- place search ------------------------------------------------------------
+
+    def places(self) -> list[tuple]:
+        return self._places
+
+    def highlight_place(self, place: tuple) -> None:
+        """Label `place` (a places() entry) highlighted, whatever the zoom."""
+        lon, lat, name, is_capital, population, _country = place
+        color = CAPITAL_COLOR if is_capital else city_color(population)
+        self.highlight = (lon, lat, name, color)
+        self.dirty = True
+
+    def select(self, item) -> None:
+        super().select(item)
+        if item is None and self.highlight is not None:
+            # Cleared with every other selection: Esc, a click, a tab switch.
+            self.highlight = None
+            self.dirty = True
 
     # ---- labels -----------------------------------------------------------------
 
@@ -224,6 +249,15 @@ class BaseMapLayer(Layer):
         placed_names: set[str] = set()
         markers: list[Marker] = []
         hits: list[tuple[int, int, int, str]] = []
+        if self.highlight is not None:
+            lon, lat, name, color = self.highlight
+            cell = view.to_cell(lon, lat)
+            if cell is not None:
+                x = max(0, min(cell[0], view.width - len(name)))  # slides in rather than vanishing
+                y = cell[1]
+                occupied[y] = [(x, x + len(name))]
+                placed_names.add(name)
+                markers.append(Marker(x=x, y=y, color=color, label=name, selected=True))
         for lon, lat, name, color, centred, country in self._candidates(view.zoom):
             if len(markers) >= MAX_PLACED_LABELS:
                 break

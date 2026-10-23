@@ -435,21 +435,28 @@ class WeatherLayer(Layer):
             names.add(name)
             placed.append(
                 (
-                    {
-                        "key": key,
-                        "name": name,
-                        "latitude": latitude,
-                        "longitude": longitude,
-                        "capital": is_capital,
-                        "country": country,
-                        "population": population,
-                    },
+                    self.city_item((longitude, latitude, name, is_capital, population, country)),
                     cell,
                     label,
                     icon,
                 )
             )
         return placed
+
+    @staticmethod
+    def city_item(place: tuple) -> dict:
+        """The selectable item for a (lon, lat, name, is_capital, population,
+        country) place: what a click on its label (or the place search) selects."""
+        longitude, latitude, name, is_capital, population, country = place
+        return {
+            "key": city_key(name, latitude, longitude),
+            "name": name,
+            "latitude": latitude,
+            "longitude": longitude,
+            "capital": is_capital,
+            "country": country,
+            "population": population,
+        }
 
     # -- radar overlay -------------------------------------------------------
 

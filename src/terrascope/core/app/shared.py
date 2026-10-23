@@ -10,8 +10,12 @@ from threading import Thread
 from terrascope.core.config import CACHE_DIR, CFG
 from terrascope.core.layer import PanelBox
 from terrascope.core.ui import (
+    DROPDOWN_NO_MATCH,
     GITHUB_URL,
     MAP_EDGE_PAD_Y,
+    PLACE_SEARCH_LOADING,
+    PLACE_SEARCH_PLACEHOLDER,
+    PLACE_SEARCH_TITLE,
     ColorManager,
     Layout,
     concise_error_message,

@@ -3,6 +3,7 @@ from __future__ import annotations
 from .input import InputMixin
 from .lifecycle import LifecycleMixin
 from .mouse import MouseMixin
+from .places import PlaceSearchMixin
 from .rendering import RenderingMixin
 from .runtime import RuntimeMixin
 from .timezone import TimezoneMixin
@@ -18,7 +19,9 @@ from .shared import (
     _welcome_skipped
 )
 
-class TerrascopeApp(LifecycleMixin, MouseMixin, TimezoneMixin, InputMixin, RenderingMixin, RuntimeMixin):
+class TerrascopeApp(
+    LifecycleMixin, MouseMixin, TimezoneMixin, PlaceSearchMixin, InputMixin, RenderingMixin, RuntimeMixin
+):
     def __init__(
         self, stdscr, world: WorldMap, forced_off: frozenset[str] = frozenset()
     ) -> None:
@@ -81,6 +84,12 @@ class TerrascopeApp(LifecycleMixin, MouseMixin, TimezoneMixin, InputMixin, Rende
         self.tz_query = ""  # text typed into the dropdown's search row
         self.tz_index = 0  # highlighted entry of timezone_choices(tz_query)
         self._dropdown_layout = None
+        # Place search, opened with / on the tabs without a search box.
+        self.place_search_open = False
+        self.place_query = ""
+        self.place_index = 0  # highlighted entry of place_choices()
+        self._place_cache = None
+        self._place_search_layout = None
         self.select_tab(START_TAB)
         if self.province_choice == "yes":
             self._start_province_download()

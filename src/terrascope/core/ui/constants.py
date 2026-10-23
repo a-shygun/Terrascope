@@ -167,6 +167,13 @@ DROPDOWN_INACTIVE_MARK = "  "
 
 DROPDOWN_NO_MATCH = "no match"
 
+# Place search (the / key outside the Planes tab), drawn as the same dropdown.
+PLACE_SEARCH_TITLE = "SEARCH PLACES"
+
+PLACE_SEARCH_PLACEHOLDER = "> search cities"
+
+PLACE_SEARCH_LOADING = "loading places..."
+
 _IGNORED_ZONE_PREFIXES = ("Etc/", "posix/", "right/")
 
 GITHUB_URL = UI["github_url"]
