@@ -151,10 +151,10 @@ class RuntimeMixin:
                 resizing_until = now + RESIZE_SETTLE_SECONDS
                 last_size = size
                 self.draw_resize_cover()
-                curses.napms(FRAME_DELAY_MS)
+                time.sleep(FRAME_DELAY_MS / 1000)
                 continue
             if now < resizing_until:
-                curses.napms(FRAME_DELAY_MS)  # still settling: keep the cover up
+                time.sleep(FRAME_DELAY_MS / 1000)  # still settling: keep the cover up
                 continue
             if resizing_until:
                 # The size has been stable: repaint everything from scratch.
@@ -174,4 +174,5 @@ class RuntimeMixin:
                 self.draw()
                 last_draw = now
                 last_size = size
-            curses.napms(DRAG_FRAME_DELAY_MS if self._drag else FRAME_DELAY_MS)
+            delay_ms = DRAG_FRAME_DELAY_MS if self._drag else FRAME_DELAY_MS
+            time.sleep(delay_ms / 1000)
