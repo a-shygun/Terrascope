@@ -188,7 +188,7 @@ map appears. Errors and background warnings are written to the log file shown by
 | Mouse wheel | Zoom |
 | Mouse click | Select a marker or map label |
 | `<` / `>` | Step through overlapping selections |
-| `/` | Search |
+| `/` | Search: find a city on the Map, Time and Weather tabs; callsign / ICAO on the Planes tab |
 | `O` | Open filter prompt |
 | `H` | Show or hide the panel |
 | `?` | Open the welcome/help modal |
@@ -233,6 +233,11 @@ terrascope --list-keys
   select with Enter, or dismiss with Esc.
 - `WEATHER`: city weather, forecast panel, radar overlay, and USGS
   earthquakes.
+
+On the `MAP`, `TIME`, and `WEATHER` tabs, `/` opens a city search: type a
+name (accents and small typos are fine, so `seol` finds Seoul), move with the
+arrow keys, and press Enter to jump there. On the Weather tab the city is also
+selected, so its conditions and forecast fill the panel without a mouse.
 - `PLANES`: OpenSky aircraft positions, trails, categories, and Natural Earth
   airport markers.
 

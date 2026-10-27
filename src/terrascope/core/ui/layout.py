@@ -402,15 +402,20 @@ class DropdownLayout:
     option_rows: tuple[int, ...]  # screen row of each listed entry, top to bottom
     first_index: int
 
-def dropdown_rect(anchor_top: int, anchor_right: int, screen_height: int, screen_width: int) -> Rect:
+def dropdown_rect(
+    anchor_top: int, anchor_right: int, screen_height: int, screen_width: int,
+    anchor_left: int | None = None,
+) -> Rect:
     """Box just under the clock, right-aligned under it, leaving the modal margin
-    free terrascope it. Shared by drawing and mouse handling so the two can never
-    disagree."""
+    free terrascope it. With anchor_left, the box is left-aligned there instead
+    (the place search, under the map's top-left corner). Shared by drawing and
+    mouse handling so the two can never disagree."""
     width = max(10, min(DROPDOWN_WIDTH, screen_width - 2 * DROPDOWN_MARGIN_X))
     top = anchor_top + DROPDOWN_MARGIN_Y
     room = screen_height - top - DROPDOWN_MARGIN_Y - 1
     height = max(DROPDOWN_MIN_HEIGHT, min(DROPDOWN_MAX_HEIGHT, room))
-    left = max(DROPDOWN_MARGIN_X, min(screen_width - width - DROPDOWN_MARGIN_X, anchor_right - width))
+    wanted = anchor_right - width if anchor_left is None else anchor_left
+    left = max(DROPDOWN_MARGIN_X, min(screen_width - width - DROPDOWN_MARGIN_X, wanted))
     return top, left, height, width
 
 def _dropdown_list_rows(height: int) -> int:
@@ -430,10 +435,17 @@ def draw_dropdown(
     colors,
     query: str = "",
     cursor: int = 0,
+    choices: list[tuple[str, object]] | None = None,
+    title: str = DROPDOWN_TITLE,
+    placeholder: str = DROPDOWN_PLACEHOLDER,
+    empty_text: str = DROPDOWN_NO_MATCH,
 ) -> DropdownLayout:
+    """The timezone picker by default. Other searchable lists (the place
+    search) pass their own (label, value) `choices` and texts; the entry
+    whose value is `selected_timezone` gets the active mark."""
     top, left, height, width = rect
     _draw_modal_frame(
-        window, top, left, height, width, DROPDOWN_TITLE, colors,
+        window, top, left, height, width, title, colors,
         DROPDOWN_MARGIN_X, DROPDOWN_MARGIN_Y,
     )
     text_pair = colors.get_pair(MODAL_TEXT_COLOR, MODAL_BG_COLOR)
@@ -447,10 +459,11 @@ def draw_dropdown(
         shown = ("> " + query + "\u2588")[-inner:]
         safe_addstr(window, y, x, shown.ljust(inner), text_pair | curses.A_BOLD)
     else:
-        safe_addstr(window, y, x, DROPDOWN_PLACEHOLDER[:inner].ljust(inner), dim_pair)
+        safe_addstr(window, y, x, placeholder[:inner].ljust(inner), dim_pair)
     y += 1
 
-    choices = timezone_choices(query)
+    if choices is None:
+        choices = timezone_choices(query)
     total = len(choices)
     cursor = max(0, min(cursor, total - 1)) if total else 0
 
@@ -468,7 +481,7 @@ def draw_dropdown(
     first = dropdown_first_index(cursor, rows, total)
     option_rows = []
     if not total:
-        safe_addstr(window, y, x, DROPDOWN_NO_MATCH.ljust(inner), dim_pair)
+        safe_addstr(window, y, x, empty_text[:inner].ljust(inner), dim_pair)
     for offset in range(min(rows, max(0, total - first))):
         index = first + offset
         label, tz_name = choices[index]
