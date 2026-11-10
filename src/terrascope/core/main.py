@@ -8,6 +8,18 @@ from terrascope.core.i18n import N_, _
 
 MAP_LOAD_ERROR = N_("Could not load map data: {error}")
 
+# Startup stage labels, as plain text so that pybabel extract finds each one. A running
+# stage shows "<label>…"; a failed one shows "<label> UNAVAILABLE: <error>".
+STAGE_LABELS = {
+    "MAP": N_("LOADING COUNTRIES 50M"),
+    "CITIES": N_("LOADING CITIES 10M"),
+    "AIRPORTS": N_("LOADING AIRPORTS"),
+    "AIRCRAFT": N_("FETCHING AIRCRAFT FEED"),
+    "RADAR": N_("FETCHING PRESENT RADAR FRAME"),
+    "WEATHER": N_("LOADING CITY WEATHER"),
+    "RADAR HISTORY": N_("FETCHING OTHER RADAR TIMES"),
+}
+
 def _main(stdscr, layers, forced_off) -> None:
     from terrascope.core.app import TerrascopeApp
     from terrascope.core.config import FETCH_NEW_DATA_FROM_API
@@ -36,7 +48,7 @@ def _main(stdscr, layers, forced_off) -> None:
     weather_disabled = "weather" in forced_off
 
     def run_stage(name: str, label: str, action) -> None:
-        status(name, _(label))
+        status(name, f"{_(label)}…")
         try:
             action()
             status(name, "")
@@ -51,7 +63,7 @@ def _main(stdscr, layers, forced_off) -> None:
                 # Live API feeds are optional; a provider outage must not keep
                 # the first-run data setup bar from reaching completion.
                 set_live_progress(live_stage, state="ready")
-            status(name, f"{_(label.removesuffix('…'))} {_('UNAVAILABLE:')} {error}")
+            status(name, f"{_(label)} {_('UNAVAILABLE:')} {error}")
 
     def startup_downloads() -> None:
         places: list = []
@@ -190,13 +202,13 @@ def _main(stdscr, layers, forced_off) -> None:
                     continue
 
         stages = (
-            ("MAP", N_("LOADING COUNTRIES 50M…"), countries),
-            ("CITIES", N_("LOADING CITIES 10M…"), cities),
-            ("AIRPORTS", N_("LOADING AIRPORTS…"), airports),
-            ("AIRCRAFT", N_("FETCHING AIRCRAFT FEED…"), aircraft),
-            ("RADAR", N_("FETCHING PRESENT RADAR FRAME…"), radar_present),
-            ("WEATHER", N_("LOADING CITY WEATHER…"), capital_weather),
-            ("RADAR HISTORY", N_("FETCHING OTHER RADAR TIMES…"), radar_history),
+            ("MAP", STAGE_LABELS["MAP"], countries),
+            ("CITIES", STAGE_LABELS["CITIES"], cities),
+            ("AIRPORTS", STAGE_LABELS["AIRPORTS"], airports),
+            ("AIRCRAFT", STAGE_LABELS["AIRCRAFT"], aircraft),
+            ("RADAR", STAGE_LABELS["RADAR"], radar_present),
+            ("WEATHER", STAGE_LABELS["WEATHER"], capital_weather),
+            ("RADAR HISTORY", STAGE_LABELS["RADAR HISTORY"], radar_history),
         )
         for name, label, action in stages:
             run_stage(name, label, action)

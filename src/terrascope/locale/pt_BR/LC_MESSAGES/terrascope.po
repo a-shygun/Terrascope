@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Terrascope 1.0.0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-10 20:08-0300\n"
+"POT-Creation-Date: 2026-11-10 20:09-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Fernando Augusto <dev.fernandoaugusto@outlook.com>\n"
 "Language: pt_BR\n"
@@ -179,7 +179,7 @@ msgstr "[N NÃO]"
 msgid "FAILED:"
 msgstr "FALHOU:"
 
-#: src/terrascope/core/app/rendering.py:248 src/terrascope/core/main.py:54
+#: src/terrascope/core/app/rendering.py:248 src/terrascope/core/main.py:66
 msgid "UNAVAILABLE:"
 msgstr "INDISPONÍVEL:"
 
@@ -904,57 +904,38 @@ msgstr "INFO"
 msgid "Could not load map data: {error}"
 msgstr "Não foi possível carregar os dados do mapa: {error}"
 
-#: src/terrascope/core/main.py:60
+#: src/terrascope/core/main.py:14 src/terrascope/core/main.py:72
 msgid "LOADING COUNTRIES 50M"
 msgstr "CARREGANDO PAÍSES 50M"
 
-#: src/terrascope/core/main.py:70
+#: src/terrascope/core/main.py:15 src/terrascope/core/main.py:82
 msgid "LOADING CITIES 10M"
 msgstr "CARREGANDO CIDADES 10M"
 
-#: src/terrascope/core/main.py:85 src/terrascope/layers/flights/layer.py:366
+#: src/terrascope/core/main.py:16 src/terrascope/core/main.py:97
+#: src/terrascope/layers/flights/layer.py:366
 msgid "LOADING AIRPORTS"
 msgstr "CARREGANDO AEROPORTOS"
 
-#: src/terrascope/core/main.py:98
+#: src/terrascope/core/main.py:17 src/terrascope/core/main.py:110
 msgid "FETCHING AIRCRAFT FEED"
 msgstr "OBTENDO DADOS DE AERONAVES"
 
-#: src/terrascope/core/main.py:116
+#: src/terrascope/core/main.py:18 src/terrascope/core/main.py:128
 msgid "FETCHING PRESENT RADAR FRAME"
 msgstr "OBTENDO O QUADRO ATUAL DO RADAR"
 
-#: src/terrascope/core/main.py:149
+#: src/terrascope/core/main.py:19
+msgid "LOADING CITY WEATHER"
+msgstr "CARREGANDO CLIMA DAS CIDADES"
+
+#: src/terrascope/core/main.py:20
+msgid "FETCHING OTHER RADAR TIMES"
+msgstr "OBTENDO OUTROS HORÁRIOS DO RADAR"
+
+#: src/terrascope/core/main.py:161
 msgid "FETCHING CITY WEATHER"
 msgstr "OBTENDO O CLIMA DAS CIDADES"
-
-#: src/terrascope/core/main.py:193
-msgid "LOADING COUNTRIES 50M…"
-msgstr "CARREGANDO PAÍSES 50M…"
-
-#: src/terrascope/core/main.py:194
-msgid "LOADING CITIES 10M…"
-msgstr "CARREGANDO CIDADES 10M…"
-
-#: src/terrascope/core/main.py:195
-msgid "LOADING AIRPORTS…"
-msgstr "CARREGANDO AEROPORTOS…"
-
-#: src/terrascope/core/main.py:196
-msgid "FETCHING AIRCRAFT FEED…"
-msgstr "OBTENDO DADOS DE AERONAVES…"
-
-#: src/terrascope/core/main.py:197
-msgid "FETCHING PRESENT RADAR FRAME…"
-msgstr "OBTENDO O QUADRO ATUAL DO RADAR…"
-
-#: src/terrascope/core/main.py:198
-msgid "LOADING CITY WEATHER…"
-msgstr "CARREGANDO CLIMA DAS CIDADES…"
-
-#: src/terrascope/core/main.py:199
-msgid "FETCHING OTHER RADAR TIMES…"
-msgstr "OBTENDO OUTROS HORÁRIOS DO RADAR…"
 
 #: src/terrascope/core/mapdata.py:183
 #, python-brace-format

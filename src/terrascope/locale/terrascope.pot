@@ -860,60 +860,41 @@ msgstr ""
 msgid "Could not load map data: {error}"
 msgstr ""
 
-#: src/terrascope/core/app/rendering.py:248 src/terrascope/core/main.py:54
-msgid "UNAVAILABLE:"
-msgstr ""
-
-#: src/terrascope/core/main.py:60
+#: src/terrascope/core/main.py:14 src/terrascope/core/main.py:72
 msgid "LOADING COUNTRIES 50M"
 msgstr ""
 
-#: src/terrascope/core/main.py:70
+#: src/terrascope/core/main.py:15 src/terrascope/core/main.py:82
 msgid "LOADING CITIES 10M"
 msgstr ""
 
-#: src/terrascope/core/main.py:85 src/terrascope/layers/flights/layer.py:366
+#: src/terrascope/core/main.py:16 src/terrascope/core/main.py:97
+#: src/terrascope/layers/flights/layer.py:366
 msgid "LOADING AIRPORTS"
 msgstr ""
 
-#: src/terrascope/core/main.py:98
+#: src/terrascope/core/main.py:17 src/terrascope/core/main.py:110
 msgid "FETCHING AIRCRAFT FEED"
 msgstr ""
 
-#: src/terrascope/core/main.py:116
+#: src/terrascope/core/main.py:18 src/terrascope/core/main.py:128
 msgid "FETCHING PRESENT RADAR FRAME"
 msgstr ""
 
-#: src/terrascope/core/main.py:149
+#: src/terrascope/core/main.py:19
+msgid "LOADING CITY WEATHER"
+msgstr ""
+
+#: src/terrascope/core/main.py:20
+msgid "FETCHING OTHER RADAR TIMES"
+msgstr ""
+
+#: src/terrascope/core/app/rendering.py:248 src/terrascope/core/main.py:66
+msgid "UNAVAILABLE:"
+msgstr ""
+
+#: src/terrascope/core/main.py:161
 msgid "FETCHING CITY WEATHER"
-msgstr ""
-
-#: src/terrascope/core/main.py:193
-msgid "LOADING COUNTRIES 50M…"
-msgstr ""
-
-#: src/terrascope/core/main.py:194
-msgid "LOADING CITIES 10M…"
-msgstr ""
-
-#: src/terrascope/core/main.py:195
-msgid "LOADING AIRPORTS…"
-msgstr ""
-
-#: src/terrascope/core/main.py:196
-msgid "FETCHING AIRCRAFT FEED…"
-msgstr ""
-
-#: src/terrascope/core/main.py:197
-msgid "FETCHING PRESENT RADAR FRAME…"
-msgstr ""
-
-#: src/terrascope/core/main.py:198
-msgid "LOADING CITY WEATHER…"
-msgstr ""
-
-#: src/terrascope/core/main.py:199
-msgid "FETCHING OTHER RADAR TIMES…"
 msgstr ""
 
 #: src/terrascope/core/mapdata.py:183
