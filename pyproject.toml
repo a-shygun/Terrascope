@@ -1,5 +1,6 @@
 [build-system]
-requires = ["hatchling"]
+# Babel compiles the translation catalogues (hatch_build.py).
+requires = ["hatchling", "babel>=2.12"]
 build-backend = "hatchling.build"
 
 [project]
@@ -44,6 +45,11 @@ Issues = "https://github.com/a-shygun/terrascope/issues"
 
 [project.scripts]
 terrascope = "terrascope.__main__:run"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "babel>=2.12"]
+
+[tool.hatch.build.hooks.custom]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/terrascope"]

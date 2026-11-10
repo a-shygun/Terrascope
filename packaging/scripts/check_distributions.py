@@ -17,6 +17,7 @@ def check_distributions(directory: Path) -> None:
     required_assets = {
         "terrascope/assets/default.yaml",
         "terrascope/assets/reference_data.json",
+        "terrascope/locale/pt_BR/LC_MESSAGES/terrascope.mo",
     }
     with zipfile.ZipFile(wheels[0]) as wheel:
         wheel_files = set(wheel.namelist())
@@ -27,6 +28,8 @@ def check_distributions(directory: Path) -> None:
     required_sdist_files = {
         "/src/terrascope/assets/default.yaml",
         "/src/terrascope/assets/reference_data.json",
+        "/src/terrascope/locale/terrascope.pot",
+        "/src/terrascope/locale/pt_BR/LC_MESSAGES/terrascope.po",
         "/README.md",
         "/LICENSE",
         "/docs/RELEASING.md",

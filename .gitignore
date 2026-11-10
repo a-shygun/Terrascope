@@ -14,3 +14,6 @@ dist/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Compiled translation catalogues (built from the .po files by hatch_build.py)
+*.mo
