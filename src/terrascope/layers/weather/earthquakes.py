@@ -1,3 +1,4 @@
+"""USGS earthquake fetching, formatting, and cache."""
 
 from __future__ import annotations
 

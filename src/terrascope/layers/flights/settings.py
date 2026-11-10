@@ -1,3 +1,4 @@
+"""Settings for aircraft, airport, and history rendering."""
 
 from __future__ import annotations
 

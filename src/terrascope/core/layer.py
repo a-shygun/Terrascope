@@ -1,3 +1,4 @@
+# layer.py — BASE CLASS FOR MAP LAYERS (flights, earthquakes, cities, ships, night)
 # Responsible for: the Layer base class every data layer inherits from —
 # enable/disable via its toggle key, background data refresh (threads, tick(),
 # is_due), click hit-testing, selection, info-box rows, search/filter hooks —

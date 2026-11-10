@@ -1,3 +1,4 @@
+"""RainViewer radar catalog, tile fetching, and raster sampling."""
 
 from __future__ import annotations
 

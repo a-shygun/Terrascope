@@ -1,3 +1,4 @@
+"""Weather tab layer: city weather, radar overlay, and earthquakes."""
 
 from __future__ import annotations
 

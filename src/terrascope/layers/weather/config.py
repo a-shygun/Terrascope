@@ -1,3 +1,4 @@
+"""Shared settings and display text for the weather layer."""
 
 from __future__ import annotations
 

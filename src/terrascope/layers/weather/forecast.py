@@ -1,3 +1,4 @@
+"""City selection helpers and rich forecast-panel formatting."""
 
 from __future__ import annotations
 

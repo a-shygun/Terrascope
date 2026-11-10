@@ -1,3 +1,4 @@
+"""Open-Meteo fetching and per-city weather cache."""
 
 from __future__ import annotations
 
