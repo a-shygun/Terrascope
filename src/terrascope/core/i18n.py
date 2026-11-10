@@ -252,11 +252,16 @@ def speed_unit() -> str:
     return "mph" if units() == "imperial" else "km/h"
 
 
+def speed_value(kmh: float, decimals: int = 0) -> str:
+    """The number only, in the configured units ("7" for 12 km/h under imperial).
+    For places where the unit is shown once, next to another speed."""
+    value = kmh * 0.621371 if units() == "imperial" else kmh
+    return format_number(value, decimals)
+
+
 def format_speed(kmh: float, decimals: int = 0) -> str:
     """"12 km/h", or "7 mph" under imperial."""
-    if units() == "imperial":
-        return f"{format_number(kmh * 0.621371, decimals)} mph"
-    return f"{format_number(kmh, decimals)} km/h"
+    return f"{speed_value(kmh, decimals)} {speed_unit()}"
 
 
 def format_distance(km: float) -> str:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import N_, _, format_month_day, format_number, format_speed, format_temperature
+from terrascope.core.i18n import N_, _, format_month_day, format_number, format_speed, format_temperature, speed_value
 
 import math
 from datetime import date
@@ -180,7 +180,9 @@ def _wind_row(day: dict) -> list:
     color = _step_color(gust if gust is not None else wind, WIND_STEPS)
     pieces = [("≈ ", color, ""), (format_speed(wind), color, "bold")]
     if gust is not None:
-        pieces.append((f"  {_('gust')} {gust:.0f}", color, "dim"))
+        # Same unit as the wind figure beside it (the unit is not repeated: the row
+        # is cut at the 21-column minimum, see _fit).
+        pieces.append((f"  {_('gust')} {speed_value(gust)}", color, "dim"))
     return pieces
 
 def _sun_row(day: dict) -> list:
