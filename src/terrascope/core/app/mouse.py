@@ -35,6 +35,9 @@ class MouseMixin:
             kind = "release"
         elif state & curses.REPORT_MOUSE_POSITION:
             kind = "motion"
+        elif state == 0 and (self._drag is not None or self._slider_drag):
+            # PDCurses reports motion with the button held as bstate 0.
+            kind = "motion"
         elif state & curses.BUTTON1_PRESSED:
             kind = "press"
         else:

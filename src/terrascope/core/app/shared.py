@@ -59,6 +59,10 @@ MOUSE_MASK = (
     | SCROLL_UP
     | SCROLL_DOWN
 )
+if sys.platform == "win32":
+    # PDCurses (windows-curses) reports wheel events with an empty bstate
+    # unless every mouse event is requested.
+    MOUSE_MASK = curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION
 MOUSE_MOTION_ON = "\033[?1003l\033[?1002h\033[?1006h"
 MOUSE_MOTION_OFF = "\033[?1006l\033[?1002l\033[?1003l"
 DRAG_RESUME_SECONDS = APP_CONFIG["drag_resume_seconds"]

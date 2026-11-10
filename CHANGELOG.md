@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Support Windows 10/11: `windows-curses` and `tzdata` are installed automatically on Windows, so the curses UI starts and the time zone selector lists every IANA zone.
+- Fix mouse wheel zoom and drag-to-pan under PDCurses (`windows-curses`), which reports wheel and button-held motion events with an empty button state.
+- Build a standalone `windows_x86_64` zip with each release, with generated Scoop and winget manifests; add Windows to the CI matrix.
+
 ## 1.0.0
 
 - First stable release of Terrascope.

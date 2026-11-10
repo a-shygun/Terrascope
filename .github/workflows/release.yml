@@ -90,6 +90,8 @@ jobs:
             platform: macos_x86_64
           - os: macos-15
             platform: macos_arm64
+          - os: windows-latest
+            platform: windows_x86_64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out release source
@@ -103,6 +105,7 @@ jobs:
           python-version: "3.13"
 
       - name: Build standalone CLI
+        shell: bash
         run: |
           python -m pip install --upgrade pyinstaller
           python -m pip install .
@@ -119,9 +122,23 @@ jobs:
             --collect-all PIL \
             --collect-all yaml \
             --copy-metadata terrascope \
+            $([ "$RUNNER_OS" = Windows ] && echo "--collect-all tzdata") \
             "$RUNNER_TEMP/terrascope_entrypoint.py"
 
+      - name: Package Windows CLI archive
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          $version = $env:RELEASE_TAG -replace '^v', ''
+          dist/terrascope.exe --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Compress-Archive -Path dist/terrascope.exe -DestinationPath "dist/terrascope_${version}_$($env:PLATFORM).zip"
+
       - name: Package macOS and Linux CLI archives
+        if: runner.os != 'Windows'
         env:
           PLATFORM: ${{ matrix.platform }}
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
@@ -235,6 +252,23 @@ jobs:
               "\n".join(lines) + "\n", encoding="utf-8"
           )
           PY
+
+      - name: Check out packaging scripts
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          path: source
+
+      - name: Generate Scoop and winget manifests
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          python source/packaging/windows/make_manifests.py \
+            --version "${RELEASE_TAG#v}" \
+            --checksums release-assets/terrascope_checksums.txt \
+            --output manifests
+          cp manifests/terrascope.json release-assets/
+          cp manifests/winget/*/*.yaml release-assets/
 
       - name: Create release if needed and upload files
         env:
