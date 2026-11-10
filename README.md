@@ -260,6 +260,74 @@ terrascope --list-keys
 - `PLANES`: OpenSky aircraft positions, trails, categories, and Natural Earth
   airport markers.
 
+## Writing a plugin
+
+A separate Python package can add map layers and top-row tabs without
+changing Terrascope. Register them under two entry point groups:
+
+- `terrascope.layers`: each entry points to a subclass of
+  `terrascope.core.layer.Layer`.
+- `terrascope.tabs`: each entry points to a function that returns a list of
+  dicts in the same shape as `tabs.items` in `default.yaml` (`name`, `label`,
+  `color`, and optionally `blurb`, `layers`, `attribution`, ...).
+
+```toml
+# pyproject.toml of the plugin package
+[project]
+name = "terrascope-demo"
+version = "0.1.0"
+dependencies = ["terrascope"]
+
+[project.entry-points."terrascope.layers"]
+demo = "terrascope_demo.layers:DemoLayer"
+
+[project.entry-points."terrascope.tabs"]
+demo = "terrascope_demo.tabs:demo_tabs"
+```
+
+```python
+# terrascope_demo/layers.py
+from terrascope.core.layer import Layer, LayerRender, Marker
+
+
+class DemoLayer(Layer):
+    name = "demo"        # unique: used by --disable-layer and by tab "layers"
+    toggle_key = "j"     # one key that no built-in layer uses (see --list-layers)
+
+    def build(self, view) -> LayerRender:
+        markers = []
+        cell = view.to_cell(0.0, 51.5)  # longitude, latitude
+        if cell is not None:
+            markers.append(Marker(cell[0], cell[1], "#ff0000", glyph="o", label="London"))
+        return LayerRender(None, "#000000", markers=markers)
+```
+
+```python
+# terrascope_demo/tabs.py
+def demo_tabs():
+    return [
+        {
+            "name": "demo",
+            "label": "DEMO",
+            "color": "#ff00ff",
+            "blurb": "a marker over London",
+            "layers": ["basemap", "demo"],   # Layer.name values switched on
+            "attribution": "Example data",
+        }
+    ]
+```
+
+Install the package in the same environment as Terrascope (`pip install -e .`),
+then run `terrascope --list-layers` and `terrascope --list-tabs`: the last column
+shows `plugin:terrascope-demo` for the new entries. Uninstalling the package
+removes them.
+
+A plugin that fails to load, is not a `Layer` subclass, or cannot be started is
+skipped with a warning, and the app starts without it. A toggle key used by two
+layers still stops the app with an error, as it does for built-in layers.
+Plugin layers are drawn on top of the built-in ones, in the order their
+entry points are found.
+
 ## Screenshots
 
 ### Map

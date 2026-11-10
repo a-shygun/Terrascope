@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add plugin entry points: installed packages can register layers (`terrascope.layers`) and top-row tabs (`terrascope.tabs`) without editing Terrascope. A broken plugin is skipped with a warning; `--list-layers` and `--list-tabs` show each entry's origin. See "Writing a plugin" in the README.
 - Add translations (gettext) and Brazilian Portuguese (`pt_BR`): the interface, help, map labels, country names (from the downloaded file's `NAME_PT`), tab names and key texts follow the system language (`--lang`, `app.language`).
 - Add regional formats: 24 h clock, °C / km/h, decimal comma and `dd/mm/yyyy` dates in `pt_BR`, with `--time-format 12h` and `--units imperial` (or `app.time_format` / `app.units` in the config) to choose them explicitly (issue #24).
 - Support Windows 10/11: `windows-curses` and `tzdata` are installed automatically on Windows, so the curses UI starts and the time zone selector lists every IANA zone.
