@@ -45,6 +45,11 @@ def pointer_event_kind(state: int, dragging: bool, pdcurses: bool) -> str | None
     if state & curses.BUTTON1_PRESSED:
         return "press"
     return None
+def is_border_download_failure(message: str) -> bool:
+    """True for a failed state/province download status, such as
+    "DOWNLOAD BORDERS 10M FAILED: ..." (the size is part of the name)."""
+    return message.startswith(f"{_('DOWNLOAD')} {_('BORDERS')}") and _("FAILED") in message
+
 
 class MouseMixin:
 
@@ -153,7 +158,7 @@ class MouseMixin:
                         self.radar_status_expanded = not self.radar_status_expanded
                     else:
                         self.dismissed_statuses.add(message)
-                        if message.startswith(_("PROVINCE BORDERS")) or f"{_('DOWNLOAD')} {_('BORDERS')} {_('FAILED')}" in message:
+                        if message.startswith(_("PROVINCE BORDERS")) or is_border_download_failure(message):
                             self.province_error = ""
                     self.world.dirty = True
                     return
