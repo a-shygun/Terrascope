@@ -1,38 +1,13 @@
-"""Entry-point plugins for layers and tabs.
-
-The entry points are simulated by replacing importlib.metadata.entry_points,
-so no package has to be installed for these tests.
-"""
+"""Entry-point plugins for layers and tabs. The entry points come from the
+`entry_points` and `fake_entry_point` fixtures in conftest.py."""
 
 from __future__ import annotations
 
-import copy
-import importlib.metadata
-
 import pytest
 
-from terrascope.core import plugins, registry
+from terrascope.core import config, plugins, registry
+from terrascope.core.config import CFG, ConfigError
 from terrascope.core.layer import Layer, LayerRender
-from terrascope.core.tabs import Tab, _build
-from terrascope.core.config import CFG
-
-
-class FakeDist:
-    def __init__(self, name: str) -> None:
-        self.metadata = {"Name": name}
-
-
-class FakeEntryPoint:
-    def __init__(self, name: str, target, dist: str = "terrascope-demo", group: str = "") -> None:
-        self.name = name
-        self._target = target
-        self.dist = FakeDist(dist)
-        self.group = group
-
-    def load(self):
-        if isinstance(self._target, Exception):
-            raise self._target
-        return self._target
 
 
 class DemoLayer(Layer):
@@ -45,7 +20,7 @@ class DemoLayer(Layer):
 
 class OtherLayer(Layer):
     name = "other"
-    toggle_key = "y"
+    toggle_key = "v"  # "y" is a key the app uses (the welcome dialog)
 
     def build(self, view) -> LayerRender:
         return LayerRender(None, "#000000")
@@ -53,7 +28,7 @@ class OtherLayer(Layer):
 
 class BrokenInitLayer(Layer):
     name = "broken"
-    toggle_key = "z"
+    toggle_key = "m"
 
     def __init__(self) -> None:
         raise RuntimeError("no sensor")
@@ -70,33 +45,24 @@ class KeyClashLayer(Layer):
         return LayerRender(None, "#000000")
 
 
+class AppKeyLayer(Layer):
+    name = "appkey"
+    toggle_key = "r"  # radar refresh on the WEATHER tab
+
+    def build(self, view) -> LayerRender:
+        return LayerRender(None, "#000000")
+
+
 class NotALayer:
     name = "not-a-layer"
 
 
-def tab_provider():
-    return [
-        {"name": "demo", "label": "DEMO", "color": "#123456", "blurb": "demo tab",
-         "layers": ["basemap", "demo"]},
-    ]
-
-
-@pytest.fixture
-def entry_points(monkeypatch):
-    """Install a fake importlib.metadata.entry_points and reset plugin state."""
-    table: dict[str, list[FakeEntryPoint]] = {}
-
-    def fake_entry_points(group=None, **_):
-        return list(table.get(group, []))
-
-    monkeypatch.setattr(importlib.metadata, "entry_points", fake_entry_points)
-    monkeypatch.setattr(plugins, "TAB_ORIGINS", {})
-    return table
-
-
-def add(table, group: str, entry_point: FakeEntryPoint) -> None:
-    entry_point.group = group
-    table.setdefault(group, []).append(entry_point)
+def tab(**overrides):
+    """A valid plugin tab, with some keys replaced."""
+    item = {"name": "demo", "label": "DEMO", "color": "#123456", "blurb": "a demo tab",
+            "layers": ["basemap", "demo"]}
+    item.update(overrides)
+    return item
 
 
 # ---- layers --------------------------------------------------------------
@@ -109,97 +75,154 @@ def test_without_plugins_build_layers_is_unchanged(entry_points):
     assert {layer.origin for layer in layers} == {"built-in"}
 
 
-def test_plugin_layer_is_added_after_built_ins(entry_points):
-    add(entry_points, plugins.LAYER_GROUP, FakeEntryPoint("demo", DemoLayer))
+def test_plugin_layer_is_added_after_built_ins(entry_points, fake_entry_point):
+    entry_points[plugins.LAYER_GROUP] = [fake_entry_point("demo", DemoLayer)]
     layers = registry.build_layers()
-    assert [layer.name for layer in layers][-1] == "demo"
+    assert layers[-1].name == "demo"
     assert layers[-1].origin == "plugin:terrascope-demo"
     assert isinstance(layers[-1], DemoLayer)
 
 
-def test_broken_entry_point_is_skipped(entry_points, caplog):
-    add(entry_points, plugins.LAYER_GROUP,
-        FakeEntryPoint("broken-import", ImportError("missing module")))
-    add(entry_points, plugins.LAYER_GROUP, FakeEntryPoint("demo", DemoLayer))
+def test_broken_entry_point_is_skipped(entry_points, fake_entry_point, caplog):
+    entry_points[plugins.LAYER_GROUP] = [
+        fake_entry_point("broken-import", ImportError("missing module")),
+        fake_entry_point("demo", DemoLayer),
+    ]
     with caplog.at_level("WARNING", logger="terrascope.plugins"):
         layers = registry.build_layers()
-    assert [layer.name for layer in layers][-1] == "demo"
+    assert layers[-1].name == "demo"
     assert "broken-import" in caplog.text
 
 
-def test_entry_point_that_is_not_a_layer_is_skipped(entry_points):
-    add(entry_points, plugins.LAYER_GROUP, FakeEntryPoint("not-layer", NotALayer))
-    layers = registry.build_layers()
-    assert len(layers) == len(registry.ALL_LAYER_CLASSES)
+def test_entry_point_that_is_not_a_layer_is_skipped(entry_points, fake_entry_point):
+    entry_points[plugins.LAYER_GROUP] = [fake_entry_point("not-layer", NotALayer)]
+    assert len(registry.build_layers()) == len(registry.ALL_LAYER_CLASSES)
 
 
-def test_plugin_whose_constructor_fails_is_skipped(entry_points, caplog):
-    add(entry_points, plugins.LAYER_GROUP, FakeEntryPoint("broken", BrokenInitLayer))
+def test_plugin_whose_constructor_fails_is_skipped(entry_points, fake_entry_point, caplog):
+    entry_points[plugins.LAYER_GROUP] = [fake_entry_point("broken", BrokenInitLayer)]
     with caplog.at_level("WARNING", logger="terrascope.plugins"):
         layers = registry.build_layers()
     assert "broken" not in [layer.name for layer in layers]
     assert "could not start" in caplog.text
 
 
-def test_plugin_cannot_reuse_a_built_in_name(entry_points, caplog):
+def test_plugin_cannot_reuse_a_built_in_name(entry_points, fake_entry_point, caplog):
     class Impostor(DemoLayer):
         name = "flights"
         toggle_key = "q"
 
-    add(entry_points, plugins.LAYER_GROUP, FakeEntryPoint("impostor", Impostor))
+    entry_points[plugins.LAYER_GROUP] = [fake_entry_point("impostor", Impostor)]
     with caplog.at_level("WARNING", logger="terrascope.plugins"):
         layers = registry.build_layers()
     assert [layer.name for layer in layers].count("flights") == 1
     assert "already used" in caplog.text
 
 
-def test_repeated_toggle_key_is_still_an_error(entry_points):
-    add(entry_points, plugins.LAYER_GROUP, FakeEntryPoint("clash", KeyClashLayer))
+@pytest.mark.parametrize("layer_class", [AppKeyLayer])
+def test_plugin_cannot_take_a_key_the_app_uses(entry_points, fake_entry_point, caplog, layer_class):
+    entry_points[plugins.LAYER_GROUP] = [fake_entry_point("appkey", layer_class)]
+    with caplog.at_level("WARNING", logger="terrascope.plugins"):
+        layers = registry.build_layers()
+    assert "appkey" not in [layer.name for layer in layers]
+    assert "used by the app" in caplog.text
+
+
+def test_repeated_toggle_key_between_layers_is_still_an_error(entry_points, fake_entry_point):
+    entry_points[plugins.LAYER_GROUP] = [fake_entry_point("clash", KeyClashLayer)]
     with pytest.raises(ValueError, match="both use key 'p'"):
         registry.build_layers()
 
 
+def test_reserved_keys_cover_the_app_keys_digits_and_fixed_letters(entry_points):
+    reserved = plugins.reserved_toggle_keys()
+    for key in ("q", "h", "o", "w", "a", "s", "d", "z", "0", "1", "9", "r", "x", "y", "n", "+", "["):
+        assert key in reserved, key
+    assert "v" not in reserved and "j" not in reserved
+
+
 # ---- tabs ----------------------------------------------------------------
 
-def test_plugin_tab_is_appended_with_origin(entry_points):
-    add(entry_points, plugins.TAB_GROUP, FakeEntryPoint("demo", tab_provider))
-    items = copy.deepcopy(CFG["tabs"]["items"])
-    before = len(items)
-    plugins.install_plugin_tabs(items)
-    assert len(items) == before + 1
+def test_plugin_tab_is_added_with_its_origin(entry_points, fake_entry_point):
+    entry_points[plugins.TAB_GROUP] = [fake_entry_point("demo", lambda: [tab()])]
+    items = config.tab_items()
     assert items[-1]["name"] == "demo"
+    assert items[-1]["blurb"] == "a demo tab"
     assert plugins.tab_origin("demo") == "plugin:terrascope-demo"
     assert plugins.tab_origin("map") == "built-in"
-    tab = _build(items[-1])
-    assert isinstance(tab, Tab) and tab.layers == ("basemap", "demo")
+
+
+def test_plugin_tabs_are_not_saved_into_the_config(entry_points, fake_entry_point):
+    entry_points[plugins.TAB_GROUP] = [fake_entry_point("demo", lambda: [tab()])]
+    names_before = [item["name"] for item in CFG["tabs"]["items"]]
+    assert "demo" in [item["name"] for item in config.tab_items()]
+    assert [item["name"] for item in CFG["tabs"]["items"]] == names_before
+
+
+def test_tuple_layers_and_null_blurb_are_accepted_and_normalised(entry_points, fake_entry_point):
+    provided = [tab(layers=("basemap", "demo"), blurb=None, attribution=None)]
+    entry_points[plugins.TAB_GROUP] = [fake_entry_point("demo", lambda: provided)]
+    item = config.tab_items()[-1]
+    assert item["layers"] == ["basemap", "demo"]
+    assert item["blurb"] == "" and item["attribution"] == ""
 
 
 @pytest.mark.parametrize(
-    "provided",
+    "bad",
     [
-        [{"name": "x", "label": "X"}],                 # no colour
-        [{"name": "map", "label": "M", "color": "#000000"}],  # name taken
-        ["not a dict"],
+        tab(color="red"),                  # not #rrggbb
+        tab(detailed=1),                   # not a bool
+        tab(provinces="yes"),
+        tab(layers="basemap"),             # text, not a list
+        tab(layers=[1, 2]),
+        tab(label=""),
+        tab(name="MAP"),                   # a built-in name, in any case
+        tab(name="3"),                     # digits pick a tab by number
+        tab(name="  "),
+        tab(unknown_key=True),
+        tab(view={"lat": 95, "lon": -52, "zoom": 3}),
+        tab(view={"lat": -70, "lon": -52, "zoom": 3}),  # below map.lat_min
+        "not a tab",
     ],
 )
-def test_bad_plugin_tabs_are_skipped(entry_points, caplog, provided):
-    add(entry_points, plugins.TAB_GROUP, FakeEntryPoint("bad", lambda: provided))
-    items = copy.deepcopy(CFG["tabs"]["items"])
-    before = len(items)
+def test_bad_plugin_tabs_are_skipped_not_fatal(entry_points, fake_entry_point, caplog, bad):
+    entry_points[plugins.TAB_GROUP] = [fake_entry_point("bad", lambda: [bad, tab(name="good")])]
     with caplog.at_level("WARNING", logger="terrascope.plugins"):
-        plugins.install_plugin_tabs(items)
-    assert len(items) == before
+        names = [item["name"] for item in config.tab_items()]
+    assert "good" in names
+    assert names.count("good") == 1
     assert "ignoring a tab from bad" in caplog.text
 
 
-def test_tab_provider_that_raises_is_skipped(entry_points, caplog):
+def test_tab_names_are_compared_without_case(entry_points, fake_entry_point):
+    entry_points[plugins.TAB_GROUP] = [fake_entry_point("a", lambda: [tab(name="Demo")]),
+                                       fake_entry_point("b", lambda: [tab(name="DEMO")])]
+    names = [item["name"] for item in config.tab_items()]
+    assert names.count("Demo") + names.count("DEMO") == 1
+
+
+def test_tab_provider_that_raises_is_skipped(entry_points, fake_entry_point, caplog):
     def explode():
         raise RuntimeError("boom")
 
-    add(entry_points, plugins.TAB_GROUP, FakeEntryPoint("explode", explode))
-    items = copy.deepcopy(CFG["tabs"]["items"])
-    before = len(items)
+    entry_points[plugins.TAB_GROUP] = [fake_entry_point("explode", explode)]
+    before = len(CFG["tabs"]["items"])
     with caplog.at_level("WARNING", logger="terrascope.plugins"):
-        plugins.install_plugin_tabs(items)
-    assert len(items) == before
+        assert len(config.tab_items()) == before
     assert "boom" in caplog.text
+
+
+def test_entry_points_are_read_once_and_only_when_needed(entry_points, fake_entry_point):
+    calls = []
+
+    def provider():
+        calls.append(1)
+        return [tab()]
+
+    entry_points[plugins.TAB_GROUP] = [fake_entry_point("demo", provider)]
+    config.validate_config()  # the start tab is a built-in one: no plugin is read
+    assert calls == []
+    config.tab_items()
+    config.tab_items()
+    plugins.tab_origin("demo")
+    assert calls == [1]

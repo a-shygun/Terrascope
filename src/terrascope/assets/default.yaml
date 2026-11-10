@@ -109,7 +109,8 @@ tabs:
   # defaults to the value of detailed) / place_names (false = basemap hides capital and city
   # names) / country_names (false = basemap hides country names) / attribution
   # (the layer's data source, shown above the always-present © OpenStreetMap credit at the map's bottom-left)
-  # / view (optional home view: {lat, lon, zoom}; the map moves there each time the tab is opened).
+  # / view (optional home view: {lat, lon, zoom}; lat within map.lat_min..lat_max; the map moves there
+  # when the tab is opened, and the key 0 returns to it).
   items:
     - name: map
       label: MAP

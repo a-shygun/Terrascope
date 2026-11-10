@@ -6,8 +6,11 @@ are imported, so the XDG locations must be set before any test imports them.
 
 from __future__ import annotations
 
+import importlib.metadata
 import os
 from pathlib import Path
+
+import pytest
 
 _SANDBOX = Path(__file__).resolve().parents[1] / ".cache-test"
 os.environ["XDG_CONFIG_HOME"] = str(_SANDBOX / "config")
@@ -39,3 +42,47 @@ def _compile_catalogues() -> None:
 
 
 _compile_catalogues()
+
+
+# ---- fake entry points ---------------------------------------------------------
+
+class FakeDist:
+    def __init__(self, name: str) -> None:
+        self.metadata = {"Name": name}
+
+
+class FakeEntryPoint:
+    """Stands in for importlib.metadata.EntryPoint: a name, a target and a distribution."""
+
+    def __init__(self, name: str, target, dist: str = "terrascope-demo") -> None:
+        self.name = name
+        self._target = target
+        self.dist = FakeDist(dist)
+
+    def load(self):
+        if isinstance(self._target, Exception):
+            raise self._target
+        return self._target
+
+
+@pytest.fixture
+def fake_entry_point():
+    """The FakeEntryPoint class, for building entry points in a test."""
+    return FakeEntryPoint
+
+
+@pytest.fixture
+def entry_points(monkeypatch):
+    """A table {group: [entry points]} served by a fake importlib.metadata.entry_points,
+    with the plugin state reset before and after each test."""
+    from terrascope.core import plugins
+
+    table: dict[str, list[FakeEntryPoint]] = {}
+
+    def fake_entry_points(group=None, **_):
+        return list(table.get(group, []))
+
+    monkeypatch.setattr(importlib.metadata, "entry_points", fake_entry_points)
+    monkeypatch.setattr(plugins, "TAB_ORIGINS", {})
+    monkeypatch.setattr(plugins, "_PLUGIN_TABS", None)
+    return table

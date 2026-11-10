@@ -33,12 +33,20 @@ def plugin_layer_classes() -> list[tuple[type[Layer], str]]:
     skipped when its `name` is already used by a built-in layer or by an
     earlier plugin, so --disable-layer and the tab lists stay unambiguous."""
     taken = {layer_class.name for layer_class in ALL_LAYER_CLASSES}
+    reserved = plugins.reserved_toggle_keys()
     accepted: list[tuple[type[Layer], str]] = []
     for layer_class, origin in plugins.load_layer_classes():
         if layer_class.name in taken:
             plugins.log.warning(
                 "ignoring layer plugin %s (%s): name %r is already used",
                 layer_class.__name__, origin, layer_class.name,
+            )
+            continue
+        key = str(layer_class.toggle_key or "").lower()
+        if key and key in reserved:
+            plugins.log.warning(
+                "ignoring layer plugin %s (%s): toggle key %r is used by the app",
+                layer_class.__name__, origin, layer_class.toggle_key,
             )
             continue
         taken.add(layer_class.name)

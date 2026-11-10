@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from terrascope.core.config import CFG, parse_tab_view
+from terrascope.core.config import CFG, parse_tab_view, tab_items
 from terrascope.core.i18n import _
 
 @dataclass(frozen=True)
@@ -53,6 +53,6 @@ def _build(item: dict) -> Tab:
         view=parse_tab_view(item.get("view"), where=f"tab {item.get('name')!r} view"),
     )
 
-TABS: tuple[Tab, ...] = tuple(_build(item) for item in CFG["tabs"]["items"])
+TABS: tuple[Tab, ...] = tuple(_build(item) for item in tab_items())
 
 START_TAB = int(CFG["tabs"]["start_tab"])  # index of the tab shown at launch

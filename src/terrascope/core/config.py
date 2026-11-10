@@ -280,8 +280,22 @@ def validate_config(candidate: dict | None = None) -> None:
     if values["layers"]["night"]["look"] not in {"tint", "fill"}:
         raise ConfigError("layers.night.look must be tint or fill")
     tabs = values["tabs"]
-    if not 0 <= tabs["start_tab"] < len(tabs["items"]):
+    for item in tabs["items"]:
+        if isinstance(item, dict) and item.get("view") is not None:
+            parse_tab_view(item["view"], where=f"tab {item.get('name')!r} view")
+    count = len(tabs["items"])
+    if values is CFG and not 0 <= tabs["start_tab"] < count:
+        # The start tab may be one that a plugin provides; plugins are read only now.
+        count = len(tab_items())
+    if not 0 <= tabs["start_tab"] < count:
         raise ConfigError("tabs.start_tab is outside the configured tab list")
+
+def tab_items() -> list[dict]:
+    """The built-in tabs, then the tabs plugins provide. The plugin tabs are read
+    once, on first use, and are never saved into CFG (so --dump-config leaves them out)."""
+    from terrascope.core import plugins  # imports config only inside its functions
+
+    return list(CFG["tabs"]["items"]) + plugins.plugin_tab_items()
 
 def parse_tab_view(value: Any, where: str = "tab view") -> tuple[float, float, float] | None:
     """The optional home view of a tab, `view: {lat, lon, zoom}`, as a
@@ -301,8 +315,12 @@ def parse_tab_view(value: Any, where: str = "tab view") -> tuple[float, float, f
     lat, lon, zoom = numbers[0], numbers[1], numbers[2]
     zoom_min = float(CFG["map"]["zoom"]["min"])
     zoom_max = float(CFG["map"]["zoom"]["max"])
-    if not -90 <= lat <= 90:
-        raise ConfigError(f"{where}: lat must be between -90 and 90, got {lat:g}")
+    lat_min = float(CFG["map"]["lat_min"])
+    lat_max = float(CFG["map"]["lat_max"])
+    if not lat_min <= lat <= lat_max:
+        raise ConfigError(
+            f"{where}: lat must be between {lat_min:g} and {lat_max:g} (the map's latitude range), got {lat:g}"
+        )
     if not -180 <= lon <= 180:
         raise ConfigError(f"{where}: lon must be between -180 and 180, got {lon:g}")
     if not zoom_min <= zoom <= zoom_max:

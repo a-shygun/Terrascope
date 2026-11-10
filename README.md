@@ -276,10 +276,21 @@ changing Terrascope. Register them under two entry point groups:
   in `terrascope.core.i18n`); the core does not know their msgids.
 
 The optional `view` sets the tab's home view: `view: {lat: -14, lon: -52, zoom: 3}`.
-Terrascope moves the map there each time the tab is opened, with the given
-centre (`lat` from -90 to 90, `lon` from -180 to 180) and `zoom` (within
-`map.zoom.min` and `map.zoom.max`). Without `view`, the tab keeps the view the
-user had. A plugin tab with an invalid `view` is skipped with a warning.
+Terrascope moves the map there when the tab is opened, with the given centre
+(`lat` within `map.lat_min` and `map.lat_max`, the latitudes the map shows;
+`lon` from -180 to 180) and `zoom` (within `map.zoom.min` and `map.zoom.max`).
+Opening the same tab again does not move the map. Without `view`, the tab keeps
+the view the user had. The key `0` returns to the tab's view when it has one,
+and to the whole world otherwise. A built-in tab with an invalid `view` stops
+the app at start with the reason; a plugin tab with an invalid `view` is skipped
+with a warning.
+
+A plugin tab must have `name`, `label` and `color` (`#rrggbb`); `blurb` and
+`attribution` are text, `layers` is a list of layer names, and `detailed`,
+`provinces`, `place_names` and `country_names` are true or false. Unknown keys
+are an error. A tab name is compared without case, and it cannot be only digits
+(digits select a tab by number). A plugin tab that breaks these rules is skipped
+with a warning, and the app starts without it.
 
 ```toml
 # pyproject.toml of the plugin package
@@ -302,7 +313,7 @@ from terrascope.core.layer import Layer, LayerRender, Marker
 
 class DemoLayer(Layer):
     name = "demo"        # unique: used by --disable-layer and by tab "layers"
-    toggle_key = "j"     # one key that no built-in layer uses (see --list-layers)
+    toggle_key = "j"     # a key that neither the app nor a built-in layer uses (see below)
 
     def build(self, view) -> LayerRender:
         markers = []
@@ -334,7 +345,11 @@ removes them.
 
 A plugin that fails to load, is not a `Layer` subclass, or cannot be started is
 skipped with a warning, and the app starts without it. A toggle key used by two
-layers still stops the app with an error, as it does for built-in layers.
+layers still stops the app with an error, as it does for built-in layers. A plugin
+layer whose toggle key is a key the app reads is skipped with a warning: the digits,
+the keys of `app.keys` in `default.yaml` (for example `q`, `h`, `o`, `w`, `a`, `s`,
+`d`, `z`, `0`, `+`, `-`), and `r`, `x`, `y`, `n`. Pick a letter that none of these
+uses, and check the list with `terrascope --list-keys` and `--list-layers`.
 Plugin layers are drawn on top of the built-in ones, in the order their
 entry points are found.
 

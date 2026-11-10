@@ -362,8 +362,11 @@ def _lang_from_argv(argv: list[str]) -> str | None:
     scan.add_argument("--lang")
     return scan.parse_known_args(argv)[0].lang
 
-def _tab_names() -> list[str]:
-    return [str(item["name"]) for item in config.CFG["tabs"]["items"]]
+def _tab_names(include_plugins: bool = False) -> list[str]:
+    """Names of the built-in tabs. Plugin tabs are read only when asked for, so
+    commands that never show tabs do not load plugins."""
+    items = config.tab_items() if include_plugins else config.CFG["tabs"]["items"]
+    return [str(item["name"]) for item in items]
 
 def build_parser() -> argparse.ArgumentParser:
     tabs = ", ".join(f"{i + 1}={name}" for i, name in enumerate(_tab_names()))
@@ -494,7 +497,7 @@ def _apply_set(parser: argparse.ArgumentParser, item: str) -> None:
         parser.error(f"--set: unknown setting {key!r} (see --dump-config for the valid ones)")
 
 def _resolve_tab(parser: argparse.ArgumentParser, spec: str) -> int:
-    names = [name.lower() for name in _tab_names()]
+    names = [name.lower() for name in _tab_names(include_plugins=True)]
     text = spec.strip().lower()
     if text.isdigit():
         index = int(text) - 1
@@ -538,17 +541,10 @@ def apply_settings(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
     for item in args.set_values:
         _apply_set(parser, item)
 
-    # Plugin tabs must be in the list before --tab is resolved and before the
-    # config is validated, so they are added here and not in tabs.py.
-    from terrascope.core import plugins
-    plugins.install_plugin_tabs(config.CFG["tabs"]["items"])
-
+    # --tab may name a plugin tab; the plugin tabs are read only when it does
+    # (see _tab_names). validate_config() checks tabs.start_tab the same way.
     if args.tab is not None:
         config.set_path("tabs.start_tab", _resolve_tab(parser, args.tab))
-    else:
-        start = config.CFG["tabs"]["start_tab"]
-        if not isinstance(start, int) or not 0 <= start < len(_tab_names()):
-            parser.error(f"tabs.start_tab must be 0-{len(_tab_names()) - 1}, got {start!r}")
 
     try:
         config.validate_config()
@@ -569,7 +565,7 @@ def print_layer_list(layers) -> None:
 def print_tab_list() -> None:
     from terrascope.core import plugins
     start = config.CFG["tabs"]["start_tab"]
-    for index, item in enumerate(config.CFG["tabs"]["items"]):
+    for index, item in enumerate(config.tab_items()):
         marker = "*" if index == start else " "
         layers = ",".join(item.get("layers") or ())
         origin = plugins.tab_origin(str(item["name"]))
