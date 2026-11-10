@@ -538,6 +538,11 @@ def apply_settings(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
     for item in args.set_values:
         _apply_set(parser, item)
 
+    # Plugin tabs must be in the list before --tab is resolved and before the
+    # config is validated, so they are added here and not in tabs.py.
+    from terrascope.core import plugins
+    plugins.install_plugin_tabs(config.CFG["tabs"]["items"])
+
     if args.tab is not None:
         config.set_path("tabs.start_tab", _resolve_tab(parser, args.tab))
     else:
@@ -556,16 +561,19 @@ def apply_settings(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
 # ---------------------------------------------------------------------------
 
 def print_layer_list(layers) -> None:
+    # Last column is the origin: "built-in" or "plugin:<distribution>".
     for layer in layers:
         state = "on" if layer.enabled else "off"
-        print(f"{layer.name}\t{state}\t{layer.toggle_key.upper() or '-'}")
+        print(f"{layer.name}\t{state}\t{layer.toggle_key.upper() or '-'}\t{layer.origin}")
 
 def print_tab_list() -> None:
+    from terrascope.core import plugins
     start = config.CFG["tabs"]["start_tab"]
     for index, item in enumerate(config.CFG["tabs"]["items"]):
         marker = "*" if index == start else " "
         layers = ",".join(item.get("layers") or ())
-        print(f"{marker}{index + 1}\t{item['name']}\t{layers}\t{item.get('blurb', '')}")
+        origin = plugins.tab_origin(str(item["name"]))
+        print(f"{marker}{index + 1}\t{item['name']}\t{layers}\t{item.get('blurb', '')}\t{origin}")
 
 _LAYER_KEYS = (
     ("planes on/off", "layers.flights.toggle_key"),

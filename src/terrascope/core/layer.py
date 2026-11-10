@@ -141,6 +141,10 @@ class Layer:
     # (a single info box) from ui.py.
     panel_layout: tuple[PanelBox, ...] | None = None
 
+    # "built-in", or "plugin:<distribution>" for a layer from an entry point.
+    # Set per instance by registry.build_layers().
+    origin = "built-in"
+
     def __init__(self) -> None:
         self.dirty = True
         self.selected = None

@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+from terrascope.core import plugins
 from terrascope.core.layer import Layer
 from terrascope.layers.basemap import BaseMapLayer
 from terrascope.layers.daynight import DayNightLayer
@@ -23,6 +24,26 @@ ALL_LAYER_CLASSES: tuple[type[Layer], ...] = (
     FlightsLayer,
     WeatherLayer,
 )
+
+# Layers from installed packages (entry point group "terrascope.layers") come
+# after the built-in ones, so they are drawn on top of them. See plugins.py.
+
+def plugin_layer_classes() -> list[tuple[type[Layer], str]]:
+    """Plugin layer classes that can be added, as (class, origin). A plugin is
+    skipped when its `name` is already used by a built-in layer or by an
+    earlier plugin, so --disable-layer and the tab lists stay unambiguous."""
+    taken = {layer_class.name for layer_class in ALL_LAYER_CLASSES}
+    accepted: list[tuple[type[Layer], str]] = []
+    for layer_class, origin in plugins.load_layer_classes():
+        if layer_class.name in taken:
+            plugins.log.warning(
+                "ignoring layer plugin %s (%s): name %r is already used",
+                layer_class.__name__, origin, layer_class.name,
+            )
+            continue
+        taken.add(layer_class.name)
+        accepted.append((layer_class, origin))
+    return accepted
 
 def check_toggle_keys(layers: list[Layer]) -> None:
     seen: dict[str, str] = {}
@@ -37,7 +58,26 @@ def check_toggle_keys(layers: list[Layer]) -> None:
         seen[key] = layer.name
 
 def build_layers() -> list[Layer]:
-    """One instance of each layer in ALL_LAYER_CLASSES, in order."""
-    layers = [layer_class() for layer_class in ALL_LAYER_CLASSES]
+    """One instance of each layer in ALL_LAYER_CLASSES, in order, then one of
+    each usable plugin layer. A plugin layer whose constructor fails is skipped
+    with a log line; a built-in one still raises."""
+    entries: list[tuple[type[Layer], str]] = [
+        (layer_class, plugins.BUILTIN_ORIGIN) for layer_class in ALL_LAYER_CLASSES
+    ]
+    entries.extend(plugin_layer_classes())
+    layers: list[Layer] = []
+    for layer_class, origin in entries:
+        try:
+            layer = layer_class()
+        except Exception as error:
+            if origin == plugins.BUILTIN_ORIGIN:
+                raise
+            plugins.log.warning(
+                "ignoring layer plugin %s (%s): could not start it: %s",
+                layer_class.__name__, origin, error,
+            )
+            continue
+        layer.origin = origin
+        layers.append(layer)
     check_toggle_keys(layers)
     return layers
