@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import format_integer
+
 import math
 from terrascope.layers.flights.settings import *
 from terrascope.layers.flights.settings import _TEXT
@@ -52,21 +54,21 @@ def format_altitude(value) -> str:
     if meters is None:
         return _TEXT["not_available"]
     feet = meters * 3.28084
-    return f"{feet:,.0f} ft"
+    return f"{format_integer(feet)} ft"
 
 def format_speed(value) -> str:
     meters_per_second = finite_float(value)
     if meters_per_second is None:
         return _TEXT["not_available"]
     knots = meters_per_second * 1.943844
-    return f"{knots:,.0f} kt"
+    return f"{format_integer(knots)} kt"
 
 def format_vertical_rate(value) -> str:
     meters_per_second = finite_float(value)
     if meters_per_second is None:
         return _TEXT["not_available"]
     feet_per_minute = meters_per_second * 196.850394
-    return f"{feet_per_minute:+,.0f} ft/min"
+    return f"{'+' if feet_per_minute >= 0 else ''}{format_integer(feet_per_minute)} ft/min"
 
 def format_heading(value) -> str:
     heading = finite_float(value)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import _
+
 import json
 import math
 import urllib.error
@@ -42,14 +44,14 @@ def fetch_opensky_states() -> list:
         OSError,
     ) as error:
         set_live_progress("planes", state="failed", error=str(error))
-        raise FlightFetchError(f"OpenSky request failed: {error}") from error
+        raise FlightFetchError(f"{_('OpenSky request failed: ')}{error}") from error
     if not isinstance(payload, dict):
-        set_live_progress("planes", state="failed", error="Unexpected response format")
-        raise FlightFetchError("OpenSky returned an unexpected response format")
+        set_live_progress("planes", state="failed", error=_("Unexpected response format"))
+        raise FlightFetchError(_("OpenSky returned an unexpected response format"))
     states = payload.get("states", [])
     if not isinstance(states, list):
-        set_live_progress("planes", state="failed", error="Unexpected response format")
-        raise FlightFetchError("OpenSky returned an unexpected response format")
+        set_live_progress("planes", state="failed", error=_("Unexpected response format"))
+        raise FlightFetchError(_("OpenSky returned an unexpected response format"))
     set_live_progress("planes", state="ready", downloaded=1, total=1)
     return states
 

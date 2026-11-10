@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import _
+
 import json
 import math
 import threading
@@ -103,7 +105,7 @@ class FlightCache:
             try:
                 self.save()
             except OSError as error:
-                self.last_error = f"Could not save flight cache: {error}"
+                self.last_error = f"{_('Could not save flight cache: ')}{error}"
             return True
 
     def _merge(self, states: list) -> None:

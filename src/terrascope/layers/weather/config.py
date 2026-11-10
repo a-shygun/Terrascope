@@ -1,6 +1,7 @@
-"""Shared settings and display text for the weather layer."""
 
 from __future__ import annotations
+
+from terrascope.core.i18n import _
 
 import os
 from terrascope.core.config import CACHE_DIR, CFG
@@ -25,8 +26,8 @@ CAPITAL_ALL_ZOOM = float(CITY_CONFIG["capital_all_zoom"])  # from this zoom ever
 MAX_WEATHER_CITIES = int(CITY_CONFIG["max_labels"])  # most cities labelled (and weather-fetched) at once
 CITY_LABEL_PADDING = int(CITY_CONFIG["label_padding"])  # blank columns required between two city labels on a row
 PLACES_RETRY_SECONDS = CITY_CONFIG["places_retry_seconds"]  # wait this long after a failed city load
-PLACES_LOADING_TEXT = "loading cities..."
-PLACES_UNAVAILABLE_TEXT = "cities unavailable"
+PLACES_LOADING_TEXT = _("loading cities...")
+PLACES_UNAVAILABLE_TEXT = _("cities unavailable")
 FORECAST_DAYS_AHEAD = int(CITY_CONFIG["forecast_days_ahead"])  # days after today in the forecast box (today is always the first column)
 FORECAST_MIN_COLUMN_WIDTH = int(CITY_CONFIG["forecast_min_column_width"])  # a day column is dropped rather than made narrower than this
 # The forecast box colours temperatures on this fixed scale (cold colour at the
@@ -124,81 +125,81 @@ _PALETTE_STOPS = [(float(at), str(color)) for at, color in RADAR_CONFIG["palette
 # Satellite clouds: dark grey -> white.
 _CLOUD_STOPS = [(float(at), str(color)) for at, color in RADAR_CONFIG["cloud_stops"]]
 
-RADAR_LOADING_TEXT = "loading radar..."
-RADAR_UNAVAILABLE_TEXT = "radar unavailable"
-RADAR_LEGEND_TITLE = "RADAR"
-RADAR_LEGEND_TITLE_CLOUDS = "CLOUDS"
+RADAR_LOADING_TEXT = _("loading radar...")
+RADAR_UNAVAILABLE_TEXT = _("radar unavailable")
+RADAR_LEGEND_TITLE = _("RADAR")
+RADAR_LEGEND_TITLE_CLOUDS = _("CLOUDS")
 RADAR_LEGEND_GLYPH = "\u25a0"
-RADAR_LEGEND_ITEMS_RADAR = ((" light", 0.15), (" moderate", 0.55), (" heavy", 0.95))
-RADAR_LEGEND_ITEMS_CLOUDS = ((" thin", 0.2), (" thick", 0.9))
+RADAR_LEGEND_ITEMS_RADAR = ((_(" light"), 0.15), (_(" moderate"), 0.55), (_(" heavy"), 0.95))
+RADAR_LEGEND_ITEMS_CLOUDS = ((_(" thin"), 0.2), (_(" thick"), 0.9))
 
-_RADAR_TEXT = {"observed": "OBSERVED", "forecast": "FORECAST"}
+_RADAR_TEXT = {"observed": _("OBSERVED"), "forecast": _("FORECAST")}
 _RADAR_LABELS = {
-    "name": "NAME",
-    "intensity": "INTENSITY",
-    "position": "POSITION",
-    "frame": "FRAME (UTC)",
-    "kind": "KIND",
+    "name": _("NAME"),
+    "intensity": _("INTENSITY"),
+    "position": _("POSITION"),
+    "frame": _("FRAME (UTC)"),
+    "kind": _("KIND"),
 }
 
 # Open-Meteo weather code -> description
 WEATHER_CODES = {
-    0: "Clear sky",
-    1: "Mainly clear",
-    2: "Partly cloudy",
-    3: "Overcast",
-    45: "Fog",
-    48: "Rime fog",
-    51: "Light drizzle",
-    53: "Drizzle",
-    55: "Dense drizzle",
-    56: "Freezing drizzle",
-    57: "Freezing drizzle",
-    61: "Slight rain",
-    63: "Rain",
-    65: "Heavy rain",
-    66: "Freezing rain",
-    67: "Freezing rain",
-    71: "Slight snow",
-    73: "Snow",
-    75: "Heavy snow",
-    77: "Snow grains",
-    80: "Rain showers",
-    81: "Rain showers",
-    82: "Violent rain showers",
-    85: "Snow showers",
-    86: "Snow showers",
-    95: "Thunderstorm",
-    96: "Thunderstorm, hail",
-    99: "Thunderstorm, heavy hail",
+    0: _("Clear sky"),
+    1: _("Mainly clear"),
+    2: _("Partly cloudy"),
+    3: _("Overcast"),
+    45: _("Fog"),
+    48: _("Rime fog"),
+    51: _("Light drizzle"),
+    53: _("Drizzle"),
+    55: _("Dense drizzle"),
+    56: _("Freezing drizzle"),
+    57: _("Freezing drizzle"),
+    61: _("Slight rain"),
+    63: _("Rain"),
+    65: _("Heavy rain"),
+    66: _("Freezing rain"),
+    67: _("Freezing rain"),
+    71: _("Slight snow"),
+    73: _("Snow"),
+    75: _("Heavy snow"),
+    77: _("Snow grains"),
+    80: _("Rain showers"),
+    81: _("Rain showers"),
+    82: _("Violent rain showers"),
+    85: _("Snow showers"),
+    86: _("Snow showers"),
+    95: _("Thunderstorm"),
+    96: _("Thunderstorm, hail"),
+    99: _("Thunderstorm, heavy hail"),
 }
 
-LEGEND_TITLE = "CITY TEMP"
+LEGEND_TITLE = _("CITY TEMP")
 LEGEND_GLYPH = "●"
-LEGEND_COLD = " cold"
-LEGEND_HOT = " hot"
-LEGEND_NO_DATA = " no data"
+LEGEND_COLD = _(" cold")
+LEGEND_HOT = _(" hot")
+LEGEND_NO_DATA = _(" no data")
 
 # Words shown in the info box.
 _CITY_TEXT = {
-    "capital": "CAPITAL",
-    "city": "CITY",
-    "fetching": "FETCHING...",
-    "unavailable": "UNAVAILABLE",
-    "not_available": "N/A",
-    "unknown_weather": "Unknown",
+    "capital": _("CAPITAL"),
+    "city": _("CITY"),
+    "fetching": _("FETCHING..."),
+    "unavailable": _("UNAVAILABLE"),
+    "not_available": _("N/A"),
+    "unknown_weather": _("Unknown"),
     "unknown_date": "?",
 }
 # Row labels in the info box (keep them under 12 characters).
 _CITY_LABELS = {
-    "name": "NAME",
-    "country": "COUNTRY",
-    "type": "TYPE",
-    "population": "POPULATION",
-    "position": "POSITION",
-    "weather": "WEATHER",
-    "temperature": "TEMP",
-    "conditions": "CONDITIONS",
-    "wind": "WIND",
-    "observed": "OBSERVED",
+    "name": _("NAME"),
+    "country": _("COUNTRY"),
+    "type": _("TYPE"),
+    "population": _("POPULATION"),
+    "position": _("POSITION"),
+    "weather": _("WEATHER"),
+    "temperature": _("TEMP"),
+    "conditions": _("CONDITIONS"),
+    "wind": _("WIND"),
+    "observed": _("OBSERVED"),
 }

@@ -1,6 +1,7 @@
-"""Settings for aircraft, airport, and history rendering."""
 
 from __future__ import annotations
+
+from terrascope.core.i18n import _
 
 from pathlib import Path
 from terrascope.core.config import CACHE_DIR, CFG
@@ -77,27 +78,27 @@ AIRPORT_MAX_LABELS = int(AIRPORT_CONFIG["max_labels"])
 
 AIRPORT_LOAD_RETRY_SECONDS = AIRPORT_CONFIG["load_retry_seconds"]
 
-AIRPORTS_LOADING_TEXT = "loading airports..."
+AIRPORTS_LOADING_TEXT = _("loading airports...")
 
-AIRPORTS_UNAVAILABLE_TEXT = "airports unavailable"
+AIRPORTS_UNAVAILABLE_TEXT = _("airports unavailable")
 
 EARTH_RADIUS_M = 6_371_000.0
 
 MAX_EXTRAPOLATE_AGE_SECONDS = FLIGHT_CONFIG["max_extrapolate_age_seconds"]
 
-_TEXT = {"not_available": "N/A", "unknown": "UNKNOWN"}
+_TEXT = {"not_available": _("N/A"), "unknown": _("UNKNOWN")}
 
 _LABELS = {
-    "callsign": "CALLSIGN",
-    "type": "TYPE",
-    "icao24": "ICAO24",
-    "country": "COUNTRY",
-    "altitude": "ALTITUDE",
-    "geo_altitude": "GEO ALT",
-    "speed": "SPEED",
-    "heading": "HEADING",
-    "vertical_rate": "VERT RATE",
-    "squawk": "SQUAWK",
-    "position": "POSITION",
-    "source": "SOURCE",
+    "callsign": _("CALLSIGN"),
+    "type": _("TYPE"),
+    "icao24": _("ICAO24"),
+    "country": _("COUNTRY"),
+    "altitude": _("ALTITUDE"),
+    "geo_altitude": _("GEO ALT"),
+    "speed": _("SPEED"),
+    "heading": _("HEADING"),
+    "vertical_rate": _("VERT RATE"),
+    "squawk": _("SQUAWK"),
+    "position": _("POSITION"),
+    "source": _("SOURCE"),
 }
