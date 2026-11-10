@@ -66,6 +66,11 @@ app:
   status_offset: [3, 2]            # (columns, rows) from the map box's top-left for status text
   log_file: "terrascope.log"           # stderr goes here (inside the cache dir)
   welcome_skip_file: "welcome_skip"  # marker file: skip the welcome modal at launch
+  # Interface language and regional formats. "auto" follows the system (see
+  # core/i18n.py); the formats follow the language unless set here.
+  language: "auto"                 # auto, en or pt_BR (also --lang)
+  time_format: "auto"              # auto, 24h or 12h (also --time-format)
+  units: "auto"                    # auto, metric (°C, km/h) or imperial (°F, mph) (also --units)
   # Key bindings. A string or list of characters; letters work in both cases.
   # Layer toggle keys are set on each layer below and must not clash with these.
   keys:
