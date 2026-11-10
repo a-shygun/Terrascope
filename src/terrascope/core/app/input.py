@@ -47,6 +47,9 @@ class InputMixin:
                 layer.provinces_visible = self.provinces_visible and TABS[index].name == "map"
         self.world.show_places = TABS[index].place_names
         self.world.show_countries = TABS[index].country_names
+        if TABS[index].view is not None:
+            # A tab with a home view starts there every time it is activated.
+            self.world.set_view(*TABS[index].view)
         self.world.clear_selection()
         self.info_visible = False
         self._drag = None

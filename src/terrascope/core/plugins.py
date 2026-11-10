@@ -70,6 +70,10 @@ def install_plugin_tabs(items: list) -> None:
     tabs.items list of the config), in place. Each entry point is a callable
     returning a list of dicts in the same shape as tabs.items. A tab with a
     missing key or a name that is already taken is skipped with a log line."""
+    # config is already loaded when this runs (the CLI imports it first), so this
+    # import does not freeze any setting.
+    from terrascope.core.config import ConfigError, parse_tab_view
+
     names = {str(item.get("name")) for item in items if isinstance(item, dict)}
     for entry_point in discover(TAB_GROUP):
         origin = origin_of(entry_point)
@@ -90,7 +94,8 @@ def install_plugin_tabs(items: list) -> None:
                 name = str(item["name"])
                 if name in names:
                     raise ValueError(f"tab name {name!r} is already used")
-            except (TypeError, ValueError) as error:
+                parse_tab_view(item.get("view"), where=f"tab {name!r} view")
+            except (TypeError, ValueError, ConfigError) as error:
                 log.warning("ignoring a tab from %s (%s): %s", entry_point.name, origin, error)
                 continue
             names.add(name)

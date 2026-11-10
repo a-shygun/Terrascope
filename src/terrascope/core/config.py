@@ -283,6 +283,32 @@ def validate_config(candidate: dict | None = None) -> None:
     if not 0 <= tabs["start_tab"] < len(tabs["items"]):
         raise ConfigError("tabs.start_tab is outside the configured tab list")
 
+def parse_tab_view(value: Any, where: str = "tab view") -> tuple[float, float, float] | None:
+    """The optional home view of a tab, `view: {lat, lon, zoom}`, as a
+    (longitude, latitude, zoom) tuple. None when the tab has no view. Used by
+    the built-in tabs and by plugin tabs, so both are checked the same way."""
+    if value is None:
+        return None
+    keys = ("lat", "lon", "zoom")
+    if not isinstance(value, dict) or set(value) != set(keys):
+        raise ConfigError(f"{where}: expected {{lat, lon, zoom}}, got {value!r}")
+    numbers = []
+    for key in keys:
+        number = value[key]
+        if isinstance(number, bool) or not isinstance(number, (int, float)) or not math.isfinite(number):
+            raise ConfigError(f"{where}: {key} must be a number, got {number!r}")
+        numbers.append(float(number))
+    lat, lon, zoom = numbers[0], numbers[1], numbers[2]
+    zoom_min = float(CFG["map"]["zoom"]["min"])
+    zoom_max = float(CFG["map"]["zoom"]["max"])
+    if not -90 <= lat <= 90:
+        raise ConfigError(f"{where}: lat must be between -90 and 90, got {lat:g}")
+    if not -180 <= lon <= 180:
+        raise ConfigError(f"{where}: lon must be between -180 and 180, got {lon:g}")
+    if not zoom_min <= zoom <= zoom_max:
+        raise ConfigError(f"{where}: zoom must be between {zoom_min:g} and {zoom_max:g}, got {zoom:g}")
+    return (lon, lat, zoom)
+
 def get_path_from(values: dict, dotted_path: str) -> Any:
     node: Any = values
     for part in dotted_path.split("."):

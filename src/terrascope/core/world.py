@@ -265,6 +265,15 @@ class WorldMap:
         self._clamp_center()
         self.dirty = True
 
+    def set_view(self, longitude: float, latitude: float, zoom: float) -> None:
+        """Set the view exactly (a tab's home view). Unlike focus_location(),
+        this can also zoom out."""
+        self._set_zoom(zoom)
+        self.center_lon = longitude
+        self.center_lat = latitude
+        self._clamp_center()
+        self.dirty = True
+
     def pan(self, lon_direction: int, lat_direction: int) -> None:
         lon_span, lat_span = calculate_viewport(self.zoom, self.aspect)
         self.center_lon += lon_direction * lon_span * PAN_STEP

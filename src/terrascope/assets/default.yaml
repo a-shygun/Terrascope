@@ -108,7 +108,8 @@ tabs:
   # / provinces (state / province borders only;
   # defaults to the value of detailed) / place_names (false = basemap hides capital and city
   # names) / country_names (false = basemap hides country names) / attribution
-  # (the layer's data source, shown above the always-present © OpenStreetMap credit at the map's bottom-left).
+  # (the layer's data source, shown above the always-present © OpenStreetMap credit at the map's bottom-left)
+  # / view (optional home view: {lat, lon, zoom}; the map moves there each time the tab is opened).
   items:
     - name: map
       label: MAP

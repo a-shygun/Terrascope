@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from terrascope.core.config import CFG
+from terrascope.core.config import CFG, parse_tab_view
 from terrascope.core.i18n import _
 
 @dataclass(frozen=True)
@@ -34,6 +34,9 @@ class Tab:
     place_names: bool = True
     country_names: bool = True  # False = basemap leaves out country names
     attribution: str = ""  # small credit drawn at the map's bottom-left
+    # Home view, (longitude, latitude, zoom), set when the tab is activated.
+    # None = keep the view the user had. See `view:` in default.yaml.
+    view: tuple[float, float, float] | None = None
 
 def _build(item: dict) -> Tab:
     return Tab(
@@ -47,6 +50,7 @@ def _build(item: dict) -> Tab:
         place_names=bool(item.get("place_names", True)),
         country_names=bool(item.get("country_names", True)),
         attribution=str(item.get("attribution") or ""),
+        view=parse_tab_view(item.get("view"), where=f"tab {item.get('name')!r} view"),
     )
 
 TABS: tuple[Tab, ...] = tuple(_build(item) for item in CFG["tabs"]["items"])
