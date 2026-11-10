@@ -75,6 +75,9 @@ def rgb_to_nearest_basic(rgb: tuple[int, int, int]) -> int:
     candidates = ((color, _XTERM_BASIC_16_RGB[color]) for color in basic_colors)
     return _nearest_by_distance(rgb, candidates)
 
+# The ColorManager of the running app, for drawing helpers that only see attributes.
+ACTIVE = None
+
 def _rgb_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> int:
     return sum((x - y) ** 2 for x, y in zip(a, b))
 
@@ -99,6 +102,7 @@ class ColorManager:
         self.exhausted = False
         self._pair_by_hex: dict[str, int] = {}
         self._pair_colors: dict[str, tuple] = {}  # key -> (fg rgb, bg rgb or None)
+        self._key_by_pair: dict[int, str] = {}  # colour-pair attribute -> "fg|bg" key
         self._slot_by_hex: dict[str, int] = {}
         self._redefined: set[int] = set()  # palette slots this app changed
         self._next_pair_id = 1
@@ -114,11 +118,18 @@ class ColorManager:
         except curses.error:
             pass
         self.enabled = True
+        global ACTIVE
+        ACTIVE = self
         wanted = bool(TERMINAL_CONFIG.get("redefine_palette", True))
         self.supports_exact_color = (
             wanted and curses.can_change_color() and curses.COLORS > self.FIRST_FREE_SLOT
         )
-        limit = min(curses.COLOR_PAIRS, (curses.A_COLOR >> 8) + 1)
+        # Pair ids that fit in the A_COLOR field: 0xff00 on ncurses, but
+        # PDCurses (windows-curses) keeps the pair in the top byte and exposes
+        # A_COLOR as a negative number, so shift by the field's lowest bit.
+        color_mask = curses.A_COLOR & 0xFFFFFFFF
+        color_shift = (color_mask & -color_mask).bit_length() - 1
+        limit = min(curses.COLOR_PAIRS, (color_mask >> color_shift) + 1)
         configured = TERMINAL_CONFIG.get("max_color_pairs")
         if configured:
             limit = min(limit, int(configured) + 1)
@@ -136,6 +147,7 @@ class ColorManager:
         resource is the ~255 pairs."""
         self._pair_by_hex.clear()
         self._pair_colors.clear()
+        self._key_by_pair.clear()
         self._next_pair_id = 1
         self.exhausted = False
 
@@ -160,7 +172,25 @@ class ColorManager:
             return cached
         attribute = self._create_pair(key, fg, bg)
         self._pair_by_hex[key] = attribute
+        self._key_by_pair.setdefault(attribute, key)
         return attribute
+
+    def dimmed(self, attributes: int) -> int:
+        """A_DIM drawn as a colour: the cell's colour pair with the foreground
+        halfway to its background. PDCurses (windows-curses) ignores A_DIM on
+        coloured text, which left inactive tabs and hints at full brightness."""
+        key = self._key_by_pair.get(attributes & curses.A_COLOR)
+        if key is None:
+            return attributes
+        fg, bg = key.split("|", 1)
+        bg = None if bg == "None" else bg
+        try:
+            fg_rgb = hex_to_rgb(fg)
+            base = hex_to_rgb(bg) if bg else (0, 0, 0)
+        except ValueError:
+            return attributes
+        mixed = "#{:02x}{:02x}{:02x}".format(*((a + b) // 2 for a, b in zip(fg_rgb, base)))
+        return (attributes & ~curses.A_COLOR & ~curses.A_DIM) | self.get_pair(mixed, bg)
 
     def _slot_for_hex(self, hex_color: str) -> int | None:
         """Resolve a hex colour to a terminal colour slot (cached per colour)."""

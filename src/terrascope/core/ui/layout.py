@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import sys
+
+from . import colors
 from .constants import (
     BOX_GAP,
     CONTROLS_COLLAPSED_BUTTON,
@@ -56,7 +59,25 @@ from .constants import (
     timezone
 )
 
+# PDCurses (windows-curses) shows A_BOLD on a coloured cell as "colour index + 8",
+# which lands on another palette slot (white labels turned blue), and has no dim
+# attribute (constants.py maps A_DIM to the unused blink bit there). So on Windows dim is
+# drawn as a darker colour pair and bold is kept only for uncoloured text.
+_PDCURSES = sys.platform == "win32"
+_DIM_DEFAULT_TEXT = "#7f7f7f"  # dim text without a colour of its own
+
 def safe_addstr(window, y: int, x: int, text: str, attributes: int = 0) -> None:
+    if _PDCURSES:
+        if attributes & curses.A_DIM:
+            manager = colors.ACTIVE
+            if manager is not None and manager.enabled:
+                if attributes & curses.A_COLOR:
+                    attributes = manager.dimmed(attributes)
+                else:
+                    attributes |= manager.get_pair(_DIM_DEFAULT_TEXT)
+            attributes &= ~curses.A_DIM
+        if attributes & curses.A_COLOR:
+            attributes &= ~curses.A_BOLD
     try:
         window.addnstr(y, x, text, max(0, window.getmaxyx()[1] - x - 1), attributes)
     except curses.error:
@@ -385,12 +406,21 @@ def timezone_choices(query: str) -> list[tuple[str, str | None]]:
             rest.append((label, name))
     return starts + rest
 
+def zone_label(moment: datetime, fallback: str = "") -> str:
+    """Short zone label for an aware datetime: the abbreviation ("CET", "-03")
+    or, when there is none, the UTC offset ("+0330"). Windows reports the
+    local zone by its long, localised name ("Pacific Standard Time")."""
+    label = moment.tzname() or fallback
+    if " " in label:
+        label = f"{moment:%z}"
+    return label
+
 def current_time_text(timezone_name: str | None) -> str:
     """YYYY-MM-DD HH:MM:SS plus a short zone label, for the chosen timezone
     (None = local system time)."""
     try:
         now = datetime.now(ZoneInfo(timezone_name)) if timezone_name else datetime.now().astimezone()
-        label = now.tzname() or timezone_name or ""
+        label = zone_label(now, timezone_name or "")
     except (ZoneInfoNotFoundError, ValueError, OSError):
         now = datetime.now(timezone.utc)
         label = "UTC"

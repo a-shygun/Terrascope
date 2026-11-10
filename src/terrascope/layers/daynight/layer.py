@@ -18,7 +18,7 @@ from PIL import Image
 from terrascope.core.config import CFG
 from terrascope.layers.daynight.astronomy import format_hemisphere, hhmm, moon_info, solar_position, sun_elevation, sun_phase_name, sunrise_sunset
 from terrascope.core.layer import Layer, LayerRender, Marker, PanelBox, SidebarLine, SliderSpec
-from terrascope.core.ui import parse_rgba
+from terrascope.core.ui import parse_rgba, zone_label
 from terrascope.core.view import BLANK_BRAILLE, View, normalize_longitude
 
 NIGHT_CONFIG = CFG["layers"]["night"]
@@ -200,7 +200,7 @@ class DayNightLayer(Layer):
             return [
                 ("DATE", f"{now:%Y-%m-%d}"),
                 ("UTC", f"{now:%H:%M:%S}"),
-                ("LOCAL", f"{local:%H:%M:%S} {local.tzname() or ''}".rstrip()),
+                ("LOCAL", f"{local:%H:%M:%S} {zone_label(local)}".rstrip()),
                 ("DAY", f"{now.timetuple().tm_yday} of year, week {now.isocalendar()[1]}"),
             ]
         if title == "SUN":
