@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import _, ngettext
+
 from .shared import (
     DIM_ATTR,
     KEYS,
@@ -86,13 +88,13 @@ class InputMixin:
     def _plane_count_line(self) -> str:
         flights = next((layer for layer in self.world.layers if layer.name == "flights"), None)
         if flights is None:
-            return "TOTAL PLANES: 0"
+            return f"{_('TOTAL PLANES')}: 0"
         count = len(flights.visible_flights())
-        label = "TOTAL PLANES" if not flights.filter_countries and not flights.search_text else "SHOWN"
-        if label == "TOTAL PLANES":
-            return f"{label}: {count}"
-        noun = "PLANE" if count == 1 else "PLANES"
-        return f"{label}: {count} {noun}"
+        total = not flights.filter_countries and not flights.search_text
+        if total:
+            return f"{_('TOTAL PLANES')}: {count}"
+        noun = ngettext("PLANE", "PLANES", count)
+        return f"{_('SHOWN')}: {count} {noun}"
 
     def current_filter_suggestion(self) -> str | None:
         if not self.filter_buffer.strip():
@@ -102,12 +104,13 @@ class InputMixin:
 
     def search_box_lines(self, hint: str | None) -> list[tuple[str, int]]:
         if self.mode == "search":
-            return [(self.search_buffer + "█", curses.A_BOLD), ("", 0), ("Enter apply  Esc cancel", DIM_ATTR)]
+            return [(self.search_buffer + "█", curses.A_BOLD), ("", 0), (_("Enter apply  Esc cancel"), DIM_ATTR)]
         if self.world.search_text:
-            return [(self.world.search_text, curses.A_BOLD), ("", 0), ("/ edit  Esc clear", DIM_ATTR)]
-        if hint == "/ search  ·  O filter":
-            return [(hint, 0), ("callsign / ICAO", DIM_ATTR)]
-        return [("/ or click to search", 0), (hint or "", DIM_ATTR)]
+            return [(self.world.search_text, curses.A_BOLD), ("", 0), (_("/ edit  Esc clear"), DIM_ATTR)]
+        # hint comes from the layer's own (translated) text, so compare translated.
+        if hint == _("/ search  ·  O filter"):
+            return [(hint, 0), (_("callsign / ICAO"), DIM_ATTR)]
+        return [(_("/ or click to search"), 0), (hint or "", DIM_ATTR)]
 
     def filter_box_lines(self, hint: str | None, room: int) -> list[tuple[str, int]]:
         if self.mode == "filter":

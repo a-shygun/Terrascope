@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import _
+
 from .shared import (
     ARROW_HIT_TOLERANCE,
     DRAG_RESUME_SECONDS,
@@ -151,7 +153,7 @@ class MouseMixin:
                         self.radar_status_expanded = not self.radar_status_expanded
                     else:
                         self.dismissed_statuses.add(message)
-                        if message.startswith("PROVINCE BORDERS") or "DOWNLOAD BORDERS FAILED" in message:
+                        if message.startswith(_("PROVINCE BORDERS")) or f"{_('DOWNLOAD')} {_('BORDERS')} {_('FAILED')}" in message:
                             self.province_error = ""
                     self.world.dirty = True
                     return
@@ -280,7 +282,7 @@ class MouseMixin:
         # Top row: click a numbered tab to switch tab, or the controls bar
         # (expand/collapse button, or the clock to open the timezone dropdown).
         if layout.tabs is not None:
-            tabs_top, tabs_left, _, tabs_width = layout.tabs
+            tabs_top, tabs_left, _tabs_height, tabs_width = layout.tabs
             if mouse_y == tabs_top:
                 for index, start, text in tab_slots(TABS, tabs_left, tabs_width):
                     if start <= mouse_x < start + len(text):
@@ -317,7 +319,7 @@ class MouseMixin:
         if mouse_y == inner_top + inner_height - 1 - MAP_EDGE_PAD_Y:
             found = self._slider_track(inner_width)
             if found is not None:
-                _, _, first, length = found
+                _row, _col, first, length = found
                 if first - 1 <= mouse_x - inner_left <= first + length:
                     self._slider_drag = True
                     self._slider_to(mouse_x, inner_left, inner_width)

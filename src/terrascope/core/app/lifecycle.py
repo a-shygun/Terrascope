@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import os
+
+from terrascope.core.i18n import _
+
 from .shared import (
     CACHE_DIR,
     LOG_FILE,
@@ -28,7 +31,7 @@ class LifecycleMixin:
         self.map_statuses.pop("PROVINCE BORDERS", None)
         self.map_statuses.pop("BORDERS", None)
         self.dismissed_statuses = {
-            message for message in self.dismissed_statuses if "BORDERS" not in message.upper()
+            message for message in self.dismissed_statuses if _("BORDERS") not in message.upper()
         }
         try:
             CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -44,7 +47,7 @@ class LifecycleMixin:
             return
         self.province_state = "loading"
         self.map_statuses.pop("PROVINCE BORDERS", None)
-        self.map_statuses["BORDERS"] = "LOADING STATE/PROVINCE BORDERS"
+        self.map_statuses["BORDERS"] = _("LOADING STATE/PROVINCE BORDERS")
 
         def worker() -> None:
             try:
@@ -129,9 +132,9 @@ class LifecycleMixin:
                 not self.world.search_text and bool(self.world.filter_value)
             )
             kind = "filter" if show_filter else "search"
-            hint = "country name" if show_filter else "/ search  ·  O filter"
-            title = "SEARCH / FILTER" if self.mode == "normal" else (
-                "FILTER COUNTRY" if show_filter else "SEARCH PLANE"
+            hint = _("country name") if show_filter else _("/ search  ·  O filter")
+            title = _("SEARCH / FILTER") if self.mode == "normal" else (
+                _("FILTER COUNTRY") if show_filter else _("SEARCH PLANE")
             )
             panel_layout = (
                 PanelBox("info", 0.43),

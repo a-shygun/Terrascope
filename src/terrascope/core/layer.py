@@ -1,4 +1,3 @@
-# layer.py — BASE CLASS FOR MAP LAYERS (flights, earthquakes, cities, ships, night)
 # Responsible for: the Layer base class every data layer inherits from —
 # enable/disable via its toggle key, background data refresh (threads, tick(),
 # is_due), click hit-testing, selection, info-box rows, search/filter hooks —
@@ -9,6 +8,8 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import _
+
 import math
 import threading
 import time
@@ -18,7 +19,7 @@ from PIL import Image
 from terrascope.core.config import CFG, FETCH_NEW_DATA_FROM_API
 
 # Shared layer settings (hardcoded; edit here).
-DEFAULT_INFO_TITLE = "INFO"  # info-box title for layers that don't set their own
+DEFAULT_INFO_TITLE = _("INFO")  # info-box title for layers that don't set their own
 CLICK_RADIUS = CFG["layer_defaults"]["click_radius"]  # how close a click must be to hit a marker
 RETRY_BASE_SECONDS = CFG["layer_defaults"]["retry_base_seconds"]  # failed refresh: wait this long, then double...
 RETRY_MAX_SECONDS = CFG["layer_defaults"]["retry_max_seconds"]  # ...up to this cap

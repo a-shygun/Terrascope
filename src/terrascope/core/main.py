@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from threading import Thread
 
-MAP_LOAD_ERROR = "Could not load map data: {error}"
+from terrascope.core.i18n import N_, _
+
+MAP_LOAD_ERROR = N_("Could not load map data: {error}")
 
 def _main(stdscr, layers, forced_off) -> None:
     from terrascope.core.app import TerrascopeApp
@@ -34,7 +36,7 @@ def _main(stdscr, layers, forced_off) -> None:
     weather_disabled = "weather" in forced_off
 
     def run_stage(name: str, label: str, action) -> None:
-        status(name, label)
+        status(name, _(label))
         try:
             action()
             status(name, "")
@@ -49,23 +51,23 @@ def _main(stdscr, layers, forced_off) -> None:
                 # Live API feeds are optional; a provider outage must not keep
                 # the first-run data setup bar from reaching completion.
                 set_live_progress(live_stage, state="ready")
-            status(name, f"{label.removesuffix('…')} UNAVAILABLE: {error}")
+            status(name, f"{_(label.removesuffix('…'))} {_('UNAVAILABLE:')} {error}")
 
     def startup_downloads() -> None:
         places: list = []
 
         def countries() -> None:
-            status("MAP", "LOADING COUNTRIES 50M")
+            status("MAP", _("LOADING COUNTRIES 50M"))
             try:
                 app.map_data_queue.put(("countries_prepared", prepare_ring_set(load_map_data()), ""))
             except Exception as error:
-                app.map_data_queue.put(("countries", [], MAP_LOAD_ERROR.format(error=error)))
+                app.map_data_queue.put(("countries", [], _(MAP_LOAD_ERROR).format(error=error)))
                 raise
             finally:
                 status("MAP", "")
 
         def cities() -> None:
-            status("CITIES", "LOADING CITIES 10M")
+            status("CITIES", _("LOADING CITIES 10M"))
             places.extend(load_places())
             basemap = layer_named("basemap")
             if basemap is not None:
@@ -80,7 +82,7 @@ def _main(stdscr, layers, forced_off) -> None:
             status("CITIES", "")
 
         def airports() -> None:
-            status("AIRPORTS", "LOADING AIRPORTS")
+            status("AIRPORTS", _("LOADING AIRPORTS"))
             airports_data = load_airports()
             app.map_data_queue.put(("startup_airports", airports_data, ""))
             status("AIRPORTS", "")
@@ -93,7 +95,7 @@ def _main(stdscr, layers, forced_off) -> None:
             if flights is None:
                 set_live_progress("planes", state="disabled")
                 return
-            status("AIRCRAFT", "FETCHING AIRCRAFT FEED")
+            status("AIRCRAFT", _("FETCHING AIRCRAFT FEED"))
             flights.cache.refresh_if_due(force=True)
             app.map_data_queue.put(("startup_flights", None, ""))
             flights._ordered_startup = False
@@ -111,7 +113,7 @@ def _main(stdscr, layers, forced_off) -> None:
                 return
             from terrascope.layers.weather.radar import fetch_catalog, fetch_frame_raster
 
-            status("RADAR", "FETCHING PRESENT RADAR FRAME")
+            status("RADAR", _("FETCHING PRESENT RADAR FRAME"))
             set_live_progress("radar", state="downloading")
             try:
                 frames = fetch_catalog(weather.radar._mode)
@@ -144,7 +146,7 @@ def _main(stdscr, layers, forced_off) -> None:
 
             try:
                 capitals = [place for place in sorted(places, key=lambda place: place[4], reverse=True) if place[3]][:MAX_WEATHER_CITIES]
-                status("WEATHER", "FETCHING CITY WEATHER")
+                status("WEATHER", _("FETCHING CITY WEATHER"))
                 # Weather reports are optional live data. Queue a small batch
                 # and let the city's normal visible-marker path warm the rest;
                 # network timeouts must not hold first-run setup open.
@@ -188,13 +190,13 @@ def _main(stdscr, layers, forced_off) -> None:
                     continue
 
         stages = (
-            ("MAP", "LOADING COUNTRIES 50M…", countries),
-            ("CITIES", "LOADING CITIES 10M…", cities),
-            ("AIRPORTS", "LOADING AIRPORTS…", airports),
-            ("AIRCRAFT", "FETCHING AIRCRAFT FEED…", aircraft),
-            ("RADAR", "FETCHING PRESENT RADAR FRAME…", radar_present),
-            ("WEATHER", "LOADING CITY WEATHER…", capital_weather),
-            ("RADAR HISTORY", "FETCHING OTHER RADAR TIMES…", radar_history),
+            ("MAP", N_("LOADING COUNTRIES 50M…"), countries),
+            ("CITIES", N_("LOADING CITIES 10M…"), cities),
+            ("AIRPORTS", N_("LOADING AIRPORTS…"), airports),
+            ("AIRCRAFT", N_("FETCHING AIRCRAFT FEED…"), aircraft),
+            ("RADAR", N_("FETCHING PRESENT RADAR FRAME…"), radar_present),
+            ("WEATHER", N_("LOADING CITY WEATHER…"), capital_weather),
+            ("RADAR HISTORY", N_("FETCHING OTHER RADAR TIMES…"), radar_history),
         )
         for name, label, action in stages:
             run_stage(name, label, action)

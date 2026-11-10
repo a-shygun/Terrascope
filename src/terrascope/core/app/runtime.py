@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import _
+
 from .shared import (
     DRAG_FRAME_DELAY_MS,
     Empty,
@@ -54,7 +56,7 @@ class RuntimeMixin:
                         None,
                     )
                     if border_progress is None or border_progress.state != "failed":
-                        self.map_statuses["PROVINCE BORDERS"] = f"PROVINCE BORDERS FAILED: {concise_error_message(error, 80)}"
+                        self.map_statuses["PROVINCE BORDERS"] = f"{_('PROVINCE BORDERS')} {_('FAILED:')} {concise_error_message(error, 80)}"
                 elif self.province_choice == "yes":
                     self.world.set_prepared_provinces(data)
                     self.province_state = "ready"

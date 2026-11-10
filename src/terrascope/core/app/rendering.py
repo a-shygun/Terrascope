@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import _
+
 from .shared import (
     COLOR_RESET_MIN_SECONDS,
     DIM_ATTR,
@@ -57,7 +59,7 @@ class RenderingMixin:
         if layout.tabs is not None:
             clock_text = current_time_text(self.selected_timezone)
             if TABS[self.active_tab].name == "time":
-                clock_text = f"{TIMEZONE_KEY} TZ {clock_text}"
+                clock_text = f"{TIMEZONE_KEY} {_('TZ')} {clock_text}"
             self._controls_layout = draw_tab_bar(
                 self.stdscr,
                 layout.tabs,
@@ -114,21 +116,21 @@ class RenderingMixin:
                 )
             elif box.kind == "search":
                 draw_text_box(
-                    self.stdscr, rect, box.title or "SEARCH", self.search_box_lines(box.hint)
+                    self.stdscr, rect, box.title or _("SEARCH"), self.search_box_lines(box.hint)
                 )
             elif box.kind == "filter":
                 draw_text_box(
-                    self.stdscr, rect, box.title or "FILTER",
+                    self.stdscr, rect, box.title or _("FILTER"),
                     self.filter_box_lines(box.hint, rect[2] - 3),
                 )
             elif box.kind == "live" and owner is not None:
                 draw_live_box(
-                    self.stdscr, rect, box.title or "", owner.live_rows(box.title)
+                    self.stdscr, rect, _(box.title or ""), owner.live_rows(box.title)
                 )
             elif box.kind == "rich" and owner is not None:
                 title = owner.rich_title(box.title)
                 if self.panel_orientation == "vertical" and owner.name == "weather":
-                    title = f"{title} · SCROLL"
+                    title = f"{title} · {_('SCROLL')}"
                 draw_rich_box(
                     self.stdscr,
                     rect,
@@ -156,9 +158,10 @@ class RenderingMixin:
             and self.province_choice != "no"
             and (self.province_choice is None or self.province_state == "failed")
         )
+        error_words = (_("FAILED"), _("UNAVAILABLE"), _("ERROR"))
         for key, message in self.map_statuses.items():
             if key == "RADAR" and any(
-                word in message.upper() for word in ("FAILED", "UNAVAILABLE", "ERROR")
+                word in message.upper() for word in error_words
             ):
                 radar_unavailable = True
                 continue
@@ -169,10 +172,10 @@ class RenderingMixin:
             if not related.intersection(active_files):
                 statuses.append(message)
         progress_labels = {
-            "LIVE AIRCRAFT": "AIRCRAFT",
-            "WEATHER RADAR": "RADAR",
-            "CITY WEATHER": "CITY WEATHER",
-            "RADAR HISTORY": "RADAR HISTORY",
+            "LIVE AIRCRAFT": _("AIRCRAFT"),
+            "WEATHER RADAR": _("RADAR"),
+            "CITY WEATHER": _("CITY WEATHER"),
+            "RADAR HISTORY": _("RADAR HISTORY"),
         }
         for item in progress_items:
             if item.state not in {"downloading", "failed"}:
@@ -181,44 +184,44 @@ class RenderingMixin:
             if name is None:
                 raw = item.filename.removeprefix("ne_").replace(".geojson", "")
                 if "admin_0_countries" in raw:
-                    name = "COUNTRIES " + ("10M" if "10m" in raw else "50M")
+                    name = _("COUNTRIES") + " " + ("10M" if "10m" in raw else "50M")
                 elif "admin_1_states_provinces" in raw:
-                    name = "BORDERS " + ("10M" if "10m" in raw else "50M")
+                    name = _("BORDERS") + " " + ("10M" if "10m" in raw else "50M")
                 elif "populated_places" in raw:
-                    name = "PLACES " + ("10M" if "10m" in raw else "50M")
+                    name = _("PLACES") + " " + ("10M" if "10m" in raw else "50M")
                 elif "airports" in raw:
-                    name = "AIRPORTS"
+                    name = _("AIRPORTS")
                 else:
                     name = raw.replace("_", " ").upper()
             if item.state == "failed":
-                if name == "RADAR":
+                if item.filename == "WEATHER RADAR":
                     radar_unavailable = True
                     continue
                 detail = f": {concise_error_message(item.error, 42)}" if item.error else ""
-                statuses.append(f"DOWNLOAD {name} FAILED{detail}")
+                statuses.append(f"{_('DOWNLOAD')} {name} {_('FAILED')}{detail}")
                 continue
             elif item.total:
                 amount = f"{max(0, min(100, int(item.downloaded * 100 / item.total))):3d}%"
             else:
                 amount = " ??%"
-            statuses.append(f"LOADING {name} {amount}")
+            statuses.append(f"{_('LOADING')} {name} {amount}")
         if self.map_error:
             statuses.append(self.map_error)
         for layer in self.world.active_layers():
             for message in layer.loading_messages():
-                if "RADAR UNAVAILABLE" in message.upper():
+                if _("RADAR UNAVAILABLE").upper() in message.upper():
                     radar_unavailable = True
                 else:
                     statuses.append(message)
         if radar_unavailable and TABS[self.active_tab].name == "weather":
-            statuses.append("RADAR UNAVAILABLE")
+            statuses.append(_("RADAR UNAVAILABLE"))
         if not self.welcome_visible:
             first_status_row = map_top + offset_y
             if province_prompt and self.frame is not None:
-                prefix = "STATE/PROVINCE BORDERS (~25MB)?  "
-                yes_text = "[Y YES]"
+                prefix = _("STATE/PROVINCE BORDERS (~25MB)?  ")
+                yes_text = _("[Y YES]")
                 gap = "   "
-                no_text = "[N NO]"
+                no_text = _("[N NO]")
                 x = map_left + offset_x
                 row = first_status_row
                 prompt_text = prefix + yes_text + gap + no_text
@@ -236,24 +239,24 @@ class RenderingMixin:
             unique_statuses = [
                 message for message in dict.fromkeys(statuses)
                 if message not in self.dismissed_statuses
-                and not (self.province_choice == "no" and "BORDERS" in message)
+                and not (self.province_choice == "no" and _("BORDERS") in message)
             ]
             for index, message in enumerate(unique_statuses):
                 row = first_status_row + index
                 if row >= map_top + map_height - 1:
                     break
                 status_key = message
-                for marker in ("FAILED:", "UNAVAILABLE:"):
+                for marker in (_("FAILED:"), _("UNAVAILABLE:")):
                     if marker in message:
                         prefix, detail = message.split(marker, 1)
                         message = f"{prefix}{marker} {concise_error_message(detail, 40)}"
                         break
-                is_error = any(word in message.upper() for word in ("FAILED", "UNAVAILABLE", "ERROR"))
-                retryable = is_error and "BORDERS" in message.upper()
-                if message == "RADAR UNAVAILABLE":
+                is_error = any(word in message.upper() for word in error_words)
+                retryable = is_error and _("BORDERS") in message.upper()
+                if message == _("RADAR UNAVAILABLE"):
                     available = max(0, map_width - offset_x * 2)
-                    prefix = "RADAR UNAVAILABLE"
-                    retry_text = " [R RETRY]" if self.radar_status_expanded else ""
+                    prefix = _("RADAR UNAVAILABLE")
+                    retry_text = _(" [R RETRY]") if self.radar_status_expanded else ""
                     toggle_text = " [-]" if self.radar_status_expanded else " [+]"
                     shown = (prefix + retry_text + toggle_text)[:available]
                     draw_map_overlay_text(
@@ -327,7 +330,7 @@ class RenderingMixin:
         map reflowing and tearing under the drag."""
         height, width = self.stdscr.getmaxyx()
         self.stdscr.erase()
-        text = f" RESIZING  {width} \u00d7 {height} "
+        text = f" {_('RESIZING')}  {width} \u00d7 {height} "
         box_width = len(text) + 4
         box_height = 3
         if width > box_width + 1 and height > box_height + 1:

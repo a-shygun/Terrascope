@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import format_distance
+
 from .colors import (
     ColorManager,
     hex_to_rgb,
@@ -459,11 +461,8 @@ def _nice_round_km(value: float) -> float:
     return nice * magnitude
 
 def _format_km(value: float) -> str:
-    if value >= 1000:
-        return f"{value:,.0f} km"
-    if value >= 1:
-        return f"{value:.0f} km"
-    return f"{value * 1000:.0f} m"
+    """Scale-bar length in the configured units (see core/i18n.py)."""
+    return format_distance(value)
 
 def compute_scale_bar(
     lon_span: float, render_width: int, center_lat: float, max_columns: int

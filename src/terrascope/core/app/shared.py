@@ -8,6 +8,7 @@ import webbrowser
 from queue import Empty, SimpleQueue
 from threading import Thread
 from terrascope.core.config import CACHE_DIR, CFG
+from terrascope.core.i18n import _
 from terrascope.core.layer import PanelBox
 from terrascope.core.ui import (
     DIM_ATTR,
@@ -79,8 +80,8 @@ def mouse_tracking_sequences(platform: str = sys.platform) -> tuple[str, str]:
 DRAG_RESUME_SECONDS = APP_CONFIG["drag_resume_seconds"]
 DRAG_FRAME_DELAY_MS = APP_CONFIG["drag_frame_delay_ms"]
 COLOR_RESET_MIN_SECONDS = 3.0
-TERMINAL_TOO_SMALL_TEXT = "Terminal too small"
-LOADING_MAP_TEXT = "Loading map data; first run may download Natural Earth files..."
+TERMINAL_TOO_SMALL_TEXT = _("Terminal too small")
+LOADING_MAP_TEXT = _("Loading map data; first run may download Natural Earth files...")
 STATUS_OFFSET = tuple(APP_CONFIG["status_offset"])
 WELCOME_SKIP_FILE = APP_CONFIG["welcome_skip_file"]
 PROVINCE_CHOICE_FILE = "province-borders-choice"

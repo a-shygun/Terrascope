@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import sys
 
+from terrascope.core.i18n import _, format_clock, format_date
+
 from . import colors
 from .constants import (
     DIM_ATTR,
@@ -92,15 +94,15 @@ def concise_error_message(error: str, limit: int = 42) -> str:
         "nodename nor servname", "name or service not known",
         "temporary failure in name resolution", "getaddrinfo failed",
     )):
-        text = "network/DNS unavailable"
+        text = _("network/DNS unavailable")
     elif "timed out" in lowered or "timeout" in lowered:
-        text = "request timed out"
+        text = _("request timed out")
     elif "http error" in lowered:
         detail = text.lower().split("http error", 1)[1].strip()
         code = detail.split(":", 1)[0].strip()
         text = f"HTTP {code}"
     elif text.lower().startswith("could not download "):
-        text = "download failed"
+        text = _("download failed")
     if len(text) > limit:
         text = text[: max(1, limit - 1)].rstrip() + "…"
     return text
@@ -340,7 +342,7 @@ def controls_bar_slots(
     button_width = len(CONTROLS_COLLAPSED_BUTTON)
     datetime_width = len(time_text)
     datetime_x = right - datetime_width
-    orientation_text = "LEFT" if panel_orientation == "vertical" else "BOTTOM"
+    orientation_text = _("LEFT") if panel_orientation == "vertical" else _("BOTTOM")
     orientation_width = len(orientation_text) if expanded else 0
     button_x = datetime_x - CONTROLS_GAP - button_width
     orientation_x = button_x - CONTROLS_GAP - orientation_width
@@ -365,7 +367,7 @@ def draw_controls_bar(
         help_hits = draw_help_bar(window, top, tabs_end, layout.orientation_x - CONTROLS_GAP)
     button_text = CONTROLS_EXPANDED_BUTTON if expanded else CONTROLS_COLLAPSED_BUTTON
     if expanded:
-        orientation_text = "LEFT" if panel_orientation == "vertical" else "BOTTOM"
+        orientation_text = _("LEFT") if panel_orientation == "vertical" else _("BOTTOM")
         safe_addstr(window, top, layout.orientation_x, orientation_text, curses.A_BOLD | DIM_ATTR)
     safe_addstr(window, top, layout.button_x, button_text, DIM_ATTR)
     safe_addstr(window, top, layout.datetime_x, time_text, curses.A_BOLD)
@@ -426,15 +428,15 @@ def zone_label(moment: datetime, fallback: str = "") -> str:
     return label
 
 def current_time_text(timezone_name: str | None) -> str:
-    """YYYY-MM-DD HH:MM:SS plus a short zone label, for the chosen timezone
-    (None = local system time)."""
+    """Date and time (format from the language, see core/i18n.py) plus a short
+    zone label, for the chosen timezone (None = local system time)."""
     try:
         now = datetime.now(ZoneInfo(timezone_name)) if timezone_name else datetime.now().astimezone()
         label = zone_label(now, timezone_name or "")
     except (ZoneInfoNotFoundError, ValueError, OSError):
         now = datetime.now(timezone.utc)
         label = "UTC"
-    return f"{now:%Y-%m-%d} {now:%H:%M:%S} {label}".rstrip()
+    return f"{format_date(now)} {format_clock(now)} {label}".rstrip()
 
 @dataclass
 class DropdownLayout:

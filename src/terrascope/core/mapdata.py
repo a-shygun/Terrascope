@@ -19,6 +19,8 @@ from functools import lru_cache
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Callable
+
+from terrascope.core.i18n import _, language
 from terrascope.core.config import CACHE_DIR, CFG, FETCH_NEW_DATA_FROM_API, USER_AGENT
 
 # Data-source settings (from default.yaml, data:).
@@ -177,7 +179,7 @@ def download_map(filename: str) -> Path:
             return target
         if not FETCH_NEW_DATA_FROM_API:
             raise MapDataError(
-                f"No cached {filename} is available in offline mode. Run once online to download it."
+                _("No cached {filename} is available in offline mode. Run once online to download it.").format(filename=filename)
             )
         temporary = target.with_suffix(target.suffix + ".tmp")
         try:
@@ -375,10 +377,29 @@ def load_province_lines_from(filename: str) -> list[Ring]:
 # Country names and codes are bundled; polygons are still downloaded for borders.
 COUNTRY_CODE_OVERRIDES = dict(CFG["map"]["country_code_overrides"])
 
+@lru_cache(maxsize=1)
+def _portuguese_country_names() -> dict[str, str]:
+    """ISO A2 -> NAME_PT, read from the countries file in the cache. Empty when
+    that file is not cached yet, so the English names are kept."""
+    try:
+        features = _load_geojson_features(CACHE_DIR / MAP_FILE)
+    except MapDataError:
+        return {}
+    names: dict[str, str] = {}
+    for feature in features:
+        props = feature.get("properties") or {}
+        code, name = props.get("ISO_A2"), props.get("NAME_PT")
+        if isinstance(code, str) and isinstance(name, str) and code not in {"", "-99"}:
+            names[code] = name
+    return names
+
 def load_country_labels() -> list[CountryLabel]:
-    """Return (lon, lat, short code, size, full name) from bundled data."""
+    """Return (lon, lat, short code, size, full name) from bundled data. In a
+    Portuguese interface the full names come from the downloaded file's NAME_PT."""
+    portuguese = _portuguese_country_names() if language().split("_")[0] == "pt" else {}
     return [
-        (float(lon), float(lat), COUNTRY_CODE_OVERRIDES.get(code, code), float(size), str(name))
+        (float(lon), float(lat), COUNTRY_CODE_OVERRIDES.get(code, code), float(size),
+         portuguese.get(code, str(name)))
         for lon, lat, code, size, name in _reference_data()["country_labels"]
     ]
 

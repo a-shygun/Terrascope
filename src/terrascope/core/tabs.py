@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from terrascope.core.config import CFG
+from terrascope.core.i18n import _
 
 @dataclass(frozen=True)
 class Tab:
@@ -37,9 +38,9 @@ class Tab:
 def _build(item: dict) -> Tab:
     return Tab(
         name=str(item["name"]),
-        label=str(item["label"]),
+        label=_(str(item["label"])),
         color=str(item["color"]),
-        blurb=str(item.get("blurb") or ""),
+        blurb=_(str(item.get("blurb") or "")),
         layers=tuple(item.get("layers") or ()),
         detailed=bool(item.get("detailed", False)),
         provinces=bool(item.get("provinces", item.get("detailed", False))),
