@@ -42,6 +42,12 @@ def test_lang_hyphen_form_is_accepted(tmp_path):
     assert result.returncode == 0, result.stderr
 
 
+def test_auto_is_accepted_as_a_language(tmp_path):
+    """The help and the config both document 'auto'; it means 'choose from the system'."""
+    result = _run(["--lang", "auto", "--list-tabs"], tmp_path)
+    assert result.returncode == 0, result.stderr
+
+
 def test_unsupported_language_is_an_error(tmp_path):
     result = _run(["--lang", "fr", "--list-tabs"], tmp_path)
     assert result.returncode == 2
