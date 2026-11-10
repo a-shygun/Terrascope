@@ -30,6 +30,10 @@ class InputMixin:
         """Make tab `index` active: switch on exactly the layers it lists."""
         if not 0 <= index < len(TABS):
             return
+        # The home view is applied when the tab changes (or on the first selection),
+        # not when the same tab is selected again: that would drop the user's pan and zoom.
+        changed = index != self.active_tab or not getattr(self, "_tab_selected", False)
+        self._tab_selected = True
         # Colour pairs are never freed, so every tab's colours piled up until the
         # budget ran out (wrong backgrounds on map details / legend dots). Start each
         # tab with an empty pair table (palette slots are kept, see reset()).
@@ -47,8 +51,8 @@ class InputMixin:
                 layer.provinces_visible = self.provinces_visible and TABS[index].name == "map"
         self.world.show_places = TABS[index].place_names
         self.world.show_countries = TABS[index].country_names
-        if TABS[index].view is not None:
-            # A tab with a home view starts there every time it is activated.
+        if changed and TABS[index].view is not None:
+            # A tab with a home view starts there when it is opened.
             self.world.set_view(*TABS[index].view)
         self.world.clear_selection()
         self.info_visible = False
@@ -313,7 +317,12 @@ class InputMixin:
             self.world.zoom_out()
             return
         if key in KEYS["reset_view"]:
-            self.world.reset_view()
+            # On a tab with a home view, reset goes back to that view; elsewhere to the world.
+            home = TABS[self.active_tab].view
+            if home is not None:
+                self.world.set_view(*home)
+            else:
+                self.world.reset_view()
             return
         if key in KEYS["slider_down"] or key in KEYS["slider_up"]:
             self._step_slider(1 if key in KEYS["slider_up"] else -1)
