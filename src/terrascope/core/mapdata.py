@@ -15,6 +15,7 @@ import math
 import threading
 import urllib.error
 import urllib.request
+from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 from dataclasses import dataclass
@@ -377,30 +378,57 @@ def load_province_lines_from(filename: str) -> list[Ring]:
 # Country names and codes are bundled; polygons are still downloaded for borders.
 COUNTRY_CODE_OVERRIDES = dict(CFG["map"]["country_code_overrides"])
 
-@lru_cache(maxsize=1)
-def _portuguese_country_names() -> dict[str, str]:
-    """ISO A2 -> NAME_PT, read from the countries file in the cache. Empty when
-    that file is not cached yet, so the English names are kept."""
+_PORTUGUESE_NAMES: tuple[dict[str, str], dict[str, str]] | None = None
+
+def _portuguese_country_names() -> tuple[dict[str, str], dict[str, str]]:
+    """(English name -> NAME_PT, ISO code -> NAME_PT) from the countries file in
+    the cache. Names are matched first; codes are used only when they identify
+    one feature (ISO_A2 repeats -99 and some territories share a code). The
+    result is kept only once the file has been read: while it is missing, the
+    English names stay and the next call looks again."""
+    global _PORTUGUESE_NAMES
+    if _PORTUGUESE_NAMES is not None:
+        return _PORTUGUESE_NAMES
     try:
         features = _load_geojson_features(CACHE_DIR / MAP_FILE)
     except MapDataError:
-        return {}
-    names: dict[str, str] = {}
+        return {}, {}
+    def valid(value) -> str | None:
+        return value if isinstance(value, str) and len(value) == 2 and value != "-99" else None
+
+    rows = []  # (English name, ISO_A2_EH code, NAME_PT) for every feature with a Portuguese name
+    code_features: Counter = Counter()  # features that carry each code in either field
     for feature in features:
         props = feature.get("properties") or {}
-        code, name = props.get("ISO_A2"), props.get("NAME_PT")
-        if isinstance(code, str) and isinstance(name, str) and code not in {"", "-99"}:
-            names[code] = name
-    return names
+        codes = {valid(props.get("ISO_A2")), valid(props.get("ISO_A2_EH"))} - {None}
+        code_features.update(codes)  # every feature counts, even one without a Portuguese name
+        name_pt = props.get("NAME_PT")
+        if isinstance(name_pt, str):
+            rows.append((props.get("NAME"), valid(props.get("ISO_A2_EH")), name_pt))
+    name_count = Counter(name for name, _code, _pt in rows if isinstance(name, str))
+    by_name = {name: pt for name, _code, pt in rows
+               if isinstance(name, str) and name_count[name] == 1}
+    # A code is used only when one feature carries it in either field: CN (China and
+    # Northern Cyprus) or SG (Singapore and Siachen Glacier) must not pick a name.
+    by_code = {code: pt for _name, code, pt in rows if code and code_features[code] == 1}
+    _PORTUGUESE_NAMES = (by_name, by_code)
+    return _PORTUGUESE_NAMES
 
 def load_country_labels() -> list[CountryLabel]:
     """Return (lon, lat, short code, size, full name) from bundled data. In a
     Portuguese interface the full names come from the downloaded file's NAME_PT."""
-    portuguese = _portuguese_country_names() if language().split("_")[0] == "pt" else {}
+    by_name, by_code = (_portuguese_country_names()
+                        if language().split("_")[0] == "pt" else ({}, {}))
+    reference = _reference_data()["country_labels"]
+    # A code is trusted only when it names one reference label: the bundled table
+    # gives CN to both China and Northern Cyprus, and the file has no code for the latter.
+    reference_codes = Counter(code for _lon, _lat, code, _size, _name in reference)
     return [
         (float(lon), float(lat), COUNTRY_CODE_OVERRIDES.get(code, code), float(size),
-         portuguese.get(code, str(name)))
-        for lon, lat, code, size, name in _reference_data()["country_labels"]
+         by_name.get(str(name))
+         or (by_code.get(code) if reference_codes[code] == 1 else None)
+         or str(name))
+        for lon, lat, code, size, name in reference
     ]
 
 # ---------------------------------------------------------------------------
