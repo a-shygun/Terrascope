@@ -269,7 +269,17 @@ changing Terrascope. Register them under two entry point groups:
   `terrascope.core.layer.Layer`.
 - `terrascope.tabs`: each entry points to a function that returns a list of
   dicts in the same shape as `tabs.items` in `default.yaml` (`name`, `label`,
-  `color`, and optionally `blurb`, `layers`, `attribution`, ...).
+  `color`, and optionally `blurb`, `layers`, `attribution`, `view`, ...).
+  The `label` and `blurb` go through Terrascope's translation (`_()`), so a
+  message that the core catalogue knows is shown in the user's language.
+  Translate your own texts with your package's catalogue (see `translation()`
+  in `terrascope.core.i18n`); the core does not know their msgids.
+
+The optional `view` sets the tab's home view: `view: {lat: -14, lon: -52, zoom: 3}`.
+Terrascope moves the map there each time the tab is opened, with the given
+centre (`lat` from -90 to 90, `lon` from -180 to 180) and `zoom` (within
+`map.zoom.min` and `map.zoom.max`). Without `view`, the tab keeps the view the
+user had. A plugin tab with an invalid `view` is skipped with a warning.
 
 ```toml
 # pyproject.toml of the plugin package
