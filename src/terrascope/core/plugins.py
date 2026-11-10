@@ -6,9 +6,10 @@
 # plugin came from ("plugin:<distribution>") for --list-layers / --list-tabs.
 # Edit this file to: change how plugins are discovered or validated.
 # Not here: the built-in layers (registry.py) or the built-in tabs
-# (assets/default.yaml). This module imports only the standard library on
-# purpose: the CLI imports it before every setting is final, and importing
+# (assets/default.yaml). At import time this module uses only the standard
+# library: the CLI imports it before every setting is final, and importing
 # layer or tab modules at that point would freeze their constants too early.
+# The config module is imported only inside the functions that need it.
 
 from __future__ import annotations
 
