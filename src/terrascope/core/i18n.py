@@ -130,18 +130,18 @@ def _windows_ui_language() -> str | None:
     return None
 
 
-def _system_language() -> str | None:
-    for name in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
-        value = _normalize(os.environ.get(name))
-        if value:
-            return value
-    windows = _normalize(_windows_ui_language())
-    if windows:
-        return windows
+def _system_candidates() -> list[str]:
+    """The system's language names in priority order: each item of LANGUAGE (a
+    colon-separated list), then LC_ALL, LC_MESSAGES, LANG, the Windows interface
+    language and the locale. activate() takes the first one with a catalogue."""
+    candidates = [_normalize(item) for item in (os.environ.get("LANGUAGE") or "").split(":")]
+    candidates += [_normalize(os.environ.get(name)) for name in ("LC_ALL", "LC_MESSAGES", "LANG")]
+    candidates.append(_normalize(_windows_ui_language()))
     try:
-        return _normalize(locale.getlocale()[0])
+        candidates.append(_normalize(locale.getlocale()[0]))
     except Exception:
-        return None
+        pass
+    return [candidate for candidate in candidates if candidate]
 
 
 def _config_language() -> str | None:
@@ -161,7 +161,8 @@ def activate(requested: str | None = None) -> str:
     wins, so cli.py calls it once before the parser and once after the
     config files are merged."""
     chosen = _match(_normalize(requested)) or _match(_config_language()) \
-        or _match(_system_language()) or DEFAULT_LANGUAGE
+        or next((match for match in map(_match, _system_candidates()) if match), None) \
+        or DEFAULT_LANGUAGE
     _load(chosen)
     return chosen
 

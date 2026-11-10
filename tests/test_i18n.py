@@ -99,6 +99,29 @@ def test_windows_ui_language_is_the_last_resort(monkeypatch):
     assert i18n.activate(None) == "pt_BR"
 
 
+def test_language_list_is_read_item_by_item(monkeypatch):
+    """LANGUAGE may list several languages: the first one with a catalogue wins."""
+    _set_app("language", "auto")
+    monkeypatch.setenv("LANGUAGE", "de:pt_BR:en")
+    assert i18n.activate(None) == "pt_BR"
+
+
+def test_variable_without_a_catalogue_falls_through_to_the_next(monkeypatch):
+    """LC_ALL=fr_FR has no catalogue: LANG=pt_BR is used instead of English."""
+    _set_app("language", "auto")
+    monkeypatch.setenv("LC_ALL", "fr_FR.UTF-8")
+    monkeypatch.setenv("LANG", "pt_BR.UTF-8")
+    assert i18n.activate(None) == "pt_BR"
+
+
+def test_no_catalogue_in_the_environment_falls_through_to_windows(monkeypatch):
+    """LANG=de_DE has no catalogue here, so the Windows interface language decides."""
+    _set_app("language", "auto")
+    monkeypatch.setenv("LANG", "de_DE.UTF-8")
+    monkeypatch.setattr(i18n, "_windows_ui_language", lambda: "pt-BR")
+    assert i18n.activate(None) == "pt_BR"
+
+
 def test_english_when_nothing_is_set():
     _set_app("language", "auto")
     assert i18n.activate(None) == "en"
