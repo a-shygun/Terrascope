@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Terrascope 1.0.0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-10 17:40-0300\n"
+"POT-Creation-Date: 2026-11-10 20:08-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Fernando Augusto <dev.fernandoaugusto@outlook.com>\n"
 "Language: pt_BR\n"
@@ -44,7 +44,7 @@ msgstr "/ editar  Esc limpar"
 msgid "/ search  ·  O filter"
 msgstr "/ buscar  ·  O filtro"
 
-#: src/terrascope/core/app/input.py:111 src/terrascope/layers/flights/layer.py:56
+#: src/terrascope/core/app/input.py:111 src/terrascope/layers/flights/layer.py:58
 msgid "callsign / ICAO"
 msgstr "indicativo / ICAO"
 
@@ -64,7 +64,7 @@ msgid "LOADING STATE/PROVINCE BORDERS"
 msgstr "CARREGANDO FRONTEIRAS ESTADUAIS/PROVINCIAIS"
 
 #: src/terrascope/core/app/lifecycle.py:134
-#: src/terrascope/layers/flights/layer.py:57
+#: src/terrascope/layers/flights/layer.py:59
 msgid "country name"
 msgstr "nome do país"
 
@@ -73,12 +73,12 @@ msgid "SEARCH / FILTER"
 msgstr "BUSCA / FILTRO"
 
 #: src/terrascope/core/app/lifecycle.py:136
-#: src/terrascope/layers/flights/layer.py:56
+#: src/terrascope/layers/flights/layer.py:58
 msgid "SEARCH PLANE"
 msgstr "BUSCAR VOO"
 
 #: src/terrascope/core/app/lifecycle.py:136
-#: src/terrascope/layers/flights/layer.py:57
+#: src/terrascope/layers/flights/layer.py:59
 msgid "FILTER COUNTRY"
 msgstr "FILTRAR PAÍS"
 
@@ -116,8 +116,8 @@ msgid "ERROR"
 msgstr "ERRO"
 
 #: src/terrascope/core/app/rendering.py:160
-#: src/terrascope/layers/weather/config.py:188
-#: src/terrascope/layers/weather/layer.py:857
+#: src/terrascope/layers/weather/config.py:189
+#: src/terrascope/layers/weather/layer.py:859
 msgid "UNAVAILABLE"
 msgstr "INDISPONÍVEL"
 
@@ -126,7 +126,7 @@ msgid "AIRCRAFT"
 msgstr "AERONAVES"
 
 #: src/terrascope/core/app/rendering.py:175
-#: src/terrascope/layers/weather/config.py:130
+#: src/terrascope/layers/weather/config.py:131
 msgid "RADAR"
 msgstr "RADAR"
 
@@ -158,8 +158,8 @@ msgstr "CARREGANDO"
 #: src/terrascope/core/app/rendering.py:216
 #: src/terrascope/core/app/rendering.py:255
 #: src/terrascope/core/app/rendering.py:257 src/terrascope/core/ui/dialogs.py:218
-#: src/terrascope/layers/weather/layer.py:526
-#: src/terrascope/layers/weather/layer.py:539
+#: src/terrascope/layers/weather/layer.py:527
+#: src/terrascope/layers/weather/layer.py:540
 msgid "RADAR UNAVAILABLE"
 msgstr "RADAR INDISPONÍVEL"
 
@@ -791,29 +791,29 @@ msgstr ""
 "Mostra as configurações efetivas (após todas as sobrescritas) em YAML e "
 "encerra."
 
-#: src/terrascope/core/i18n.py:61
+#: src/terrascope/core/i18n.py:63
 msgid "SETUP COMPLETE"
 msgstr "CONFIGURAÇÃO CONCLUÍDA"
 
-#: src/terrascope/core/i18n.py:62
+#: src/terrascope/core/i18n.py:64
 msgid "MAP"
 msgstr "MAPA"
 
-#: src/terrascope/core/i18n.py:62 src/terrascope/layers/daynight/layer.py:119
-#: src/terrascope/layers/weather/earthquakes.py:56
+#: src/terrascope/core/i18n.py:64 src/terrascope/layers/daynight/layer.py:119
+#: src/terrascope/layers/weather/earthquakes.py:57
 msgid "TIME"
 msgstr "HORA"
 
-#: src/terrascope/core/i18n.py:62 src/terrascope/layers/flights/layer.py:332
-#: src/terrascope/layers/flights/layer.py:335
+#: src/terrascope/core/i18n.py:64 src/terrascope/layers/flights/layer.py:334
+#: src/terrascope/layers/flights/layer.py:337
 msgid "PLANES"
 msgstr "VOOS"
 
-#: src/terrascope/core/i18n.py:62 src/terrascope/layers/weather/config.py:200
+#: src/terrascope/core/i18n.py:64 src/terrascope/layers/weather/config.py:201
 msgid "WEATHER"
 msgstr "CLIMA"
 
-#: src/terrascope/core/i18n.py:63
+#: src/terrascope/core/i18n.py:65
 msgid ""
 "the plain world map (zoom in for state / province borders and detailed "
 "cities)"
@@ -821,75 +821,81 @@ msgstr ""
 "o mapa-múndi simples (aproxime para ver divisas estaduais e provinciais e "
 "cidades detalhadas)"
 
-#: src/terrascope/core/i18n.py:64
+#: src/terrascope/core/i18n.py:66
 msgid "clock, sun phases, moon phase and the day/night line"
 msgstr "relógio, fases do sol, fase da lua e a linha de dia/noite"
 
-#: src/terrascope/core/i18n.py:65
+#: src/terrascope/core/i18n.py:67
 msgid "city temperatures, earthquakes, clouds and storms"
 msgstr "temperaturas das cidades, sismos, nuvens e tempestades"
 
-#: src/terrascope/core/i18n.py:66
+#: src/terrascope/core/i18n.py:68
 msgid "live aircraft"
 msgstr "aeronaves ao vivo"
 
-#: src/terrascope/core/i18n.py:67
+#: src/terrascope/core/i18n.py:69
 msgid "Local"
 msgstr "Local"
 
-#: src/terrascope/core/i18n.py:67
+#: src/terrascope/core/i18n.py:69
 msgid "Paris / Berlin"
 msgstr "Paris / Berlim"
 
-#: src/terrascope/core/i18n.py:67
+#: src/terrascope/core/i18n.py:69
 msgid "Helsinki / Athens"
 msgstr "Helsinque / Atenas"
 
-#: src/terrascope/core/i18n.py:67
+#: src/terrascope/core/i18n.py:69
 msgid "Moscow"
 msgstr "Moscou"
 
-#: src/terrascope/core/i18n.py:67
+#: src/terrascope/core/i18n.py:69
 msgid "Dubai"
 msgstr "Dubai"
 
-#: src/terrascope/core/i18n.py:68
+#: src/terrascope/core/i18n.py:69 src/terrascope/layers/daynight/layer.py:203
+#: src/terrascope/layers/daynight/layer.py:240
+#: src/terrascope/layers/daynight/layer.py:241
+msgid "UTC"
+msgstr "UTC"
+
+#: src/terrascope/core/i18n.py:70
 msgid "Mumbai"
 msgstr "Mumbai"
 
-#: src/terrascope/core/i18n.py:68
+#: src/terrascope/core/i18n.py:70
 msgid "Shanghai / Singapore"
 msgstr "Xangai / Singapura"
 
-#: src/terrascope/core/i18n.py:68
+#: src/terrascope/core/i18n.py:70
 msgid "Tokyo / Seoul"
 msgstr "Tóquio / Seul"
 
-#: src/terrascope/core/i18n.py:68
+#: src/terrascope/core/i18n.py:70
 msgid "Sydney"
 msgstr "Sydney"
 
-#: src/terrascope/core/i18n.py:69
+#: src/terrascope/core/i18n.py:71
 msgid "New York"
 msgstr "Nova York"
 
-#: src/terrascope/core/i18n.py:69
+#: src/terrascope/core/i18n.py:71
 msgid "Chicago"
 msgstr "Chicago"
 
-#: src/terrascope/core/i18n.py:69
+#: src/terrascope/core/i18n.py:71
 msgid "Denver"
 msgstr "Denver"
 
-#: src/terrascope/core/i18n.py:69
+#: src/terrascope/core/i18n.py:71
 msgid "Los Angeles"
 msgstr "Los Angeles"
 
-#: src/terrascope/core/i18n.py:69
+#: src/terrascope/core/i18n.py:71
 msgid "London"
 msgstr "Londres"
 
-#: src/terrascope/core/layer.py:22
+#: src/terrascope/core/layer.py:23
 msgid "INFO"
 msgstr "INFO"
 
@@ -906,7 +912,7 @@ msgstr "CARREGANDO PAÍSES 50M"
 msgid "LOADING CITIES 10M"
 msgstr "CARREGANDO CIDADES 10M"
 
-#: src/terrascope/core/main.py:85 src/terrascope/layers/flights/layer.py:364
+#: src/terrascope/core/main.py:85 src/terrascope/layers/flights/layer.py:366
 msgid "LOADING AIRPORTS"
 msgstr "CARREGANDO AEROPORTOS"
 
@@ -950,7 +956,7 @@ msgstr "CARREGANDO CLIMA DAS CIDADES…"
 msgid "FETCHING OTHER RADAR TIMES…"
 msgstr "OBTENDO OUTROS HORÁRIOS DO RADAR…"
 
-#: src/terrascope/core/mapdata.py:182
+#: src/terrascope/core/mapdata.py:183
 #, python-brace-format
 msgid ""
 "No cached {filename} is available in offline mode. Run once online to "
@@ -1155,13 +1161,13 @@ msgid "PROVINCE"
 msgstr "PROVÍNCIA"
 
 #: src/terrascope/layers/basemap/layer.py:97
-#: src/terrascope/layers/weather/config.py:185
+#: src/terrascope/layers/weather/config.py:186
 msgid "CAPITAL"
 msgstr "CAPITAL"
 
 #: src/terrascope/layers/basemap/layer.py:102
 #: src/terrascope/layers/basemap/layer.py:104
-#: src/terrascope/layers/weather/config.py:186
+#: src/terrascope/layers/weather/config.py:187
 msgid "CITY"
 msgstr "CIDADE"
 
@@ -1286,12 +1292,6 @@ msgstr "AGORA"
 msgid "DATE"
 msgstr "DATA"
 
-#: src/terrascope/layers/daynight/layer.py:203
-#: src/terrascope/layers/daynight/layer.py:240
-#: src/terrascope/layers/daynight/layer.py:241
-msgid "UTC"
-msgstr "UTC"
-
 #: src/terrascope/layers/daynight/layer.py:204
 msgid "LOCAL"
 msgstr "LOCAL"
@@ -1395,579 +1395,571 @@ msgstr "O OpenSky retornou um formato de resposta inesperado"
 msgid "Could not save flight cache: "
 msgstr "Não foi possível salvar o cache de voos: "
 
-#: src/terrascope/layers/flights/layer.py:51
+#: src/terrascope/layers/flights/layer.py:53
 msgid "AIRCRAFT INFO"
 msgstr "AERONAVE"
 
-#: src/terrascope/layers/flights/layer.py:332
+#: src/terrascope/layers/flights/layer.py:334
 msgid "HISTORY NOT LOADED"
 msgstr "HISTÓRICO NÃO CARREGADO"
 
-#: src/terrascope/layers/flights/layer.py:332
 #: src/terrascope/layers/flights/layer.py:334
-#: src/terrascope/layers/weather/layer.py:527
-#: src/terrascope/layers/weather/layer.py:537
+#: src/terrascope/layers/flights/layer.py:336
+#: src/terrascope/layers/weather/layer.py:528
+#: src/terrascope/layers/weather/layer.py:538
 msgid "LIVE"
 msgstr "AO VIVO"
 
-#: src/terrascope/layers/flights/layer.py:362
+#: src/terrascope/layers/flights/layer.py:364
 msgid "LOADING PLANES"
 msgstr "CARREGANDO VOOS"
 
-#: src/terrascope/layers/flights/layer.py:367
+#: src/terrascope/layers/flights/layer.py:369
 msgid "AIRPORTS UNAVAILABLE"
 msgstr "AEROPORTOS INDISPONÍVEL"
 
-#: src/terrascope/layers/flights/layer.py:387
+#: src/terrascope/layers/flights/layer.py:389
 msgid "AIRPORT"
 msgstr "AEROPORTO"
 
-#: src/terrascope/layers/flights/settings.py:81
+#: src/terrascope/layers/flights/settings.py:82
 msgid "loading airports..."
 msgstr "carregando aeroportos..."
 
-#: src/terrascope/layers/flights/settings.py:83
+#: src/terrascope/layers/flights/settings.py:84
 msgid "airports unavailable"
 msgstr "aeroportos indisponíveis"
 
-#: src/terrascope/layers/flights/settings.py:89
-#: src/terrascope/layers/weather/config.py:189
-#: src/terrascope/layers/weather/earthquakes.py:46
-#: src/terrascope/layers/weather/forecast.py:136
-#: src/terrascope/layers/weather/forecast.py:165
-#: src/terrascope/layers/weather/forecast.py:178
+#: src/terrascope/layers/flights/settings.py:90
+#: src/terrascope/layers/weather/config.py:190
+#: src/terrascope/layers/weather/earthquakes.py:47
+#: src/terrascope/layers/weather/forecast.py:137
+#: src/terrascope/layers/weather/forecast.py:166
+#: src/terrascope/layers/weather/forecast.py:179
 msgid "N/A"
 msgstr "N/D"
 
-#: src/terrascope/layers/flights/settings.py:89
-#: src/terrascope/layers/weather/earthquakes.py:47
+#: src/terrascope/layers/flights/settings.py:90
+#: src/terrascope/layers/weather/earthquakes.py:48
 msgid "UNKNOWN"
 msgstr "DESCONHECIDO"
 
-#: src/terrascope/layers/flights/settings.py:92
+#: src/terrascope/layers/flights/settings.py:93
 msgid "CALLSIGN"
 msgstr "INDICATIVO"
 
-#: src/terrascope/layers/flights/settings.py:93
-#: src/terrascope/layers/weather/config.py:197
+#: src/terrascope/layers/flights/settings.py:94
+#: src/terrascope/layers/weather/config.py:198
 msgid "TYPE"
 msgstr "TIPO"
 
-#: src/terrascope/layers/flights/settings.py:94
+#: src/terrascope/layers/flights/settings.py:95
 msgid "ICAO24"
 msgstr "ICAO24"
 
-#: src/terrascope/layers/flights/settings.py:95
-#: src/terrascope/layers/weather/config.py:196
+#: src/terrascope/layers/flights/settings.py:96
+#: src/terrascope/layers/weather/config.py:197
 msgid "COUNTRY"
 msgstr "PAÍS"
 
-#: src/terrascope/layers/flights/settings.py:96
+#: src/terrascope/layers/flights/settings.py:97
 msgid "ALTITUDE"
 msgstr "ALTITUDE"
 
-#: src/terrascope/layers/flights/settings.py:97
+#: src/terrascope/layers/flights/settings.py:98
 msgid "GEO ALT"
 msgstr "ALT. GEO"
 
-#: src/terrascope/layers/flights/settings.py:98
+#: src/terrascope/layers/flights/settings.py:99
 msgid "SPEED"
 msgstr "VELOCIDADE"
 
-#: src/terrascope/layers/flights/settings.py:99
+#: src/terrascope/layers/flights/settings.py:100
 msgid "HEADING"
 msgstr "RUMO"
 
-#: src/terrascope/layers/flights/settings.py:100
+#: src/terrascope/layers/flights/settings.py:101
 msgid "VERT RATE"
 msgstr "TAXA VERT."
 
-#: src/terrascope/layers/flights/settings.py:101
+#: src/terrascope/layers/flights/settings.py:102
 msgid "SQUAWK"
 msgstr "SQUAWK"
 
-#: src/terrascope/layers/flights/settings.py:102
-#: src/terrascope/layers/weather/config.py:140
-#: src/terrascope/layers/weather/config.py:199
-#: src/terrascope/layers/weather/earthquakes.py:60
+#: src/terrascope/layers/flights/settings.py:103
+#: src/terrascope/layers/weather/config.py:141
+#: src/terrascope/layers/weather/config.py:200
+#: src/terrascope/layers/weather/earthquakes.py:61
 msgid "POSITION"
 msgstr "POSIÇÃO"
 
-#: src/terrascope/layers/flights/settings.py:103
-#: src/terrascope/layers/weather/layer.py:839
+#: src/terrascope/layers/flights/settings.py:104
+#: src/terrascope/layers/weather/layer.py:841
 msgid "SOURCE"
 msgstr "FONTE"
 
-#: src/terrascope/layers/weather/city_weather.py:126
+#: src/terrascope/layers/weather/city_weather.py:127
 msgid "Weather request failed: "
 msgstr "falha na requisição do clima: "
 
-#: src/terrascope/layers/weather/city_weather.py:132
+#: src/terrascope/layers/weather/city_weather.py:133
 msgid "Weather response missing current_weather"
 msgstr "a resposta do clima não tem current_weather"
 
-#: src/terrascope/layers/weather/config.py:29
+#: src/terrascope/layers/weather/config.py:30
 msgid "loading cities..."
 msgstr "carregando cidades..."
 
-#: src/terrascope/layers/weather/config.py:30
+#: src/terrascope/layers/weather/config.py:31
 msgid "cities unavailable"
 msgstr "cidades indisponíveis"
 
-#: src/terrascope/layers/weather/config.py:128
+#: src/terrascope/layers/weather/config.py:129
 msgid "loading radar..."
 msgstr "carregando radar..."
 
-#: src/terrascope/layers/weather/config.py:129
+#: src/terrascope/layers/weather/config.py:130
 msgid "radar unavailable"
 msgstr "radar indisponível"
 
-#: src/terrascope/layers/weather/config.py:131
+#: src/terrascope/layers/weather/config.py:132
 msgid "CLOUDS"
 msgstr "NUVENS"
 
-#: src/terrascope/layers/weather/config.py:133
+#: src/terrascope/layers/weather/config.py:134
 msgid " light"
 msgstr " fraca"
 
-#: src/terrascope/layers/weather/config.py:133
+#: src/terrascope/layers/weather/config.py:134
 msgid " moderate"
 msgstr " moderada"
 
-#: src/terrascope/layers/weather/config.py:133
+#: src/terrascope/layers/weather/config.py:134
 msgid " heavy"
 msgstr " forte"
 
-#: src/terrascope/layers/weather/config.py:134
+#: src/terrascope/layers/weather/config.py:135
 msgid " thin"
 msgstr " fina"
 
-#: src/terrascope/layers/weather/config.py:134
+#: src/terrascope/layers/weather/config.py:135
 msgid " thick"
 msgstr " espessa"
 
-#: src/terrascope/layers/weather/config.py:136
-#: src/terrascope/layers/weather/config.py:204
+#: src/terrascope/layers/weather/config.py:137
+#: src/terrascope/layers/weather/config.py:205
 msgid "OBSERVED"
 msgstr "OBSERVADO"
 
-#: src/terrascope/layers/weather/config.py:136
-#: src/terrascope/layers/weather/layer.py:103
-#: src/terrascope/layers/weather/layer.py:195
+#: src/terrascope/layers/weather/config.py:137
+#: src/terrascope/layers/weather/layer.py:104
+#: src/terrascope/layers/weather/layer.py:196
 msgid "FORECAST"
 msgstr "PREVISÃO"
 
-#: src/terrascope/layers/weather/config.py:138
-#: src/terrascope/layers/weather/config.py:195
+#: src/terrascope/layers/weather/config.py:139
+#: src/terrascope/layers/weather/config.py:196
 msgid "NAME"
 msgstr "NOME"
 
-#: src/terrascope/layers/weather/config.py:139
+#: src/terrascope/layers/weather/config.py:140
 msgid "INTENSITY"
 msgstr "INTENSIDADE"
 
-#: src/terrascope/layers/weather/config.py:141
+#: src/terrascope/layers/weather/config.py:142
 msgid "FRAME (UTC)"
 msgstr "QUADRO (UTC)"
 
-#: src/terrascope/layers/weather/config.py:142
+#: src/terrascope/layers/weather/config.py:143
 msgid "KIND"
 msgstr "TIPO"
 
-#: src/terrascope/layers/weather/config.py:147
+#: src/terrascope/layers/weather/config.py:148
 msgid "Clear sky"
 msgstr "Céu limpo"
 
-#: src/terrascope/layers/weather/config.py:148
+#: src/terrascope/layers/weather/config.py:149
 msgid "Mainly clear"
 msgstr "Predominantemente limpo"
 
-#: src/terrascope/layers/weather/config.py:149
+#: src/terrascope/layers/weather/config.py:150
 msgid "Partly cloudy"
 msgstr "Parcialmente nublado"
 
-#: src/terrascope/layers/weather/config.py:150
+#: src/terrascope/layers/weather/config.py:151
 msgid "Overcast"
 msgstr "Encoberto"
 
-#: src/terrascope/layers/weather/config.py:151
+#: src/terrascope/layers/weather/config.py:152
 msgid "Fog"
 msgstr "Nevoeiro"
 
-#: src/terrascope/layers/weather/config.py:152
+#: src/terrascope/layers/weather/config.py:153
 msgid "Rime fog"
 msgstr "Nevoeiro com geada"
 
-#: src/terrascope/layers/weather/config.py:153
+#: src/terrascope/layers/weather/config.py:154
 msgid "Light drizzle"
 msgstr "Garoa fraca"
 
-#: src/terrascope/layers/weather/config.py:154
+#: src/terrascope/layers/weather/config.py:155
 msgid "Drizzle"
 msgstr "Garoa"
 
-#: src/terrascope/layers/weather/config.py:155
+#: src/terrascope/layers/weather/config.py:156
 msgid "Dense drizzle"
 msgstr "Garoa forte"
 
-#: src/terrascope/layers/weather/config.py:156
 #: src/terrascope/layers/weather/config.py:157
+#: src/terrascope/layers/weather/config.py:158
 msgid "Freezing drizzle"
 msgstr "Garoa congelante"
 
-#: src/terrascope/layers/weather/config.py:158
+#: src/terrascope/layers/weather/config.py:159
 msgid "Slight rain"
 msgstr "Chuva fraca"
 
-#: src/terrascope/layers/weather/config.py:159
+#: src/terrascope/layers/weather/config.py:160
 msgid "Rain"
 msgstr "Chuva"
 
-#: src/terrascope/layers/weather/config.py:160
+#: src/terrascope/layers/weather/config.py:161
 msgid "Heavy rain"
 msgstr "Chuva forte"
 
-#: src/terrascope/layers/weather/config.py:161
 #: src/terrascope/layers/weather/config.py:162
+#: src/terrascope/layers/weather/config.py:163
 msgid "Freezing rain"
 msgstr "Chuva congelante"
 
-#: src/terrascope/layers/weather/config.py:163
+#: src/terrascope/layers/weather/config.py:164
 msgid "Slight snow"
 msgstr "Neve fraca"
 
-#: src/terrascope/layers/weather/config.py:164
+#: src/terrascope/layers/weather/config.py:165
 msgid "Snow"
 msgstr "Neve"
 
-#: src/terrascope/layers/weather/config.py:165
+#: src/terrascope/layers/weather/config.py:166
 msgid "Heavy snow"
 msgstr "Neve forte"
 
-#: src/terrascope/layers/weather/config.py:166
+#: src/terrascope/layers/weather/config.py:167
 msgid "Snow grains"
 msgstr "Grãos de neve"
 
-#: src/terrascope/layers/weather/config.py:167
 #: src/terrascope/layers/weather/config.py:168
+#: src/terrascope/layers/weather/config.py:169
 msgid "Rain showers"
 msgstr "Pancadas de chuva"
 
-#: src/terrascope/layers/weather/config.py:169
+#: src/terrascope/layers/weather/config.py:170
 msgid "Violent rain showers"
 msgstr "Pancadas de chuva fortes"
 
-#: src/terrascope/layers/weather/config.py:170
 #: src/terrascope/layers/weather/config.py:171
+#: src/terrascope/layers/weather/config.py:172
 msgid "Snow showers"
 msgstr "Pancadas de neve"
 
-#: src/terrascope/layers/weather/config.py:172
+#: src/terrascope/layers/weather/config.py:173
 msgid "Thunderstorm"
 msgstr "Tempestade"
 
-#: src/terrascope/layers/weather/config.py:173
+#: src/terrascope/layers/weather/config.py:174
 msgid "Thunderstorm, hail"
 msgstr "Tempestade com granizo"
 
-#: src/terrascope/layers/weather/config.py:174
+#: src/terrascope/layers/weather/config.py:175
 msgid "Thunderstorm, heavy hail"
 msgstr "Tempestade com granizo forte"
 
-#: src/terrascope/layers/weather/config.py:177
+#: src/terrascope/layers/weather/config.py:178
 msgid "CITY TEMP"
 msgstr "TEMP. DAS CIDADES"
 
-#: src/terrascope/layers/weather/config.py:179
+#: src/terrascope/layers/weather/config.py:180
 msgid " cold"
 msgstr " frio"
 
-#: src/terrascope/layers/weather/config.py:180
+#: src/terrascope/layers/weather/config.py:181
 msgid " hot"
 msgstr " quente"
 
-#: src/terrascope/layers/weather/config.py:181
+#: src/terrascope/layers/weather/config.py:182
 msgid " no data"
 msgstr " sem dados"
 
-#: src/terrascope/layers/weather/config.py:187
+#: src/terrascope/layers/weather/config.py:188
 msgid "FETCHING..."
 msgstr "OBTENDO..."
 
-#: src/terrascope/layers/weather/config.py:190
+#: src/terrascope/layers/weather/config.py:191
 msgid "Unknown"
 msgstr "Desconhecido"
 
-#: src/terrascope/layers/weather/config.py:198
+#: src/terrascope/layers/weather/config.py:199
 msgid "POPULATION"
 msgstr "POPULAÇÃO"
 
-#: src/terrascope/layers/weather/config.py:201
+#: src/terrascope/layers/weather/config.py:202
 msgid "TEMP"
 msgstr "TEMP."
 
-#: src/terrascope/layers/weather/config.py:202
+#: src/terrascope/layers/weather/config.py:203
 msgid "CONDITIONS"
 msgstr "CONDIÇÕES"
 
-#: src/terrascope/layers/weather/config.py:203
+#: src/terrascope/layers/weather/config.py:204
 msgid "WIND"
 msgstr "VENTO"
 
-#: src/terrascope/layers/weather/earthquakes.py:48
+#: src/terrascope/layers/weather/earthquakes.py:49
 msgid "Unknown location"
 msgstr "local desconhecido"
 
-#: src/terrascope/layers/weather/earthquakes.py:49
+#: src/terrascope/layers/weather/earthquakes.py:50
 msgid "WARNING"
 msgstr "ALERTA"
 
-#: src/terrascope/layers/weather/earthquakes.py:50
+#: src/terrascope/layers/weather/earthquakes.py:51
 msgid "NO"
 msgstr "NÃO"
 
-#: src/terrascope/layers/weather/earthquakes.py:53
+#: src/terrascope/layers/weather/earthquakes.py:54
 msgid "MAGNITUDE"
 msgstr "MAGNITUDE"
 
-#: src/terrascope/layers/weather/earthquakes.py:54
+#: src/terrascope/layers/weather/earthquakes.py:55
 msgid "PLACE"
 msgstr "LOCAL"
 
-#: src/terrascope/layers/weather/earthquakes.py:55
+#: src/terrascope/layers/weather/earthquakes.py:56
 msgid "DEPTH"
 msgstr "PROFUNDIDADE"
 
-#: src/terrascope/layers/weather/earthquakes.py:57
+#: src/terrascope/layers/weather/earthquakes.py:58
 msgid "TSUNAMI"
 msgstr "TSUNAMI"
 
-#: src/terrascope/layers/weather/earthquakes.py:58
+#: src/terrascope/layers/weather/earthquakes.py:59
 msgid "ALERT"
 msgstr "ALERTA"
 
-#: src/terrascope/layers/weather/earthquakes.py:59
+#: src/terrascope/layers/weather/earthquakes.py:60
 msgid "STATUS"
 msgstr "STATUS"
 
-#: src/terrascope/layers/weather/earthquakes.py:102
+#: src/terrascope/layers/weather/earthquakes.py:103
 msgid "m ago"
 msgstr "m atrás"
 
-#: src/terrascope/layers/weather/earthquakes.py:104
+#: src/terrascope/layers/weather/earthquakes.py:105
 msgid "h ago"
 msgstr "h atrás"
 
-#: src/terrascope/layers/weather/earthquakes.py:105
+#: src/terrascope/layers/weather/earthquakes.py:106
 msgid "d ago"
 msgstr "d atrás"
 
-#: src/terrascope/layers/weather/earthquakes.py:133
+#: src/terrascope/layers/weather/earthquakes.py:134
 msgid "USGS request failed: "
 msgstr "falha na requisição ao USGS: "
 
-#: src/terrascope/layers/weather/earthquakes.py:135
-#: src/terrascope/layers/weather/earthquakes.py:138
+#: src/terrascope/layers/weather/earthquakes.py:136
+#: src/terrascope/layers/weather/earthquakes.py:139
 msgid "USGS returned an unexpected response format"
 msgstr "O USGS retornou um formato de resposta inesperado"
 
-#: src/terrascope/layers/weather/earthquakes.py:279
+#: src/terrascope/layers/weather/earthquakes.py:280
 msgid "Could not save earthquake cache: "
 msgstr "Não foi possível salvar o cache de sismos: "
 
-#: src/terrascope/layers/weather/forecast.py:113
+#: src/terrascope/layers/weather/forecast.py:114
 msgid "Mon"
 msgstr "seg"
 
-#: src/terrascope/layers/weather/forecast.py:113
+#: src/terrascope/layers/weather/forecast.py:114
 msgid "Tue"
 msgstr "ter"
 
-#: src/terrascope/layers/weather/forecast.py:113
+#: src/terrascope/layers/weather/forecast.py:114
 msgid "Wed"
 msgstr "qua"
 
-#: src/terrascope/layers/weather/forecast.py:113
+#: src/terrascope/layers/weather/forecast.py:114
 msgid "Thu"
 msgstr "qui"
 
-#: src/terrascope/layers/weather/forecast.py:113
+#: src/terrascope/layers/weather/forecast.py:114
 msgid "Fri"
 msgstr "sex"
 
-#: src/terrascope/layers/weather/forecast.py:113
+#: src/terrascope/layers/weather/forecast.py:114
 msgid "Sat"
 msgstr "sáb"
 
-#: src/terrascope/layers/weather/forecast.py:113
+#: src/terrascope/layers/weather/forecast.py:114
 msgid "Sun"
 msgstr "dom"
 
-#: src/terrascope/layers/weather/forecast.py:125
+#: src/terrascope/layers/weather/forecast.py:126
 msgid "TODAY "
 msgstr "HOJE "
 
-#: src/terrascope/layers/weather/forecast.py:170
+#: src/terrascope/layers/weather/forecast.py:171
 msgid " mm"
 msgstr " mm"
 
-#: src/terrascope/layers/weather/forecast.py:182
+#: src/terrascope/layers/weather/forecast.py:185
 msgid "gust"
 msgstr "rajada"
 
-#: src/terrascope/layers/weather/forecast.py:195
+#: src/terrascope/layers/weather/forecast.py:198
 msgid "  UV "
 msgstr "  UV "
 
-#: src/terrascope/layers/weather/forecast.py:249
+#: src/terrascope/layers/weather/forecast.py:252
 msgid "ICONS  "
 msgstr "ÍCONES  "
 
-#: src/terrascope/layers/weather/forecast.py:257
+#: src/terrascope/layers/weather/forecast.py:260
 msgid "TEMP   "
 msgstr "TEMP.   "
 
-#: src/terrascope/layers/weather/forecast.py:262
+#: src/terrascope/layers/weather/forecast.py:265
 msgid "READ   "
 msgstr "LEIT.   "
 
-#: src/terrascope/layers/weather/forecast.py:263
+#: src/terrascope/layers/weather/forecast.py:266
 msgid " daily low to high · chart shows the hourly temperature"
 msgstr " mín. a máx. do dia · o gráfico mostra a temperatura por hora"
 
-#: src/terrascope/layers/weather/forecast.py:266
-#: src/terrascope/layers/weather/forecast.py:285
+#: src/terrascope/layers/weather/forecast.py:269
+#: src/terrascope/layers/weather/forecast.py:288
 msgid "CLICK A CITY NAME"
 msgstr "CLIQUE NO NOME DE UMA CIDADE"
 
-#: src/terrascope/layers/weather/forecast.py:267
+#: src/terrascope/layers/weather/forecast.py:270
 msgid "its icon and temperature appear on the map, its forecast fills this box."
 msgstr "o ícone e a temperatura aparecem no mapa; a previsão preenche esta caixa."
 
-#: src/terrascope/layers/weather/forecast.py:286
+#: src/terrascope/layers/weather/forecast.py:289
 msgid "to show its forecast here."
 msgstr "para mostrar a previsão aqui."
 
-#: src/terrascope/layers/weather/forecast.py:288
+#: src/terrascope/layers/weather/forecast.py:291
 msgid "ICONS"
 msgstr "ÍCONES"
 
-#: src/terrascope/layers/weather/forecast.py:296
+#: src/terrascope/layers/weather/forecast.py:299
 msgid "TEMP "
 msgstr "TEMP "
 
-#: src/terrascope/layers/weather/forecast.py:296
+#: src/terrascope/layers/weather/forecast.py:299
 msgid "COLD "
 msgstr "FRIO "
 
-#: src/terrascope/layers/weather/forecast.py:298
+#: src/terrascope/layers/weather/forecast.py:301
 msgid " HOT"
 msgstr " QUENTE"
 
-#: src/terrascope/layers/weather/forecast.py:299
+#: src/terrascope/layers/weather/forecast.py:302
 msgid "RANGE"
 msgstr "FAIXA"
 
-#: src/terrascope/layers/weather/forecast.py:299
+#: src/terrascope/layers/weather/forecast.py:302
 msgid "▼ low → ▲ high"
 msgstr "▼ mín → ▲ máx"
 
-#: src/terrascope/layers/weather/forecast.py:300
+#: src/terrascope/layers/weather/forecast.py:303
 msgid "CHART"
 msgstr "GRÁFICO"
 
-#: src/terrascope/layers/weather/forecast.py:300
+#: src/terrascope/layers/weather/forecast.py:303
 msgid "hourly temperature"
 msgstr "temperatura por hora"
 
-#: src/terrascope/layers/weather/layer.py:179
+#: src/terrascope/layers/weather/layer.py:180
 msgid "EARTHQUAKE INFO"
 msgstr "INFO DO SISMO"
 
-#: src/terrascope/layers/weather/layer.py:179
+#: src/terrascope/layers/weather/layer.py:180
 msgid "CITY INFO"
 msgstr "INFO DA CIDADE"
 
-#: src/terrascope/layers/weather/layer.py:220
+#: src/terrascope/layers/weather/layer.py:221
 msgid "FORECAST UNAVAILABLE"
 msgstr "PREVISÃO INDISPONÍVEL"
 
-#: src/terrascope/layers/weather/layer.py:324
+#: src/terrascope/layers/weather/layer.py:325
 msgid "LOADING WEATHER PLACES"
 msgstr "CARREGANDO LUGARES DO CLIMA"
 
-#: src/terrascope/layers/weather/layer.py:326
+#: src/terrascope/layers/weather/layer.py:327
 msgid "CITY LIST UNAVAILABLE · RETRYING"
 msgstr "LISTA DE CIDADES INDISPONÍVEL · TENTANDO DE NOVO"
 
-#: src/terrascope/layers/weather/layer.py:329
+#: src/terrascope/layers/weather/layer.py:330
 msgid "UPDATING CITY WEATHER"
 msgstr "ATUALIZANDO O CLIMA DAS CIDADES"
 
-#: src/terrascope/layers/weather/layer.py:331
+#: src/terrascope/layers/weather/layer.py:332
 msgid "WEATHER UNAVAILABLE · RETRYING"
 msgstr "CLIMA INDISPONÍVEL · TENTANDO DE NOVO"
 
-#: src/terrascope/layers/weather/layer.py:333
-#: src/terrascope/layers/weather/layer.py:543
+#: src/terrascope/layers/weather/layer.py:334
+#: src/terrascope/layers/weather/layer.py:544
 msgid "LOADING RADAR"
 msgstr "CARREGANDO RADAR"
 
-#: src/terrascope/layers/weather/layer.py:335
+#: src/terrascope/layers/weather/layer.py:336
 msgid "RADAR UNAVAILABLE · RETRYING"
 msgstr "RADAR INDISPONÍVEL · TENTANDO DE NOVO"
 
-#: src/terrascope/layers/weather/layer.py:337
+#: src/terrascope/layers/weather/layer.py:338
 msgid "LOADING EARTHQUAKES"
 msgstr "CARREGANDO SISMOS"
 
-#: src/terrascope/layers/weather/layer.py:523
-#: src/terrascope/layers/weather/layer.py:534
+#: src/terrascope/layers/weather/layer.py:524
+#: src/terrascope/layers/weather/layer.py:535
 msgid "CACHED"
 msgstr "EM CACHE"
 
-#: src/terrascope/layers/weather/layer.py:561
-#: src/terrascope/layers/weather/layer.py:564
-msgid "m AGO"
-msgstr "m ATRÁS"
+#: src/terrascope/layers/weather/layer.py:568
+#, python-brace-format
+msgid "{age} AGO"
+msgstr "há {age}"
 
-#: src/terrascope/layers/weather/layer.py:564
-msgid "h"
-msgstr "h"
-
-#: src/terrascope/layers/weather/layer.py:566
-msgid "d AGO"
-msgstr "d ATRÁS"
-
-#: src/terrascope/layers/weather/radar.py:103
+#: src/terrascope/layers/weather/radar.py:104
 msgid "Request failed: "
 msgstr "falha na requisição: "
 
-#: src/terrascope/layers/weather/radar.py:112
+#: src/terrascope/layers/weather/radar.py:113
 msgid "RainViewer no longer provides satellite frames"
 msgstr "O RainViewer não fornece mais quadros de satélite"
 
-#: src/terrascope/layers/weather/radar.py:116
+#: src/terrascope/layers/weather/radar.py:117
 msgid "Bad catalog JSON: "
 msgstr "JSON do catálogo inválido: "
 
-#: src/terrascope/layers/weather/radar.py:120
+#: src/terrascope/layers/weather/radar.py:121
 msgid "Catalog did not include a valid tile host"
 msgstr "O catálogo não incluiu um servidor de blocos válido"
 
-#: src/terrascope/layers/weather/radar.py:149
+#: src/terrascope/layers/weather/radar.py:150
 msgid "Catalog contained no frames"
 msgstr "O catálogo não tinha quadros"
 
-#: src/terrascope/layers/weather/radar.py:178
+#: src/terrascope/layers/weather/radar.py:179
 msgid "No tiles could be fetched for frame"
 msgstr "Não foi possível obter os blocos do quadro"
 
-#: src/terrascope/layers/weather/radar.py:475
+#: src/terrascope/layers/weather/radar.py:476
 msgid "Some radar frames could not be downloaded"
 msgstr "Alguns quadros do radar não puderam ser baixados"
 
-#: src/terrascope/layers/weather/radar.py:476
+#: src/terrascope/layers/weather/radar.py:477
 msgid "No radar frames could be downloaded"
 msgstr "Nenhum quadro do radar pôde ser baixado"
 

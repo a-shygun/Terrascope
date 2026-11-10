@@ -559,12 +559,13 @@ class WeatherLayer(Layer):
         """Compact age label for a cached radar frame, sized for the slider."""
         minutes = max(0, int((time.time() - timestamp) // 60))
         if minutes < 60:
-            return f"{minutes}{_('m AGO')}"
-        hours, minute = divmod(minutes, 60)
-        if hours < 24:
-            return f"{hours}{_('h')}{minute:02d}{_('m AGO')}"
-        days = hours // 24
-        return f"{days}{_('d AGO')}"
+            age = f"{minutes}m"
+        else:
+            hours, minute = divmod(minutes, 60)
+            age = f"{hours}h{minute:02d}m" if hours < 24 else f"{hours // 24}d"
+        # The phrase is a translatable template: "23h59m AGO" in English,
+        # "há 23h59m" in Portuguese, which fits the 10-column slider caption.
+        return _("{age} AGO").format(age=age)
 
     @staticmethod
     def _catalog_live_index(catalog: list[dict]) -> int:
