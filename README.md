@@ -406,6 +406,35 @@ requests go to the configured data providers. Weather requests include the
 coordinates of displayed cities; providers also receive your IP address and
 the Terrascope User-Agent. `--offline` disables live requests.
 
+## Translations
+
+The interface uses gettext, domain `terrascope`. Brazilian Portuguese (`pt_BR`)
+is included. The language is chosen in this order: `--lang`, `app.language` in
+the config, the `LANGUAGE` / `LC_ALL` / `LC_MESSAGES` / `LANG` variables, the
+Windows interface language, and English. Clock and units follow the language:
+24-hour time, °C, km/h, a decimal comma and `dd/mm/yyyy` dates in `pt_BR`.
+Override them with `--time-format 24h|12h` and `--units metric|imperial`, or with
+`app.time_format` and `app.units` in the config.
+
+Catalogues live in `src/terrascope/locale/<lang>/LC_MESSAGES/terrascope.po`.
+The `.mo` files are compiled at build time (`hatch_build.py`, with Babel) and are
+not kept in git. To add a language:
+
+```bash
+pip install babel
+pybabel extract -F babel.cfg -k N_ -o src/terrascope/locale/terrascope.pot .
+pybabel init -i src/terrascope/locale/terrascope.pot -d src/terrascope/locale -l de_DE -D terrascope
+# translate src/terrascope/locale/de_DE/LC_MESSAGES/terrascope.po, then:
+pybabel compile -D terrascope -d src/terrascope/locale
+```
+
+To check a layout with a pseudo-language (accented, 30% longer text):
+
+```bash
+python tools/pseudo_locale.py /tmp/pseudo
+terrascope_LOCALE_DIR=/tmp/pseudo terrascope --lang xx
+```
+
 ## Development Checks
 
 Basic syntax check:
