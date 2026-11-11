@@ -12,6 +12,7 @@ from queue import Empty, Queue
 import numpy as np
 from PIL import Image
 from terrascope.core.config import CACHE_DIR, USER_AGENT
+from terrascope.core.i18n import _
 from terrascope.core.mapdata import set_live_progress
 from terrascope.core.ui import hex_to_rgb
 from terrascope.core.view import View
@@ -99,7 +100,7 @@ def _http_get(url: str) -> bytes:
         with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
             return response.read()
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as error:
-        raise RadarFetchError(f"Request failed: {error}") from error
+        raise RadarFetchError(f"{_('Request failed: ')}{error}") from error
 
 def fetch_catalog(mode: str) -> list[dict]:
     """Return the frames to animate, oldest first.
@@ -108,15 +109,15 @@ def fetch_catalog(mode: str) -> list[dict]:
     and a nowcast flag (RainViewer currently publishes past radar frames only).
     """
     if mode == "satellite":
-        raise RadarFetchError("RainViewer no longer provides satellite frames")
+        raise RadarFetchError(_("RainViewer no longer provides satellite frames"))
     try:
         payload = json.loads(_http_get(f"{RAINVIEWER_URL}/public/weather-maps.json"))
     except json.JSONDecodeError as error:
-        raise RadarFetchError(f"Bad catalog JSON: {error}") from error
+        raise RadarFetchError(f"{_('Bad catalog JSON: ')}{error}") from error
 
     host = payload.get("host")
     if not isinstance(host, str) or not host.startswith(("https://", "http://")):
-        raise RadarFetchError("Catalog did not include a valid tile host")
+        raise RadarFetchError(_("Catalog did not include a valid tile host"))
     host = host.rstrip("/")
     frames: list[dict] = []
     radar = payload.get("radar") or {}
@@ -145,7 +146,7 @@ def fetch_catalog(mode: str) -> list[dict]:
         frames.append({**item, "host": host, "nowcast": False})
     frames = [f for f in frames if "time" in f and "path" in f]
     if not frames:
-        raise RadarFetchError("Catalog contained no frames")
+        raise RadarFetchError(_("Catalog contained no frames"))
     frames.sort(key=lambda f: f["time"])
     return frames
 
@@ -174,7 +175,7 @@ def fetch_frame_raster(frame: dict, mode: str) -> np.ndarray:
             canvas.paste(tile, (x * TILE_SIZE, y * TILE_SIZE))
             loaded += 1
     if loaded == 0:
-        raise RadarFetchError("No tiles could be fetched for frame")
+        raise RadarFetchError(_("No tiles could be fetched for frame"))
     return rgba_to_intensity(np.asarray(canvas))
 
 def rgba_to_intensity(rgba: np.ndarray) -> np.ndarray:
@@ -450,7 +451,7 @@ class RadarStore:
                     target=fetch_worker, name=f"terrascope-radar-{index + 1}", daemon=True
                 ).start()
             failed_frames = 0
-            for _ in missing:
+            for _pending in missing:
                 frame, raster = results.get()
                 completed += 1
                 set_live_progress(
@@ -471,8 +472,8 @@ class RadarStore:
                 self._using_cache = self._failed
                 self._checked_at = time.time()
             error = (
-                "Some radar frames could not be downloaded" if failed_frames
-                else "No radar frames could be downloaded" if not self._rasters
+                _("Some radar frames could not be downloaded") if failed_frames
+                else _("No radar frames could be downloaded") if not self._rasters
                 else ""
             )
             set_live_progress(

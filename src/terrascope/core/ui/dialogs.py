@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import _
+
 from .colors import (
     ColorManager
 )
 from .constants import (
+    DIM_ATTR,
     BANNER_COLOR,
     BANNER_FILL,
     BANNER_ROWS,
@@ -81,7 +84,8 @@ def _flatten_modal_body() -> list[tuple[str, bool, bool]]:
                 label = f" {index + 1} {tab.label}".ljust(12)
                 rows.append((f"{label}{tab.blurb}", False, True))
             continue
-        rows.append((text, kind is None and bool(text), text == "EXPLORE"))
+        # The check uses the English key; only the text shown is translated.
+        rows.append((_(text), kind is None and bool(text), text == "EXPLORE"))
     return rows
 
 def draw_welcome_modal(
@@ -96,14 +100,14 @@ def draw_welcome_modal(
     compact = screen_height < 42 or screen_width < 100
     body = (
         [
-            ("MAP  ·  TIME  ·  WEATHER  ·  PLANES", False, False),
-            ("WASD / arrows pan  ·  +/- zoom  ·  click markers", False, False),
-            ("? guide  ·  Esc close  ·  H panel  ·  Q quit", False, False),
+            ("  ·  ".join(tab.label for tab in TABS), False, False),
+            (_("WASD / arrows pan  ·  +/- zoom  ·  click markers"), False, False),
+            (_("? guide  ·  Esc close  ·  H panel  ·  Q quit"), False, False),
         ]
         if compact
         else _flatten_modal_body()
     )
-    link_text = f"GITHUB   {GITHUB_URL}"
+    link_text = f"{_('GITHUB')}   {GITHUB_URL}"
     scale = 2 if screen_width >= max(140, int(UI["banner_wide_min_width"])) else 1
     compact_banner = screen_height < 28 or screen_width < 100
     terra_banner = ["TERRA"] if compact_banner else _banner_lines(scale, "terra")
@@ -160,7 +164,7 @@ def draw_welcome_modal(
         x = left + max(1 + MODAL_PADDING_X, (width - len(text)) // 2)
         return _put_clipped(window, y, x, text, limit_x, attrs)
 
-    tagline = "A live world map, drawn in braille." if compact else WELCOME_TAGLINE
+    tagline = _("A live world map, drawn in braille.") if compact else WELCOME_TAGLINE
     banner_left = left + max(1 + MODAL_PADDING_X, (width - banner_width) // 2)
     terra_width = max(map(len, terra_banner))
     for terra_line, scope_line in zip(terra_banner, scope_banner):
@@ -180,37 +184,39 @@ def draw_welcome_modal(
     if not compact:
         y += 1
     if y < bottom:
-        centered("FIRST RUN  /  DATA DOWNLOADS", curses.A_BOLD | text_pair)
+        centered(_("FIRST RUN  /  DATA DOWNLOADS"), curses.A_BOLD | text_pair)
         y += 1
     step_name, overall_percent, step_state, step_error = startup_status
+    # step_name and step_state are keys set by the app: compared in English,
+    # and only the words shown on screen are translated.
     if step_name == "SETUP COMPLETE":
-        step_label = step_name
+        step_label = _(step_name)
     elif step_name == "LIVE AIRCRAFT":
-        step_label = "AIRCRAFT FEED"
+        step_label = _("AIRCRAFT FEED")
     elif step_name == "WEATHER RADAR":
-        step_label = "PRESENT RADAR"
+        step_label = _("PRESENT RADAR")
     elif step_name == "CITY WEATHER":
-        step_label = "CITY WEATHER"
+        step_label = _("CITY WEATHER")
     elif step_name == "RADAR HISTORY":
-        step_label = "OTHER RADAR TIMES"
+        step_label = _("OTHER RADAR TIMES")
     elif "admin_0_countries" in step_name:
-        step_label = "WORLD MAP"
+        step_label = _("WORLD MAP")
     elif "admin_1_states_provinces" in step_name:
-        step_label = "DETAILED BORDERS"
+        step_label = _("DETAILED BORDERS")
     elif "populated_places" in step_name:
-        step_label = "DETAILED CITIES"
+        step_label = _("DETAILED CITIES")
     elif "airports" in step_name:
-        step_label = "AIRPORTS"
+        step_label = _("AIRPORTS")
     else:
         step_label = step_name.removeprefix("ne_").replace(".geojson", "").replace("_", " ").upper()
     state_label = {
-        "waiting": "QUEUED",
-        "downloading": "DOWNLOADING",
-        "failed": "FAILED",
-        "ready": "READY",
+        "waiting": _("QUEUED"),
+        "downloading": _("DOWNLOADING"),
+        "failed": _("FAILED"),
+        "ready": _("READY"),
     }.get(step_state, step_state.upper())
     radar_unavailable = step_name == "WEATHER RADAR" and step_state == "failed"
-    headline = "RADAR UNAVAILABLE" if radar_unavailable else f"{state_label}  /  {step_label}"
+    headline = _("RADAR UNAVAILABLE") if radar_unavailable else f"{state_label}  /  {step_label}"
     if step_error and not radar_unavailable:
         headline += f"  ·  {concise_error_message(step_error, 34)}"
     if y < bottom:
@@ -273,10 +279,10 @@ def draw_welcome_modal(
     province_yes_layout = None
     province_no_layout = None
     if province_prompt and y < bottom:
-        centered("Optional: download state / province borders (~25MB)?", dim_pair)
+        centered(_("Optional: download state / province borders (~25MB)?"), dim_pair)
         y += 1
-        yes_text = " [Y DOWNLOAD] "
-        no_text = " [N KEEP OFF] "
+        yes_text = _(" [Y DOWNLOAD] ")
+        no_text = _(" [N KEEP OFF] ")
         gap = "  "
         total_width = len(yes_text) + len(gap) + len(no_text)
         yes_x = left + max(1 + MODAL_PADDING_X, (width - total_width) // 2)
@@ -299,7 +305,7 @@ def info_title_text(layer: Layer | None, selection_position: tuple[int, int]) ->
     title = layer.info_title if layer else DEFAULT_INFO_TITLE
     position, total = selection_position
     if total > 1:
-        title = f"{title}  < {position} of {total} >"
+        title = f"{title}  < {position} {_('of')} {total} >"
     return title
 
 def info_arrow_positions(
@@ -401,7 +407,7 @@ def draw_rich_box(window, rect: Rect, title: str, lines, colors) -> None:
             if style == "bold":
                 attributes |= curses.A_BOLD
             elif style == "dim":
-                attributes |= curses.A_DIM
+                attributes |= DIM_ATTR
             x = _put_clipped(window, top + 1 + offset, x, text, limit_x, attributes)
 
 def _draw_label_value_rows(

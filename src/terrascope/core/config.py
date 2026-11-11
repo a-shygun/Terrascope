@@ -61,6 +61,8 @@ DEFAULT_CONFIG_FILE = _install_default_config()
 # them as unknown.
 OPTIONAL_KEYS = frozenset({
     "map.province_color", "layers.night.seam_glyph", "ui.panel_orientation",
+    # Added after the first release: an older copy of default.yaml lacks them.
+    "app.language", "app.time_format", "app.units",
 })
 # Sections whose keys are free-form (users may add their own entries).
 FREE_FORM_KEYS = frozenset({"map.country_code_overrides"})
@@ -125,6 +127,14 @@ _NULLABLE_PATHS = {
 class ConfigError(Exception):
     """A config file could not be read or is not valid."""
 
+def _finite(value: Any) -> bool:
+    """True for a finite int or float. math.isfinite() raises OverflowError for a
+    huge int (a typo in a config file), so that counts as not finite here."""
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
+
 def _read_yaml(path: Path) -> Any:
     try:
         text = path.read_text(encoding="utf-8")
@@ -179,7 +189,7 @@ def _check_types(default: Any, value: Any, path: str) -> None:
         if isinstance(value, bool) or not isinstance(value, int):
             raise ConfigError(f"{path}: expected an integer")
     elif isinstance(default, (int, float)):
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not _finite(value):
             raise ConfigError(f"{path}: expected a finite number")
     elif isinstance(default, str):
         if path in {"map.water_color", "map.land_color"} and value is False:
@@ -224,6 +234,12 @@ def validate_config(candidate: dict | None = None) -> None:
     if orientation not in {"horizontal", "vertical"}:
         raise ConfigError("ui.panel_orientation must be horizontal or vertical")
 
+    # Added after the first release: a config copied earlier may not have them.
+    if values["app"].get("time_format", "auto") not in {"auto", "24h", "12h"}:
+        raise ConfigError("app.time_format must be auto, 24h or 12h")
+    if values["app"].get("units", "auto") not in {"auto", "metric", "imperial"}:
+        raise ConfigError("app.units must be auto, metric or imperial")
+
     log_file = values["app"]["log_file"]
     if (not log_file or log_file in {".", ".."}
             or Path(log_file).name != log_file or "/" in log_file or "\\" in log_file):
@@ -244,12 +260,12 @@ def validate_config(candidate: dict | None = None) -> None:
 
     for path in _POSITIVE_PATHS:
         number = get_path_from(values, path)
-        if isinstance(number, bool) or not isinstance(number, (int, float)) or not math.isfinite(number) or number <= 0:
+        if isinstance(number, bool) or not isinstance(number, (int, float)) or not _finite(number) or number <= 0:
             raise ConfigError(f"{path}: must be a positive finite number")
 
     for path in _UNIT_INTERVAL_PATHS:
         number = get_path_from(values, path)
-        if isinstance(number, bool) or not isinstance(number, (int, float)) or not math.isfinite(number) or not 0 <= number <= 1:
+        if isinstance(number, bool) or not isinstance(number, (int, float)) or not _finite(number) or not 0 <= number <= 1:
             raise ConfigError(f"{path}: must be between 0 and 1")
 
     map_settings = values["map"]
@@ -271,9 +287,62 @@ def validate_config(candidate: dict | None = None) -> None:
         raise ConfigError("layers.weather.radar.mode must be radar or satellite")
     if values["layers"]["night"]["look"] not in {"tint", "fill"}:
         raise ConfigError("layers.night.look must be tint or fill")
-    tabs = values["tabs"]
-    if not 0 <= tabs["start_tab"] < len(tabs["items"]):
+    # The views are checked against the map limits of this candidate, not of CFG.
+    # tabs.start_tab is not checked here: it may name a plugin tab (see check_start_tab).
+    for item in values["tabs"]["items"]:
+        if isinstance(item, dict) and item.get("view") is not None:
+            parse_tab_view(item["view"], where=f"tab {item.get('name')!r} view", map_settings=map_settings)
+
+def check_start_tab() -> None:
+    """tabs.start_tab must name a tab. A start tab from a plugin needs the plugin
+    tabs, which are read here, so call this only when the settings are final and the
+    language is active (see cli.run). Without a plugin start tab, nothing is read."""
+    start = CFG["tabs"]["start_tab"]
+    if 0 <= start < len(CFG["tabs"]["items"]):
+        return
+    if not 0 <= start < len(tab_items()):
         raise ConfigError("tabs.start_tab is outside the configured tab list")
+
+def tab_items() -> list[dict]:
+    """The built-in tabs, then the tabs plugins provide. The plugin tabs are read
+    once, on first use, and are never saved into CFG (so --dump-config leaves them out)."""
+    from terrascope.core import plugins  # imports config only inside its functions
+
+    return list(CFG["tabs"]["items"]) + plugins.plugin_tab_items()
+
+def parse_tab_view(
+    value: Any, where: str = "tab view", map_settings: dict | None = None
+) -> tuple[float, float, float] | None:
+    """The optional home view of a tab, `view: {lat, lon, zoom}`, as a
+    (longitude, latitude, zoom) tuple. None when the tab has no view. Used by
+    the built-in tabs and by plugin tabs, so both are checked the same way.
+    `map_settings` is the `map:` section to check against (default: CFG's)."""
+    if value is None:
+        return None
+    keys = ("lat", "lon", "zoom")
+    if not isinstance(value, dict) or set(value) != set(keys):
+        raise ConfigError(f"{where}: expected {{lat, lon, zoom}}, got {value!r}")
+    numbers = []
+    for key in keys:
+        number = value[key]
+        if isinstance(number, bool) or not isinstance(number, (int, float)) or not _finite(number):
+            raise ConfigError(f"{where}: {key} must be a number, got {number!r}")
+        numbers.append(float(number))
+    lat, lon, zoom = numbers[0], numbers[1], numbers[2]
+    limits = CFG["map"] if map_settings is None else map_settings
+    zoom_min = float(limits["zoom"]["min"])
+    zoom_max = float(limits["zoom"]["max"])
+    lat_min = float(limits["lat_min"])
+    lat_max = float(limits["lat_max"])
+    if not lat_min <= lat <= lat_max:
+        raise ConfigError(
+            f"{where}: lat must be between {lat_min:g} and {lat_max:g} (the map's latitude range), got {lat:g}"
+        )
+    if not -180 <= lon <= 180:
+        raise ConfigError(f"{where}: lon must be between -180 and 180, got {lon:g}")
+    if not zoom_min <= zoom <= zoom_max:
+        raise ConfigError(f"{where}: zoom must be between {zoom_min:g} and {zoom_max:g}, got {zoom:g}")
+    return (lon, lat, zoom)
 
 def get_path_from(values: dict, dotted_path: str) -> Any:
     node: Any = values

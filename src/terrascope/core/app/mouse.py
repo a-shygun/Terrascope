@@ -14,11 +14,35 @@ from .shared import (
     curses,
     info_arrow_positions,
     panel_button_slot,
+    sys,
     tab_slots,
     time,
     webbrowser
 )
 
+def pointer_event_kind(state: int, dragging: bool, pdcurses: bool) -> str | None:
+    """Kind of pointer event for a curses mouse state, or None if it is ignored.
+
+    PDCurses reports motion with the button held as bstate 0, so during a drag
+    bstate 0 is motion. A move report with no button bit at all is a plain hover:
+    the button was released where the window could not see it, so the grab is
+    dropped ("lost_release") instead of panning with the pointer. Other platforms
+    keep the drag as before."""
+    if state & SCROLL_UP:
+        return "scroll_up"
+    if state & SCROLL_DOWN:
+        return "scroll_down"
+    if state & curses.BUTTON1_RELEASED:
+        return "release"
+    if state & curses.REPORT_MOUSE_POSITION:
+        if pdcurses and dragging and not state & curses.BUTTON1_PRESSED:
+            return "lost_release"
+        return "motion"
+    if state == 0 and dragging:
+        return "motion"
+    if state & curses.BUTTON1_PRESSED:
+        return "press"
+    return None
 class MouseMixin:
 
     def handle_mouse(self) -> None:
@@ -27,17 +51,13 @@ class MouseMixin:
             _, mouse_x, mouse_y, _, state = curses.getmouse()
         except curses.error:
             return
-        if state & SCROLL_UP:
-            kind = "scroll_up"
-        elif state & SCROLL_DOWN:
-            kind = "scroll_down"
-        elif state & curses.BUTTON1_RELEASED:
-            kind = "release"
-        elif state & curses.REPORT_MOUSE_POSITION:
-            kind = "motion"
-        elif state & curses.BUTTON1_PRESSED:
-            kind = "press"
-        else:
+        dragging = self._drag is not None or bool(self._slider_drag)
+        kind = pointer_event_kind(state, dragging, sys.platform == "win32")
+        if kind is None:
+            return
+        if kind == "lost_release":
+            self._drag = None
+            self._slider_drag = False
             return
         self._mouse_event(kind, mouse_x, mouse_y)
 
@@ -129,9 +149,8 @@ class MouseMixin:
                     elif action == "toggle-radar-status":
                         self.radar_status_expanded = not self.radar_status_expanded
                     else:
+                        # Same as the X key (input.py): only the message is dismissed.
                         self.dismissed_statuses.add(message)
-                        if message.startswith("PROVINCE BORDERS") or "DOWNLOAD BORDERS FAILED" in message:
-                            self.province_error = ""
                     self.world.dirty = True
                     return
             for row, x0, x1, enabled in self._province_prompt_hits:
@@ -259,7 +278,7 @@ class MouseMixin:
         # Top row: click a numbered tab to switch tab, or the controls bar
         # (expand/collapse button, or the clock to open the timezone dropdown).
         if layout.tabs is not None:
-            tabs_top, tabs_left, _, tabs_width = layout.tabs
+            tabs_top, tabs_left, _tabs_height, tabs_width = layout.tabs
             if mouse_y == tabs_top:
                 for index, start, text in tab_slots(TABS, tabs_left, tabs_width):
                     if start <= mouse_x < start + len(text):
@@ -296,7 +315,7 @@ class MouseMixin:
         if mouse_y == inner_top + inner_height - 1 - MAP_EDGE_PAD_Y:
             found = self._slider_track(inner_width)
             if found is not None:
-                _, _, first, length = found
+                _row, _col, first, length = found
                 if first - 1 <= mouse_x - inner_left <= first + length:
                     self._slider_drag = True
                     self._slider_to(mouse_x, inner_left, inner_width)

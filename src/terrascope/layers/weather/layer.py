@@ -7,8 +7,10 @@ import sys
 import textwrap
 import threading
 import time
+from datetime import datetime, timezone
 import numpy as np
 from terrascope.core.config import FETCH_NEW_DATA_FROM_API
+from terrascope.core.i18n import _, format_clock, format_date, format_integer, format_speed, format_temperature, speed_unit
 from terrascope.core.layer import CLICK_RADIUS, Layer, LayerRender, Marker, PanelBox, SidebarLine, SliderSpec
 from terrascope.core.mapdata import MapDataError, load_places
 from terrascope.core.ui.constants import INFO_BOX_LABEL_WIDTH
@@ -98,7 +100,7 @@ class WeatherLayer(Layer):
     # Bottom row: [info of the selected city / quake | multi-day forecast]
     panel_layout = (
         PanelBox("info", WEATHER_CONFIG["panel_ratios"][0]),
-        PanelBox("rich", WEATHER_CONFIG["panel_ratios"][1], "FORECAST"),
+        PanelBox("rich", WEATHER_CONFIG["panel_ratios"][1], _("FORECAST")),
     )
 
     def __init__(self) -> None:
@@ -174,7 +176,7 @@ class WeatherLayer(Layer):
 
     @property
     def info_title(self) -> str:
-        return "EARTHQUAKE INFO" if self._selected_kind() == "quake" else "CITY INFO"
+        return _("EARTHQUAKE INFO") if self._selected_kind() == "quake" else _("CITY INFO")
 
     def panel_layout_for(self, available_height: int, panel_width: int) -> tuple[PanelBox, ...]:
         """Size the left info box to its wrapped content; give the rest to forecast."""
@@ -190,7 +192,7 @@ class WeatherLayer(Layer):
         ratio = info_height / max(1, available_height)
         return (
             PanelBox("info", ratio),
-            PanelBox("rich", 1.0 - ratio, "FORECAST"),
+            PanelBox("rich", 1.0 - ratio, _("FORECAST")),
         )
 
     # ---- clicking and the forecast box ---------------------------------------------
@@ -215,7 +217,7 @@ class WeatherLayer(Layer):
             return [[(_CITY_TEXT["fetching"], None, "dim")]]
         days = [day for day in reading.get("forecast") or [] if isinstance(day, dict)]
         if reading.get("schema") != WEATHER_SCHEMA or not days:
-            return [[("FORECAST UNAVAILABLE", None, "dim")]]
+            return [[(_("FORECAST UNAVAILABLE"), None, "dim")]]
         if vertical:
             return forecast_vertical_lines(days, width, height, scroll)
         return forecast_lines(days, width)
@@ -319,20 +321,20 @@ class WeatherLayer(Layer):
     def loading_messages(self) -> list[str]:
         messages = []
         if self._places_state == "loading":
-            messages.append("LOADING WEATHER PLACES")
+            messages.append(_("LOADING WEATHER PLACES"))
         elif self._places_state == "failed":
-            messages.append("CITY LIST UNAVAILABLE · RETRYING")
+            messages.append(_("CITY LIST UNAVAILABLE · RETRYING"))
         weather_loading = self.weather.loading_count()
         if weather_loading:
-            messages.append("UPDATING CITY WEATHER")
+            messages.append(_("UPDATING CITY WEATHER"))
         elif self.weather.failed_count():
-            messages.append("WEATHER UNAVAILABLE · RETRYING")
+            messages.append(_("WEATHER UNAVAILABLE · RETRYING"))
         if self.radar.loading():
-            messages.append("LOADING RADAR")
+            messages.append(_("LOADING RADAR"))
         elif self.radar.failed():
-            messages.append("RADAR UNAVAILABLE · RETRYING")
+            messages.append(_("RADAR UNAVAILABLE · RETRYING"))
         if self.refresh_in_progress:
-            messages.append("LOADING EARTHQUAKES")
+            messages.append(_("LOADING EARTHQUAKES"))
         return messages
 
     def hit_test_all(self, x: int, y: int, radius: float | None = None):
@@ -368,7 +370,7 @@ class WeatherLayer(Layer):
                 and math.isfinite(temp)
             ):
                 icon = weather_icon(reading.get("weathercode"))
-                return f"{icon[0]} {name} {temp:.0f}\u00b0C", icon
+                return f"{icon[0]} {name} {format_temperature(temp)}", icon
         return f"{MARKER_PREFIX}{name}", None
 
     def _place_cities(
@@ -518,27 +520,27 @@ class WeatherLayer(Layer):
                 )
                 age = self._radar_age_caption(frame["time"])
                 return SliderSpec(
-                    "RAINVIEWER", 2, 0, age, status="CACHED",
+                    "RAINVIEWER", 2, 0, age, status=_("CACHED"),
                     loaded_steps=(0,), disabled=True,
                 )
-            status = "RADAR UNAVAILABLE" if self.radar.failed() else RADAR_LOADING_TEXT
-            return SliderSpec("RAINVIEWER", 2, 0, "LIVE", status=status, disabled=True)
+            status = _("RADAR UNAVAILABLE") if self.radar.failed() else RADAR_LOADING_TEXT
+            return SliderSpec("RAINVIEWER", 2, 0, _("LIVE"), status=status, disabled=True)
         live = self._catalog_live_index(catalog)
         live_time = catalog[live]["time"]
         index = self._catalog_shown_index(catalog)
         if using_cache and loaded_frames:
             shown = loaded_frames[self._radar_shown_index(loaded_frames)][0]
             caption = self._radar_age_caption(shown["time"])
-            status = "CACHED"
+            status = _("CACHED")
         else:
             minutes = round((catalog[index]["time"] - live_time) / 60)
-            caption = "LIVE" if minutes == 0 else f"{minutes:+d}m"
+            caption = _("LIVE") if minutes == 0 else f"{minutes:+d}m"
         if not using_cache and self.radar.failed():
-            status = "RADAR UNAVAILABLE"
+            status = _("RADAR UNAVAILABLE")
         elif not using_cache and not loaded_frames:
             status = RADAR_LOADING_TEXT
         elif not using_cache and len(loaded_frames) < len(catalog):
-            status = "LOADING RADAR"
+            status = _("LOADING RADAR")
         elif not using_cache:
             status = ""
         loaded_times = {frame["time"] for frame, _raster in loaded_frames}
@@ -556,12 +558,13 @@ class WeatherLayer(Layer):
         """Compact age label for a cached radar frame, sized for the slider."""
         minutes = max(0, int((time.time() - timestamp) // 60))
         if minutes < 60:
-            return f"{minutes}m AGO"
-        hours, minute = divmod(minutes, 60)
-        if hours < 24:
-            return f"{hours}h{minute:02d}m AGO"
-        days = hours // 24
-        return f"{days}d AGO"
+            age = f"{minutes}m"
+        else:
+            hours, minute = divmod(minutes, 60)
+            age = f"{hours}h{minute:02d}m" if hours < 24 else f"{hours // 24}d"
+        # The phrase is a translatable template: "23h59m AGO" in English,
+        # "há 23h59m" in Portuguese, which fits the 10-column slider caption.
+        return _("{age} AGO").format(age=age)
 
     @staticmethod
     def _catalog_live_index(catalog: list[dict]) -> int:
@@ -810,7 +813,7 @@ class WeatherLayer(Layer):
             (_CITY_LABELS["name"], item["name"]),
             (_CITY_LABELS["country"], item.get("country") or _CITY_TEXT["not_available"]),
             (_CITY_LABELS["type"], _CITY_TEXT["capital"] if item["capital"] else _CITY_TEXT["city"]),
-            (_CITY_LABELS["population"], f"{item['population']:,}"),
+            (_CITY_LABELS["population"], format_integer(item["population"])),
             (_CITY_LABELS["position"], f"{item['latitude']:.3f}, {item['longitude']:.3f}"),
         ]
         rows.extend(self._weather_rows(item["key"]))
@@ -831,9 +834,10 @@ class WeatherLayer(Layer):
         ]
 
     def _radar_info_rows(self, cell: dict) -> list[tuple[str, str]]:
-        stamp = time.strftime("%Y-%m-%d %H:%M", time.gmtime(cell["time"]))
+        moment = datetime.fromtimestamp(cell["time"], timezone.utc)
+        stamp = f"{format_date(moment)} {format_clock(moment, seconds=False)}"
         return [
-            ("SOURCE", "RAINVIEWER.COM"),
+            (_("SOURCE"), "RAINVIEWER.COM"),
             (_RADAR_LABELS["name"], cell["name"]),
             (_RADAR_LABELS["kind"], cell["kind"]),
             (_RADAR_LABELS["intensity"], f"{cell['intensity'] * 100:.0f}%"),
@@ -851,14 +855,14 @@ class WeatherLayer(Layer):
             and not isinstance(temp, bool)
             and math.isfinite(temp)
         ):
-            return [(_CITY_LABELS["weather"], "UNAVAILABLE")]
+            return [(_CITY_LABELS["weather"], _("UNAVAILABLE"))]
         # Wind fields share the same legacy risk, so fall back to N/A
         # per field instead of letting one bad value kill the panel.
         wind = reading.get("windspeed")
         wind_text = (
-            f"{wind:.0f}"
+            format_speed(wind)
             if isinstance(wind, (int, float)) and not isinstance(wind, bool) and math.isfinite(wind)
-            else _CITY_TEXT["not_available"]
+            else f"{_CITY_TEXT['not_available']} {speed_unit()}"
         )
         direction = reading.get("winddirection")
         direction_text = (
@@ -867,9 +871,9 @@ class WeatherLayer(Layer):
             else _CITY_TEXT["not_available"]
         )
         rows = [
-            (_CITY_LABELS["temperature"], f"{temp:.1f}\u00b0C"),
+            (_CITY_LABELS["temperature"], format_temperature(temp, 1)),
             (_CITY_LABELS["conditions"], describe_weather_code(reading.get("weathercode"))),
-            (_CITY_LABELS["wind"], f"{wind_text} km/h @ {direction_text}\u00b0"),
+            (_CITY_LABELS["wind"], f"{wind_text} @ {direction_text}\u00b0"),
             (_CITY_LABELS["observed"], str(reading.get("observed_at") or _CITY_TEXT["not_available"])),
         ]
         return rows

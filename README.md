@@ -26,8 +26,8 @@ details may still change.
 
 ## Requirements
 
-- Python 3.10 or newer on macOS or Linux/Unix
-- A UTF-8 terminal
+- Python 3.10 or newer on macOS, Linux/Unix, or Windows 10/11
+- A UTF-8 terminal (on Windows: Windows Terminal or the classic console host)
 - A terminal with 256-color or true-color support for the best appearance
 - Network access for first-run map downloads and live data layers (optional)
 
@@ -37,6 +37,7 @@ Python dependencies are declared in `pyproject.toml`:
 - `Pillow`
 - `PyYAML`
 - `pyshp`
+- `windows-curses` and `tzdata` (Windows only, installed automatically)
 
 ## Installation
 
@@ -112,6 +113,29 @@ The `.deb`, `.rpm`, and `.tar.gz` builds all ship the same PyInstaller
 desktop entry and icon, so it runs without installation. SHA-256 checksums
 for every file are published as `terrascope_checksums.txt` next to the
 release assets.
+
+### Windows
+
+`pipx install terrascope` works on Windows as on the other platforms; the
+Windows-only dependencies (`windows-curses`, `tzdata`) are pulled in
+automatically. Tagged releases also attach a standalone build, so Python is
+not required:
+
+```powershell
+# Scoop, straight from the release manifest
+scoop install https://github.com/a-shygun/Terrascope/releases/latest/download/terrascope.json
+
+# winget (once the package is published in winget-pkgs)
+winget install AShygun.Terrascope
+
+# Portable zip: terrascope_<version>_windows_x86_64.zip from the Releases page
+Expand-Archive .\terrascope_1.0.0_windows_x86_64.zip -DestinationPath .\terrascope
+.\terrascope\terrascope.exe --help
+```
+
+Windows Terminal gives the best result; the classic console host also works.
+Use a font with Braille glyphs, such as Cascadia Mono (the Windows Terminal
+default).
 
 For local development:
 
@@ -235,6 +259,116 @@ terrascope --list-keys
   earthquakes.
 - `PLANES`: OpenSky aircraft positions, trails, categories, and Natural Earth
   airport markers.
+
+## Writing a plugin
+
+A separate Python package can add map layers and top-row tabs without
+changing Terrascope. Register them under two entry point groups:
+
+- `terrascope.layers`: each entry points to a subclass of
+  `terrascope.core.layer.Layer`.
+- `terrascope.tabs`: each entry points to a function that returns a list of
+  dicts in the same shape as `tabs.items` in `default.yaml` (`name`, `label`,
+  `color`, and optionally `blurb`, `layers`, `attribution`, `view`, ...).
+  The `label` and `blurb` go through Terrascope's translation (`_()`), so a
+  message that the core catalogue knows is shown in the user's language.
+  Translate your own texts with your package's catalogue (see `translation()`
+  in `terrascope.core.i18n`); the core does not know their msgids.
+
+The optional `view` sets the tab's home view: `view: {lat: -14, lon: -52, zoom: 3}`.
+Terrascope moves the map there when the tab is opened, with the given centre
+(`lat` within `map.lat_min` and `map.lat_max`, the latitudes the map shows;
+`lon` from -180 to 180) and `zoom` (within `map.zoom.min` and `map.zoom.max`).
+Opening the same tab again does not move the map. Without `view`, the tab keeps
+the view the user had. The key `0` returns to the tab's view when it has one,
+and to the whole world otherwise. A built-in tab with an invalid `view` stops
+the app at start with the reason; a plugin tab with an invalid `view` is skipped
+with a warning.
+
+A plugin tab must have `name`, `label` and `color` (`#rrggbb`); `blurb` and
+`attribution` are text, `layers` is a list of layer names, and `detailed`,
+`provinces`, `place_names` and `country_names` are true or false. Unknown keys
+are an error. A tab name is compared without case, and it cannot be only digits
+(digits select a tab by number). A plugin tab that breaks these rules is skipped
+with a warning, and the app starts without it.
+
+```toml
+# pyproject.toml of the plugin package
+[project]
+name = "terrascope-demo"
+version = "0.1.0"
+dependencies = ["terrascope"]
+
+[project.entry-points."terrascope.layers"]
+demo = "terrascope_demo.layers:DemoLayer"
+
+[project.entry-points."terrascope.tabs"]
+demo = "terrascope_demo.tabs:demo_tabs"
+```
+
+```python
+# terrascope_demo/layers.py
+from terrascope.core.layer import Layer, LayerRender, Marker
+
+
+class DemoLayer(Layer):
+    name = "demo"        # unique: used by --disable-layer and by tab "layers"
+    toggle_key = "j"     # a key that neither the app nor a built-in layer uses (see below)
+
+    def build(self, view) -> LayerRender:
+        markers = []
+        cell = view.to_cell(0.0, 51.5)  # longitude, latitude
+        if cell is not None:
+            markers.append(Marker(cell[0], cell[1], "#ff0000", glyph="o", label="London"))
+        return LayerRender(None, "#000000", markers=markers)
+```
+
+```python
+# terrascope_demo/tabs.py
+def demo_tabs():
+    return [
+        {
+            "name": "demo",
+            "label": "DEMO",
+            "color": "#ff00ff",
+            "blurb": "a marker over London",
+            "layers": ["basemap", "demo"],   # Layer.name values switched on
+            "attribution": "Example data",
+        }
+    ]
+```
+
+A plugin that draws dim text should use `DIM_ATTR` from `terrascope.core.ui.constants`
+instead of `curses.A_DIM`. On Windows, PDCurses has no dim attribute, so `curses.A_DIM`
+is 0 there, and `DIM_ATTR` stands in with `curses.A_BLINK`. For a Terrascope that
+does not have it yet:
+
+```python
+try:
+    from terrascope.core.ui.constants import DIM_ATTR
+except ImportError:
+    import curses
+    DIM_ATTR = curses.A_DIM
+```
+
+Install the package in the same environment as Terrascope (`pip install -e .`),
+then run `terrascope --list-layers` and `terrascope --list-tabs`: the last column
+shows `plugin:terrascope-demo` for the new entries. Uninstalling the package
+removes them.
+
+A plugin that fails to load, is not a `Layer` subclass, or cannot be started is
+skipped with a warning, and the app starts without it. A plugin layer is skipped
+with a warning too when its toggle key is not one visible ASCII character (a number,
+or `"jk"`, for example), or when the key is taken: by the app, by a built-in layer,
+or by a plugin layer that was added before it. The keys the app takes are the digits,
+the keys of `app.keys` in `default.yaml` (for example `q`, `h`, `o`, `w`, `a`, `s`,
+`d`, `z`, `0`, `+`, `-`), `r`, `x`, `y`, `n`, and the keys of the built-in layers
+(`toggle_key` and `look_key` under `layers:`: `k` airports, `c` cities, `e`
+earthquakes, `l` day/night look). Two built-in layers with one key still stop the app
+with an error. Pick a letter that none of these uses, and check the list with
+`terrascope --list-keys` and `--list-layers`.
+Plugin layers are drawn on top of the built-in ones, in the order their
+entry points are found.
 
 ## Screenshots
 
@@ -381,6 +515,35 @@ Terrascope has no telemetry or analytics. When live layers are enabled, network
 requests go to the configured data providers. Weather requests include the
 coordinates of displayed cities; providers also receive your IP address and
 the Terrascope User-Agent. `--offline` disables live requests.
+
+## Translations
+
+The interface uses gettext, domain `terrascope`. Brazilian Portuguese (`pt_BR`)
+is included. The language is chosen in this order: `--lang`, `app.language` in
+the config, the `LANGUAGE` / `LC_ALL` / `LC_MESSAGES` / `LANG` variables, the
+Windows interface language, and English. Clock and units follow the language:
+24-hour time, °C, km/h, a decimal comma and `dd/mm/yyyy` dates in `pt_BR`.
+Override them with `--time-format 24h|12h` and `--units metric|imperial`, or with
+`app.time_format` and `app.units` in the config.
+
+Catalogues live in `src/terrascope/locale/<lang>/LC_MESSAGES/terrascope.po`.
+The `.mo` files are compiled at build time (`hatch_build.py`, with Babel) and are
+not kept in git. To add a language:
+
+```bash
+pip install babel
+pybabel extract -F babel.cfg -k N_ -o src/terrascope/locale/terrascope.pot .
+pybabel init -i src/terrascope/locale/terrascope.pot -d src/terrascope/locale -l de_DE -D terrascope
+# translate src/terrascope/locale/de_DE/LC_MESSAGES/terrascope.po, then:
+pybabel compile -D terrascope -d src/terrascope/locale
+```
+
+To check a layout with a pseudo-language (accented, 30% longer text):
+
+```bash
+python tools/pseudo_locale.py /tmp/pseudo
+terrascope_LOCALE_DIR=/tmp/pseudo terrascope --lang xx
+```
 
 ## Development Checks
 

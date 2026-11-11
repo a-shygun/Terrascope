@@ -21,6 +21,18 @@ Each tag also builds standalone downloads for `linux_x86_64` and
   entry and icon (`packaging/linux/build_appimage.sh`,
   `packaging/linux/terrascope.desktop`, `packaging/linux/terrascope.png`)
 
+On Windows (`windows_x86_64`) the same PyInstaller build is published as
+`terrascope_<version>_windows_x86_64.zip`, and the release job generates its
+package manifests from the checksum file
+(`packaging/windows/make_manifests.py`):
+
+- `terrascope.json` — Scoop manifest, installable with
+  `scoop install <release URL of terrascope.json>`
+- `AShygun.Terrascope*.yaml` — the three winget manifests. To publish or update
+  the winget package, open a pull request to `microsoft/winget-pkgs` adding
+  them under `manifests/a/AShygun/Terrascope/<version>/` (by hand or with
+  `wingetcreate submit`). Check them first with `winget validate --manifest <dir>`.
+
 Checksums for all assets are published as `terrascope_checksums.txt`.
 
 ## One-time setup

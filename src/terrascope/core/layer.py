@@ -16,9 +16,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 from PIL import Image
 from terrascope.core.config import CFG, FETCH_NEW_DATA_FROM_API
+from terrascope.core.i18n import _
 
 # Shared layer settings (hardcoded; edit here).
-DEFAULT_INFO_TITLE = "INFO"  # info-box title for layers that don't set their own
+DEFAULT_INFO_TITLE = _("INFO")  # info-box title for layers that don't set their own
 CLICK_RADIUS = CFG["layer_defaults"]["click_radius"]  # how close a click must be to hit a marker
 RETRY_BASE_SECONDS = CFG["layer_defaults"]["retry_base_seconds"]  # failed refresh: wait this long, then double...
 RETRY_MAX_SECONDS = CFG["layer_defaults"]["retry_max_seconds"]  # ...up to this cap
@@ -139,6 +140,10 @@ class Layer:
     # first enabled layer of the tab that sets one). None = the default
     # (a single info box) from ui.py.
     panel_layout: tuple[PanelBox, ...] | None = None
+
+    # "built-in", or "plugin:<distribution>" for a layer from an entry point.
+    # Set per instance by registry.build_layers().
+    origin = "built-in"
 
     def __init__(self) -> None:
         self.dirty = True

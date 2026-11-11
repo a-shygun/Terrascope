@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import _, ngettext
+
 from .shared import (
+    DIM_ATTR,
     KEYS,
     TABS,
     curses,
@@ -11,6 +14,16 @@ from .shared import (
 )
 
 class InputMixin:
+
+    def apply_pending_home_view(self, width: int, height: int) -> None:
+        """Apply a home view that was opened before the first frame (select_tab),
+        now that the size of the map is known. The centre is clamped with the
+        aspect ratio of that size; with the 2.0 default it would be clamped wrongly."""
+        if self._pending_home_view is None:
+            return
+        self.world.fit_aspect(width, height)
+        self.world.set_view(*self._pending_home_view)
+        self._pending_home_view = None
 
     def toggle_panel(self) -> None:
         """Show / hide the bottom panel (H key or the button on the map's
@@ -27,6 +40,9 @@ class InputMixin:
         """Make tab `index` active: switch on exactly the layers it lists."""
         if not 0 <= index < len(TABS):
             return
+        # The home view is applied when the tab changes (or on the first selection),
+        # not when the same tab is selected again: that would drop the user's pan and zoom.
+        changed = index != self.active_tab
         # Colour pairs are never freed, so every tab's colours piled up until the
         # budget ran out (wrong backgrounds on map details / legend dots). Start each
         # tab with an empty pair table (palette slots are kept, see reset()).
@@ -44,6 +60,14 @@ class InputMixin:
                 layer.provinces_visible = self.provinces_visible and TABS[index].name == "map"
         self.world.show_places = TABS[index].place_names
         self.world.show_countries = TABS[index].country_names
+        if changed:
+            # A tab with a home view starts there when it is opened.
+            self._pending_home_view = None
+            if TABS[index].view is not None:
+                if self._frame_size is None:
+                    self._pending_home_view = TABS[index].view  # no frame yet: see below
+                else:
+                    self.world.set_view(*TABS[index].view)
         self.world.clear_selection()
         self.info_visible = False
         self._drag = None
@@ -85,13 +109,13 @@ class InputMixin:
     def _plane_count_line(self) -> str:
         flights = next((layer for layer in self.world.layers if layer.name == "flights"), None)
         if flights is None:
-            return "TOTAL PLANES: 0"
+            return f"{_('TOTAL PLANES')}: 0"
         count = len(flights.visible_flights())
-        label = "TOTAL PLANES" if not flights.filter_countries and not flights.search_text else "SHOWN"
-        if label == "TOTAL PLANES":
-            return f"{label}: {count}"
-        noun = "PLANE" if count == 1 else "PLANES"
-        return f"{label}: {count} {noun}"
+        total = not flights.filter_countries and not flights.search_text
+        if total:
+            return f"{_('TOTAL PLANES')}: {count}"
+        noun = ngettext("PLANE", "PLANES", count)
+        return f"{_('SHOWN')}: {count} {noun}"
 
     def current_filter_suggestion(self) -> str | None:
         if not self.filter_buffer.strip():
@@ -101,36 +125,37 @@ class InputMixin:
 
     def search_box_lines(self, hint: str | None) -> list[tuple[str, int]]:
         if self.mode == "search":
-            return [(self.search_buffer + "█", curses.A_BOLD), ("", 0), ("Enter apply  Esc cancel", curses.A_DIM)]
+            return [(self.search_buffer + "█", curses.A_BOLD), ("", 0), (_("Enter apply  Esc cancel"), DIM_ATTR)]
         if self.world.search_text:
-            return [(self.world.search_text, curses.A_BOLD), ("", 0), ("/ edit  Esc clear", curses.A_DIM)]
-        if hint == "/ search  ·  O filter":
-            return [(hint, 0), ("callsign / ICAO", curses.A_DIM)]
-        return [("/ or click to search", 0), (hint or "", curses.A_DIM)]
+            return [(self.world.search_text, curses.A_BOLD), ("", 0), (_("/ edit  Esc clear"), DIM_ATTR)]
+        # hint comes from the layer's own (translated) text, so compare translated.
+        if hint == _("/ search  ·  O filter"):
+            return [(hint, 0), (_("callsign / ICAO"), DIM_ATTR)]
+        return [(_("/ or click to search"), 0), (hint or "", DIM_ATTR)]
 
     def filter_box_lines(self, hint: str | None, room: int) -> list[tuple[str, int]]:
         if self.mode == "filter":
             lines = [
                 (self.filter_buffer + "█", curses.A_BOLD),
-                (self._plane_count_line(), curses.A_DIM),
+                (self._plane_count_line(), DIM_ATTR),
             ]
             suggestions = self.filter_suggestions()
             if not suggestions:
-                lines.append(("no match", curses.A_DIM))
+                lines.append(("no match", DIM_ATTR))
             for option in suggestions[self.filter_scroll : self.filter_scroll + max(0, room - 1)]:
                 selected = option in self.filter_selected
-                lines.append((("[x] " if selected else "[ ] ") + option, curses.A_BOLD if selected else curses.A_DIM))
+                lines.append((("[x] " if selected else "[ ] ") + option, curses.A_BOLD if selected else DIM_ATTR))
             return lines
         if self.world.filter_value:
             return [
                 (self.world.filter_value, curses.A_BOLD),
-                (self._plane_count_line(), curses.A_DIM),
-                ("O edit  Esc clear", curses.A_DIM),
+                (self._plane_count_line(), DIM_ATTR),
+                ("O edit  Esc clear", DIM_ATTR),
             ]
         return [
             (self._plane_count_line(), curses.A_BOLD),
             ("O or click to filter", 0),
-            (hint or "", curses.A_DIM),
+            (hint or "", DIM_ATTR),
         ]
 
     def _slider_spec(self):
@@ -306,7 +331,14 @@ class InputMixin:
             self.world.zoom_out()
             return
         if key in KEYS["reset_view"]:
-            self.world.reset_view()
+            # On a tab with a home view, reset goes back to that view (and clears the
+            # selection, as reset_view() does); elsewhere it goes to the world.
+            home = TABS[self.active_tab].view
+            if home is not None:
+                self.world.set_view(*home)
+                self.world.clear_selection()
+            else:
+                self.world.reset_view()
             return
         if key in KEYS["slider_down"] or key in KEYS["slider_up"]:
             self._step_slider(1 if key in KEYS["slider_up"] else -1)

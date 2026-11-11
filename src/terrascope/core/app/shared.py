@@ -8,8 +8,10 @@ import webbrowser
 from queue import Empty, SimpleQueue
 from threading import Thread
 from terrascope.core.config import CACHE_DIR, CFG
+from terrascope.core.i18n import _
 from terrascope.core.layer import PanelBox
 from terrascope.core.ui import (
+    DIM_ATTR,
     GITHUB_URL,
     MAP_EDGE_PAD_Y,
     ColorManager,
@@ -59,13 +61,27 @@ MOUSE_MASK = (
     | SCROLL_UP
     | SCROLL_DOWN
 )
+if sys.platform == "win32":
+    # PDCurses (windows-curses) reports wheel events with an empty bstate
+    # unless every mouse event is requested.
+    MOUSE_MASK = curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION
 MOUSE_MOTION_ON = "\033[?1003l\033[?1002h\033[?1006h"
 MOUSE_MOTION_OFF = "\033[?1006l\033[?1002l\033[?1003l"
+
+def mouse_tracking_sequences(platform: str = sys.platform) -> tuple[str, str]:
+    """(on, off) xterm mouse-tracking sequences. Windows reads mouse input
+    through the console API (PDCurses), so nothing is requested there: Windows
+    Terminal would start sending SGR reports next to the console events, and the
+    classic console would print the sequences as text."""
+    if platform == "win32":
+        return "", ""
+    return MOUSE_MOTION_ON, MOUSE_MOTION_OFF
+
 DRAG_RESUME_SECONDS = APP_CONFIG["drag_resume_seconds"]
 DRAG_FRAME_DELAY_MS = APP_CONFIG["drag_frame_delay_ms"]
 COLOR_RESET_MIN_SECONDS = 3.0
-TERMINAL_TOO_SMALL_TEXT = "Terminal too small"
-LOADING_MAP_TEXT = "Loading map data; first run may download Natural Earth files..."
+TERMINAL_TOO_SMALL_TEXT = _("Terminal too small")
+LOADING_MAP_TEXT = _("Loading map data; first run may download Natural Earth files...")
 STATUS_OFFSET = tuple(APP_CONFIG["status_offset"])
 WELCOME_SKIP_FILE = APP_CONFIG["welcome_skip_file"]
 PROVINCE_CHOICE_FILE = "province-borders-choice"

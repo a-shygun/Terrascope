@@ -10,6 +10,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from terrascope.core.config import CACHE_DIR, USER_AGENT, FETCH_NEW_DATA_FROM_API
+from terrascope.core.i18n import _, format_number
 from terrascope.layers.weather.config import WEATHER_CONFIG
 
 EARTHQUAKE_CONFIG = WEATHER_CONFIG["earthquakes"]
@@ -42,21 +43,21 @@ LEGEND_LABELS = (" <3", " 3-4.4", " 4.5-5.9", " 6-7.4", " 7.5+")
 
 # Texts shown in the info box (keep labels under 12 characters).
 _QUAKE_TEXT = {
-    "not_available": "N/A",
-    "unknown": "UNKNOWN",
-    "unknown_place": "Unknown location",
-    "tsunami_warning": "WARNING",
-    "tsunami_none": "NO",
+    "not_available": _("N/A"),
+    "unknown": _("UNKNOWN"),
+    "unknown_place": _("Unknown location"),
+    "tsunami_warning": _("WARNING"),
+    "tsunami_none": _("NO"),
 }
 _QUAKE_LABELS = {
-    "magnitude": "MAGNITUDE",
-    "place": "PLACE",
-    "depth": "DEPTH",
-    "time": "TIME",
-    "tsunami": "TSUNAMI",
-    "alert": "ALERT",
-    "status": "STATUS",
-    "position": "POSITION",
+    "magnitude": _("MAGNITUDE"),
+    "place": _("PLACE"),
+    "depth": _("DEPTH"),
+    "time": _("TIME"),
+    "tsunami": _("TSUNAMI"),
+    "alert": _("ALERT"),
+    "status": _("STATUS"),
+    "position": _("POSITION"),
 }
 
 # ---------------------------------------------------------------------------
@@ -83,12 +84,12 @@ def magnitude_to_glyph(magnitude) -> str:
 def format_magnitude(magnitude) -> str:
     if magnitude is None:
         return _QUAKE_TEXT["not_available"]
-    return f"M {magnitude:.1f}"
+    return f"M {format_number(magnitude, 1)}"
 
 def format_depth(depth_km) -> str:
     if depth_km is None:
         return _QUAKE_TEXT["not_available"]
-    return f"{depth_km:.1f} km"
+    return f"{format_number(depth_km, 1)} km"
 
 def format_time_ago(epoch_ms) -> str:
     if epoch_ms is None:
@@ -98,10 +99,10 @@ def format_time_ago(epoch_ms) -> str:
     except (TypeError, ValueError):
         return _QUAKE_TEXT["not_available"]
     if seconds_ago < 3600:
-        return f"{seconds_ago / 60:.0f}m ago"
+        return f"{format_number(seconds_ago / 60)}{_('m ago')}"
     if seconds_ago < 86400:
-        return f"{seconds_ago / 3600:.1f}h ago"
-    return f"{seconds_ago / 86400:.1f}d ago"
+        return f"{format_number(seconds_ago / 3600, 1)}{_('h ago')}"
+    return f"{format_number(seconds_ago / 86400, 1)}{_('d ago')}"
 
 def format_tsunami(flag: bool) -> str:
     return _QUAKE_TEXT["tsunami_warning"] if flag else _QUAKE_TEXT["tsunami_none"]
@@ -129,12 +130,12 @@ def fetch_usgs_earthquakes() -> list:
         TimeoutError,
         json.JSONDecodeError,
     ) as error:
-        raise EarthquakeFetchError(f"USGS request failed: {error}") from error
+        raise EarthquakeFetchError(f"{_('USGS request failed: ')}{error}") from error
     if not isinstance(payload, dict):
-        raise EarthquakeFetchError("USGS returned an unexpected response format")
+        raise EarthquakeFetchError(_("USGS returned an unexpected response format"))
     features = payload.get("features", [])
     if not isinstance(features, list):
-        raise EarthquakeFetchError("USGS returned an unexpected response format")
+        raise EarthquakeFetchError(_("USGS returned an unexpected response format"))
     return features
 
 def normalize_features(features: list) -> list[dict]:
@@ -275,7 +276,7 @@ class EarthquakeCache:
             try:
                 self.save()
             except OSError as error:
-                self.last_error = f"Could not save earthquake cache: {error}"
+                self.last_error = f"{_('Could not save earthquake cache: ')}{error}"
             return True
 
     def get_quakes(self) -> list[dict]:
