@@ -9,7 +9,7 @@ import types
 
 import pytest
 
-from terrascope.core import config
+from terrascope.core import config, plugins
 from terrascope.core.app import input as input_module
 from terrascope.core.app.input import InputMixin
 from terrascope.core.config import CFG, ConfigError, parse_tab_view
@@ -81,10 +81,46 @@ def test_invalid_view_of_a_built_in_tab_fails_the_config_check():
         config.validate_config(_config_with_tab(view={"lat": 95, "lon": 0, "zoom": 3}))
 
 
-def test_start_tab_must_be_inside_the_tab_list():
+def test_start_tab_must_be_inside_the_tab_list(monkeypatch):
+    monkeypatch.setitem(CFG["tabs"], "start_tab", len(CFG["tabs"]["items"]))
+    with pytest.raises(ConfigError, match="start_tab"):
+        config.check_start_tab()
+
+
+def test_start_tab_may_name_a_plugin_tab(entry_points, fake_entry_point, monkeypatch):
+    provided = [{"name": "demo", "label": "DEMO", "color": "#123456"}]
+    entry_points[plugins.TAB_GROUP] = [fake_entry_point("demo", lambda: provided)]
+    monkeypatch.setitem(CFG["tabs"], "start_tab", len(CFG["tabs"]["items"]))
+    config.check_start_tab()  # the plugin tab is the start tab: no error
+
+
+def test_validating_a_start_tab_does_not_read_the_plugins(entry_points, fake_entry_point):
+    calls = []
+
+    def provider():
+        calls.append(1)
+        return []
+
+    entry_points[plugins.TAB_GROUP] = [fake_entry_point("demo", provider)]
     values = copy.deepcopy(CFG)
     values["tabs"]["start_tab"] = len(values["tabs"]["items"])
-    with pytest.raises(ConfigError, match="start_tab"):
+    config.validate_config(values)
+    assert calls == []
+
+
+def test_views_are_checked_against_the_candidate_map_not_the_live_config():
+    values = _config_with_tab(view={"lat": 82, "lon": 0, "zoom": 3})  # inside CFG's 84
+    values["map"]["lat_max"] = 80
+    with pytest.raises(ConfigError, match="lat must be between"):
+        config.validate_config(values)
+
+
+def test_huge_integer_is_a_config_error_not_a_crash():
+    with pytest.raises(ConfigError, match="lon must be a number"):
+        parse_tab_view({"lat": -14, "lon": 10 ** 400, "zoom": 3}, where="tab 'x' view")
+    values = copy.deepcopy(CFG)
+    values["data"]["download_timeout_seconds"] = 10 ** 400
+    with pytest.raises(ConfigError, match="download_timeout_seconds"):
         config.validate_config(values)
 
 

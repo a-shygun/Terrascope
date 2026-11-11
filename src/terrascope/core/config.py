@@ -127,6 +127,14 @@ _NULLABLE_PATHS = {
 class ConfigError(Exception):
     """A config file could not be read or is not valid."""
 
+def _finite(value: Any) -> bool:
+    """True for a finite int or float. math.isfinite() raises OverflowError for a
+    huge int (a typo in a config file), so that counts as not finite here."""
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
+
 def _read_yaml(path: Path) -> Any:
     try:
         text = path.read_text(encoding="utf-8")
@@ -181,7 +189,7 @@ def _check_types(default: Any, value: Any, path: str) -> None:
         if isinstance(value, bool) or not isinstance(value, int):
             raise ConfigError(f"{path}: expected an integer")
     elif isinstance(default, (int, float)):
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not _finite(value):
             raise ConfigError(f"{path}: expected a finite number")
     elif isinstance(default, str):
         if path in {"map.water_color", "map.land_color"} and value is False:
@@ -252,12 +260,12 @@ def validate_config(candidate: dict | None = None) -> None:
 
     for path in _POSITIVE_PATHS:
         number = get_path_from(values, path)
-        if isinstance(number, bool) or not isinstance(number, (int, float)) or not math.isfinite(number) or number <= 0:
+        if isinstance(number, bool) or not isinstance(number, (int, float)) or not _finite(number) or number <= 0:
             raise ConfigError(f"{path}: must be a positive finite number")
 
     for path in _UNIT_INTERVAL_PATHS:
         number = get_path_from(values, path)
-        if isinstance(number, bool) or not isinstance(number, (int, float)) or not math.isfinite(number) or not 0 <= number <= 1:
+        if isinstance(number, bool) or not isinstance(number, (int, float)) or not _finite(number) or not 0 <= number <= 1:
             raise ConfigError(f"{path}: must be between 0 and 1")
 
     map_settings = values["map"]
@@ -279,15 +287,20 @@ def validate_config(candidate: dict | None = None) -> None:
         raise ConfigError("layers.weather.radar.mode must be radar or satellite")
     if values["layers"]["night"]["look"] not in {"tint", "fill"}:
         raise ConfigError("layers.night.look must be tint or fill")
-    tabs = values["tabs"]
-    for item in tabs["items"]:
+    # The views are checked against the map limits of this candidate, not of CFG.
+    # tabs.start_tab is not checked here: it may name a plugin tab (see check_start_tab).
+    for item in values["tabs"]["items"]:
         if isinstance(item, dict) and item.get("view") is not None:
-            parse_tab_view(item["view"], where=f"tab {item.get('name')!r} view")
-    count = len(tabs["items"])
-    if values is CFG and not 0 <= tabs["start_tab"] < count:
-        # The start tab may be one that a plugin provides; plugins are read only now.
-        count = len(tab_items())
-    if not 0 <= tabs["start_tab"] < count:
+            parse_tab_view(item["view"], where=f"tab {item.get('name')!r} view", map_settings=map_settings)
+
+def check_start_tab() -> None:
+    """tabs.start_tab must name a tab. A start tab from a plugin needs the plugin
+    tabs, which are read here, so call this only when the settings are final and the
+    language is active (see cli.run). Without a plugin start tab, nothing is read."""
+    start = CFG["tabs"]["start_tab"]
+    if 0 <= start < len(CFG["tabs"]["items"]):
+        return
+    if not 0 <= start < len(tab_items()):
         raise ConfigError("tabs.start_tab is outside the configured tab list")
 
 def tab_items() -> list[dict]:
@@ -297,10 +310,13 @@ def tab_items() -> list[dict]:
 
     return list(CFG["tabs"]["items"]) + plugins.plugin_tab_items()
 
-def parse_tab_view(value: Any, where: str = "tab view") -> tuple[float, float, float] | None:
+def parse_tab_view(
+    value: Any, where: str = "tab view", map_settings: dict | None = None
+) -> tuple[float, float, float] | None:
     """The optional home view of a tab, `view: {lat, lon, zoom}`, as a
     (longitude, latitude, zoom) tuple. None when the tab has no view. Used by
-    the built-in tabs and by plugin tabs, so both are checked the same way."""
+    the built-in tabs and by plugin tabs, so both are checked the same way.
+    `map_settings` is the `map:` section to check against (default: CFG's)."""
     if value is None:
         return None
     keys = ("lat", "lon", "zoom")
@@ -309,14 +325,15 @@ def parse_tab_view(value: Any, where: str = "tab view") -> tuple[float, float, f
     numbers = []
     for key in keys:
         number = value[key]
-        if isinstance(number, bool) or not isinstance(number, (int, float)) or not math.isfinite(number):
+        if isinstance(number, bool) or not isinstance(number, (int, float)) or not _finite(number):
             raise ConfigError(f"{where}: {key} must be a number, got {number!r}")
         numbers.append(float(number))
     lat, lon, zoom = numbers[0], numbers[1], numbers[2]
-    zoom_min = float(CFG["map"]["zoom"]["min"])
-    zoom_max = float(CFG["map"]["zoom"]["max"])
-    lat_min = float(CFG["map"]["lat_min"])
-    lat_max = float(CFG["map"]["lat_max"])
+    limits = CFG["map"] if map_settings is None else map_settings
+    zoom_min = float(limits["zoom"]["min"])
+    zoom_max = float(limits["zoom"]["max"])
+    lat_min = float(limits["lat_min"])
+    lat_max = float(limits["lat_max"])
     if not lat_min <= lat <= lat_max:
         raise ConfigError(
             f"{where}: lat must be between {lat_min:g} and {lat_max:g} (the map's latitude range), got {lat:g}"

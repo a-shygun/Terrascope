@@ -182,6 +182,7 @@ def test_tuple_layers_and_null_blurb_are_accepted_and_normalised(entry_points, f
         tab(unknown_key=True),
         tab(view={"lat": 95, "lon": -52, "zoom": 3}),
         tab(view={"lat": -70, "lon": -52, "zoom": 3}),  # below map.lat_min
+        tab(view={"lat": -14, "lon": 10 ** 400, "zoom": 3}),  # a huge integer, not a crash
         "not a tab",
     ],
 )

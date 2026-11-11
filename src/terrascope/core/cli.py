@@ -541,11 +541,6 @@ def apply_settings(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
     for item in args.set_values:
         _apply_set(parser, item)
 
-    # --tab may name a plugin tab; the plugin tabs are read only when it does
-    # (see _tab_names). validate_config() checks tabs.start_tab the same way.
-    if args.tab is not None:
-        config.set_path("tabs.start_tab", _resolve_tab(parser, args.tab))
-
     try:
         config.validate_config()
     except config.ConfigError as error:
@@ -648,6 +643,15 @@ def run() -> None:
     apply_settings(args, parser)
     # The config files may have changed app.language; --lang still wins.
     i18n.activate(args.lang)
+    # Plugin tabs are read only now: a plugin module may read the settings or the
+    # translations when it is imported, so both must be final first. --tab may name
+    # a plugin tab, and the start tab may be one too.
+    if args.tab is not None:
+        config.set_path("tabs.start_tab", _resolve_tab(parser, args.tab))
+    try:
+        config.check_start_tab()
+    except config.ConfigError as error:
+        parser.error(str(error))
 
     handled = False
     if args.dump_config:

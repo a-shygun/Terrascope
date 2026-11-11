@@ -171,7 +171,7 @@ def _load_plugin_tabs() -> None:
         for item in provided:
             try:
                 tab = normalize_tab(item, taken)
-            except (TypeError, ValueError) as error:
+            except Exception as error:  # any bad tab is skipped, never half-added
                 log.warning("ignoring a tab from %s (%s): %s", entry_point.name, origin, error)
                 continue
             taken.add(tab["name"].lower())
@@ -179,7 +179,9 @@ def _load_plugin_tabs() -> None:
             TAB_ORIGINS[tab["name"]] = origin
 
 def plugin_tab_items() -> list[dict]:
-    """The normalised tabs of the "terrascope.tabs" plugins. Loaded on first use."""
+    """The normalised tabs of the "terrascope.tabs" plugins. Loaded on first use.
+    Plugin modules are imported here, so the first call must come after the
+    settings are final (refresh_derived) and the language is active (cli.run)."""
     global _PLUGIN_TABS
     if _PLUGIN_TABS is None:
         _PLUGIN_TABS = []
