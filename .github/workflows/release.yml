@@ -237,26 +237,20 @@ jobs:
           path: release-assets/
           merge-multiple: true
 
-      - name: Generate SHA-256 checksums
+      # The manifests only need the hash of the Windows archive. The checksum
+      # file for every release asset is written after the manifests are copied
+      # in, so the manifests are listed in it too.
+      - name: Record SHA-256 of the Windows archive
         run: |
-          python - <<'PY'
-          import hashlib
-          from pathlib import Path
+          cd release-assets
+          sha256sum terrascope_*_windows_x86_64.zip > "$RUNNER_TEMP/windows-checksums.txt"
 
-          assets = sorted(path for path in Path("release-assets").iterdir() if path.is_file())
-          lines = [
-              f"{hashlib.sha256(asset.read_bytes()).hexdigest()}  {asset.name}"
-              for asset in assets
-          ]
-          (Path("release-assets") / "terrascope_checksums.txt").write_text(
-              "\n".join(lines) + "\n", encoding="utf-8"
-          )
-          PY
-
+      # Scripts come from the commit this workflow runs on, not from the tag:
+      # a tag made before packaging/windows/ existed has no make_manifests.py.
       - name: Check out packaging scripts
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ github.sha }}
           path: source
 
       - name: Generate Scoop and winget manifests
@@ -265,10 +259,29 @@ jobs:
         run: |
           python source/packaging/windows/make_manifests.py \
             --version "${RELEASE_TAG#v}" \
-            --checksums release-assets/terrascope_checksums.txt \
+            --checksums "$RUNNER_TEMP/windows-checksums.txt" \
             --output manifests
           cp manifests/terrascope.json release-assets/
           cp manifests/winget/*/*.yaml release-assets/
+
+      - name: Generate SHA-256 checksums for all release assets
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+
+          checksums = Path("release-assets") / "terrascope_checksums.txt"
+          assets = sorted(
+              path
+              for path in Path("release-assets").iterdir()
+              if path.is_file() and path != checksums
+          )
+          lines = [
+              f"{hashlib.sha256(asset.read_bytes()).hexdigest()}  {asset.name}"
+              for asset in assets
+          ]
+          checksums.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
 
       - name: Create release if needed and upload files
         env:
