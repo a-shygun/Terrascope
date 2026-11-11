@@ -14,6 +14,7 @@ from terrascope.core.app import input as input_module
 from terrascope.core.app.input import InputMixin
 from terrascope.core.config import CFG, ConfigError, parse_tab_view
 from terrascope.core.tabs import Tab, _build
+from terrascope.core.view import CELL_ASPECT, calculate_viewport, clamp_center, viewport_aspect
 from terrascope.core.world import WorldMap
 
 BRAZIL = {"lat": -14, "lon": -52, "zoom": 3}
@@ -135,7 +136,9 @@ class _Stub(InputMixin):
         self.provinces_visible = False
         self.info_visible = False
         self._drag = None
-        self.active_tab = 0
+        self.active_tab = None  # as in the app before select_tab(START_TAB)
+        self._frame_size = (120, 40)  # a frame was drawn: the map size is known
+        self._pending_home_view = None
         self._colors_reset_at = 0.0
         self.colors = types.SimpleNamespace(reset=lambda: None)
         self.mode = "normal"
@@ -210,3 +213,63 @@ def test_set_view_sets_centre_and_zoom_and_can_zoom_out():
     world.set_view(-52.0, -14.0, 3.0)
     assert world.zoom == pytest.approx(3.0)
     assert (world.center_lon, world.center_lat) == pytest.approx((-52.0, -14.0))
+
+
+def test_first_selection_applies_a_home_view_even_before_any_tab_was_active(two_tabs):
+    """The app starts with no active tab (active_tab None), so the first tab opened
+    always counts as a change, with no sentinel attribute needed."""
+    world = WorldMap([], [])
+    world.zoom = 20.0
+    app = _Stub(world)
+    app.active_tab = None
+    app.select_tab(1)
+    assert world.zoom == pytest.approx(3.0)
+
+
+def test_home_view_before_the_first_frame_waits_for_the_real_map_size(two_tabs):
+    """Before the first frame the map size is unknown, so the home view must not be
+    applied with the provisional aspect 2.0: it waits for apply_pending_home_view()."""
+    world = WorldMap([], [])
+    world.zoom = 20.0
+    app = _Stub(world)
+    app._frame_size = None
+    app.active_tab = None
+    app.select_tab(1)
+    assert world.zoom == pytest.approx(20.0)  # not applied yet
+
+    app.apply_pending_home_view(120, 20)  # what draw() does with the real size
+    assert world.aspect == pytest.approx(viewport_aspect(120, 20, CELL_ASPECT))
+    assert world.zoom == pytest.approx(3.0)
+    expected = clamp_center(-52.0, -14.0, *calculate_viewport(3.0, world.aspect))
+    assert (world.center_lon, world.center_lat) == pytest.approx(expected)
+    app.apply_pending_home_view(120, 20)  # applied once: a second frame changes nothing
+    world.pan(1, 0)
+    app.apply_pending_home_view(120, 20)
+    assert world.center_lon != pytest.approx(expected[0])
+
+
+def test_a_tab_without_a_view_cancels_a_pending_home_view(two_tabs):
+    world = WorldMap([], [])
+    app = _Stub(world)
+    app._frame_size = None
+    app.active_tab = None
+    app.select_tab(1)
+    app.select_tab(0)  # the other tab has no view
+    app.apply_pending_home_view(120, 20)
+    assert world.zoom != pytest.approx(3.0)
+
+
+def test_reset_key_on_a_tab_with_a_view_clears_the_selection(two_tabs):
+    world = WorldMap([], [])
+    app = _Stub(world)
+    app.select_tab(1)
+    world._selection_candidates = [("layer", "item")]
+    app.handle_key(ord("0"))
+    assert world._selection_candidates == []
+
+
+def test_plugin_tab_view_reaches_the_tab_as_a_tuple(entry_points, fake_entry_point):
+    provided = [{"name": "demo", "label": "DEMO", "color": "#123456", "view": BRAZIL}]
+    entry_points[plugins.TAB_GROUP] = [fake_entry_point("demo", lambda: provided)]
+    item = config.tab_items()[-1]
+    assert _build(item).view == (-52.0, -14.0, 3.0)

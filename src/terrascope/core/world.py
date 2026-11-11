@@ -15,7 +15,9 @@ from PIL import ImageDraw
 from terrascope.core.config import CFG
 from terrascope.core.layer import Layer, LayerRender
 from terrascope.core.mapdata import Ring
-from terrascope.core.view import WRAP_SHIFTS, View, calculate_viewport, clamp_center, visible
+from terrascope.core.view import (
+    CELL_ASPECT, WRAP_SHIFTS, View, calculate_viewport, clamp_center, viewport_aspect, visible,
+)
 
 ZOOM_CONFIG = CFG["map"]["zoom"]
 ZOOM_MIN = ZOOM_CONFIG["min"]  # fully zoomed out = whole world (also the starting zoom)
@@ -264,6 +266,11 @@ class WorldMap:
         self.center_lat = latitude
         self._clamp_center()
         self.dirty = True
+
+    def fit_aspect(self, width: int, height: int) -> None:
+        """Take the aspect ratio of a width x height map area, as render() does. A
+        view set before the first frame is clamped with this, not with the default."""
+        self.aspect = viewport_aspect(width, height, CELL_ASPECT)
 
     def set_view(self, longitude: float, latitude: float, zoom: float) -> None:
         """Set the view exactly (a tab's home view). Unlike focus_location(),

@@ -71,6 +71,7 @@ class RenderingMixin:
                 self.panel_orientation,
             )
         frame_size = (map_width - 4, map_height - 2)
+        self.apply_pending_home_view(*frame_size)
         if self._frame_size != frame_size:
             self.world.dirty = True
         if self.frame is None or self.world.needs_render():

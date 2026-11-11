@@ -26,7 +26,10 @@ class TerrascopeApp(LifecycleMixin, MouseMixin, TimezoneMixin, InputMixin, Rende
         self.world = world
         # Layers switched off with --disable-layer stay off whatever the tab says.
         self.forced_off = forced_off
-        self.active_tab = START_TAB
+        self.active_tab = None  # no tab yet: select_tab(START_TAB) below sets it
+        # Home view of a tab opened before the first frame, applied by draw() (see
+        # apply_pending_home_view): the map size, and so the clamp, is not known yet.
+        self._pending_home_view: tuple[float, float, float] | None = None
         self.province_choice = _saved_province_choice()
         self.province_state = "idle"  # idle | loading | ready | failed; never fetched unless enabled
         self.provinces_visible = False

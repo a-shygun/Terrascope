@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from terrascope.core.config import CFG, parse_tab_view, tab_items
+from terrascope.core.config import CFG, tab_items
 from terrascope.core.i18n import _
 
 @dataclass(frozen=True)
@@ -38,6 +38,14 @@ class Tab:
     # None = keep the view the user had. See `view:` in default.yaml.
     view: tuple[float, float, float] | None = None
 
+def _home_view(value: dict | None) -> tuple[float, float, float] | None:
+    """(longitude, latitude, zoom) of a tab's `view:`. It was checked already:
+    validate_config() checks the built-in tabs and plugins.normalize_tab() the
+    plugin tabs, so only the form is converted here."""
+    if value is None:
+        return None
+    return (float(value["lon"]), float(value["lat"]), float(value["zoom"]))
+
 def _build(item: dict) -> Tab:
     return Tab(
         name=str(item["name"]),
@@ -50,7 +58,7 @@ def _build(item: dict) -> Tab:
         place_names=bool(item.get("place_names", True)),
         country_names=bool(item.get("country_names", True)),
         attribution=str(item.get("attribution") or ""),
-        view=parse_tab_view(item.get("view"), where=f"tab {item.get('name')!r} view"),
+        view=_home_view(item.get("view")),
     )
 
 TABS: tuple[Tab, ...] = tuple(_build(item) for item in tab_items())
