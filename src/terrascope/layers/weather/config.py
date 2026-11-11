@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import _
-
 import os
 from terrascope.core.config import CACHE_DIR, CFG
+from terrascope.core.i18n import _
 from terrascope.core.ui import hex_to_rgb
 
 # ---------------------------------------------------------------------------

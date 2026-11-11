@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from terrascope.core.i18n import _
-
 import math
 import sys
 import threading
 import time
 from PIL import ImageDraw
 from terrascope.core.config import FETCH_NEW_DATA_FROM_API
+from terrascope.core.i18n import _
 from terrascope.core.layer import Layer, LayerRender, Marker, PanelBox, SidebarLine, SliderSpec
 from terrascope.core.mapdata import MapDataError, load_airports, set_live_progress
 from terrascope.core.view import BLANK_BRAILLE, WRAP_SHIFTS, View

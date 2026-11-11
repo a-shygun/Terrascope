@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import _, format_clock, format_date, format_integer, format_speed, format_temperature, speed_unit
-
 import math
 import sys
 import textwrap
@@ -12,6 +10,7 @@ import time
 from datetime import datetime, timezone
 import numpy as np
 from terrascope.core.config import FETCH_NEW_DATA_FROM_API
+from terrascope.core.i18n import _, format_clock, format_date, format_integer, format_speed, format_temperature, speed_unit
 from terrascope.core.layer import CLICK_RADIUS, Layer, LayerRender, Marker, PanelBox, SidebarLine, SliderSpec
 from terrascope.core.mapdata import MapDataError, load_places
 from terrascope.core.ui.constants import INFO_BOX_LABEL_WIDTH

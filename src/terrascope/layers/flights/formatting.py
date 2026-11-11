@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import format_integer
-
 import math
+from terrascope.core.i18n import format_integer
 from terrascope.layers.flights.settings import *
 from terrascope.layers.flights.settings import _TEXT
 

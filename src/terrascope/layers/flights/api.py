@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import _
-
 import json
 import math
 import urllib.error
 import urllib.request
 from terrascope.core.config import FETCH_NEW_DATA_FROM_API, USER_AGENT
+from terrascope.core.i18n import _
 from terrascope.core.mapdata import set_live_progress
 from terrascope.layers.flights.formatting import categorize, finite_float
 from terrascope.layers.flights.settings import OPEN_SKY_API_URL, REQUEST_TIMEOUT_SECONDS

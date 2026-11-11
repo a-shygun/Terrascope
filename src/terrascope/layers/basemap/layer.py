@@ -17,12 +17,11 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import _
-
 import sys
 import threading
 import time
 from terrascope.core.config import CFG
+from terrascope.core.i18n import _
 from terrascope.core.layer import Layer, LayerRender, Marker, SidebarLine
 from terrascope.core.mapdata import (
     MapDataError,

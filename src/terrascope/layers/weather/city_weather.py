@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import _
-
 import json
 import math
 import threading
@@ -12,6 +10,7 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable
 from terrascope.core.config import CACHE_DIR, FETCH_NEW_DATA_FROM_API, USER_AGENT
+from terrascope.core.i18n import _
 from terrascope.core.ui import hex_to_rgb
 from terrascope.layers.weather.config import (
     CITY_CONFIG,

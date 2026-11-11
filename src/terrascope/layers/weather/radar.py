@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import _
-
 import io
 import json
 import threading
@@ -14,6 +12,7 @@ from queue import Empty, Queue
 import numpy as np
 from PIL import Image
 from terrascope.core.config import CACHE_DIR, USER_AGENT
+from terrascope.core.i18n import _
 from terrascope.core.mapdata import set_live_progress
 from terrascope.core.ui import hex_to_rgb
 from terrascope.core.view import View

@@ -9,8 +9,6 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import _
-
 import math
 import threading
 import time
@@ -18,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 from PIL import Image
 from terrascope.core.config import CFG, FETCH_NEW_DATA_FROM_API
+from terrascope.core.i18n import _
 
 # Shared layer settings (hardcoded; edit here).
 DEFAULT_INFO_TITLE = _("INFO")  # info-box title for layers that don't set their own

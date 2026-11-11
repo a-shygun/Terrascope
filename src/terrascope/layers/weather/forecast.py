@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import N_, _, format_month_day, format_number, format_speed, format_temperature, speed_value
-
 import math
 from datetime import date
+from terrascope.core.i18n import N_, _, format_month_day, format_number, format_speed, format_temperature, speed_value
 from terrascope.layers.weather.city_weather import describe_weather_code, temperature_to_color
 from terrascope.layers.weather.config import (
     CITY_CONFIG,

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import _, format_number
-
 import json
 import math
 import threading
@@ -12,6 +10,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from terrascope.core.config import CACHE_DIR, USER_AGENT, FETCH_NEW_DATA_FROM_API
+from terrascope.core.i18n import _, format_number
 from terrascope.layers.weather.config import WEATHER_CONFIG
 
 EARTHQUAKE_CONFIG = WEATHER_CONFIG["earthquakes"]

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import _
-
 import json
 import math
 import threading
 import time
 from pathlib import Path
 from terrascope.core.config import FETCH_NEW_DATA_FROM_API
+from terrascope.core.i18n import _
 from terrascope.layers.flights.api import (
     FlightFetchError,
     fetch_opensky_states,

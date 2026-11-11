@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import N_, format_number
-
 import math
 from datetime import datetime, timezone
+
+from terrascope.core.i18n import N_, format_number
 
 SYNODIC_MONTH_DAYS = 29.530588853
 

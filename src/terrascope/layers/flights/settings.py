@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import _
-
 from pathlib import Path
 from terrascope.core.config import CACHE_DIR, CFG
+from terrascope.core.i18n import _
 
 FLIGHT_CONFIG = CFG["layers"]["flights"]
 
