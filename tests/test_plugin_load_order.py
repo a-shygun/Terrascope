@@ -26,12 +26,19 @@ def provider():
 
 
 @pytest.fixture
-def restore_settings():
-    """cli.run() changes the settings and the environment; put them back afterwards."""
+def restore_settings(monkeypatch):
+    """Start the way a user's session starts: online, as terrascope.core.config saw
+    it at import (the test sandbox sets terrascope_OFFLINE=1 for the whole run).
+    cli.run() then changes the settings and the environment; both are put back
+    afterwards, the sandbox value included."""
     snapshot = copy.deepcopy(config.CFG)
-    os.environ.pop("terrascope_OFFLINE", None)
+    saved = os.environ.pop("terrascope_OFFLINE", None)
+    monkeypatch.setattr(config, "FETCH_NEW_DATA_FROM_API", True)
     yield
-    os.environ.pop("terrascope_OFFLINE", None)
+    if saved is None:
+        os.environ.pop("terrascope_OFFLINE", None)
+    else:
+        os.environ["terrascope_OFFLINE"] = saved
     config.CFG.clear()
     config.CFG.update(snapshot)
     config.refresh_derived()
