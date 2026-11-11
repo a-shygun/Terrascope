@@ -114,7 +114,7 @@ def toggle_key_problem(key: Any, taken: dict[str, str], reserved: frozenset[str]
         return None
     if not isinstance(key, str):
         return f"toggle key must be one character, got {key!r}"
-    if len(key) != 1 or not key.isascii() or not key.isprintable() or key.isspace():
+    if len(key) != 1 or not "!" <= key <= "~":  # one character from ! to ~: visible ASCII
         return f"toggle key must be one visible character, got {key!r}"
     lower = key.lower()
     if lower in reserved:
