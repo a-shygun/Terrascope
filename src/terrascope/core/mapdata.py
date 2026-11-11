@@ -404,7 +404,12 @@ def _portuguese_country_names() -> tuple[dict[str, str], dict[str, str]]:
         code_features.update(codes)  # every feature counts, even one without a Portuguese name
         name_pt = props.get("NAME_PT")
         if isinstance(name_pt, str):
-            rows.append((props.get("NAME"), valid(props.get("ISO_A2_EH")), name_pt))
+            # NAME_EN is the name the reference table uses ("People's Republic of China");
+            # NAME is the short form ("China") and only the fallback.
+            name_en = props.get("NAME_EN")
+            if not isinstance(name_en, str):
+                name_en = props.get("NAME")
+            rows.append((name_en, valid(props.get("ISO_A2_EH")), name_pt))
     name_count = Counter(name for name, _code, _pt in rows if isinstance(name, str))
     by_name = {name: pt for name, _code, pt in rows
                if isinstance(name, str) and name_count[name] == 1}
