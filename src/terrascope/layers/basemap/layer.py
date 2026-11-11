@@ -21,6 +21,7 @@ import sys
 import threading
 import time
 from terrascope.core.config import CFG
+from terrascope.core.i18n import _
 from terrascope.core.layer import Layer, LayerRender, Marker, SidebarLine
 from terrascope.core.mapdata import (
     MapDataError,
@@ -57,8 +58,8 @@ LABEL_PADDING = int(BASEMAP_CONFIG["label_padding"])  # blank columns required b
 MAX_PLACED_LABELS = int(BASEMAP_CONFIG["max_labels"])  # hard safety cap regardless of available space
 
 LOAD_RETRY_SECONDS = BASEMAP_CONFIG["load_retry_seconds"]  # wait this long after a failed load before trying again
-LOADING_TEXT = "loading place names..."
-UNAVAILABLE_TEXT = "place names unavailable"
+LOADING_TEXT = _("loading place names...")
+UNAVAILABLE_TEXT = _("place names unavailable")
 
 def population_floor(zoom: float) -> int | None:
     """Smallest city population shown at this zoom (None = no cities yet)."""
@@ -90,16 +91,16 @@ def _map_key_lines() -> list[SidebarLine]:
     country = map_config["country_color"]
     province = map_config.get("province_color") or _dimmed(country)
     lines = [
-        SidebarLine("COUNTRY BORDER", swatches=(country,)),
-        SidebarLine("PROVINCE", swatches=(province,)),
-        SidebarLine("CAPITAL", swatches=(CAPITAL_COLOR,)),
+        SidebarLine(_("COUNTRY BORDER"), swatches=(country,)),
+        SidebarLine(_("PROVINCE"), swatches=(province,)),
+        SidebarLine(_("CAPITAL"), swatches=(CAPITAL_COLOR,)),
     ]
     previous = None
     for population, color in CITY_COLORS:  # biggest first
         if population > 0:
-            label = f"CITY {_short_population(population)}+"
+            label = f"{_('CITY')} {_short_population(population)}+"
         else:
-            label = f"CITY <{_short_population(previous)}" if previous else "CITY"
+            label = f"{_('CITY')} <{_short_population(previous)}" if previous else _("CITY")
         previous = population
         lines.append(SidebarLine(label, swatches=(color,)))
     return lines
@@ -187,7 +188,7 @@ class BaseMapLayer(Layer):
     def loading_messages(self) -> list[str]:
         messages = []
         if self._state == "loading":
-            messages.append("LOADING PLACE NAMES")
+            messages.append(_("LOADING PLACE NAMES"))
         return messages
 
     # ---- labels -----------------------------------------------------------------
@@ -281,13 +282,13 @@ class BaseMapLayer(Layer):
         lines = []
         if self.detailed and self.provinces_ready:
             lines.append(SidebarLine(
-                "PROVINCES",
-                choices=("ON", "OFF"),
+                _("PROVINCES"),
+                choices=(_("ON"), _("OFF")),
                 choice_index=0 if self.provinces_visible else 1,
                 action="provinces",
             ))
         if self.detailed:
-            lines += [line for line in _map_key_lines() if self.provinces_ready or line.text != "PROVINCE"]
+            lines += [line for line in _map_key_lines() if self.provinces_ready or line.text != _("PROVINCE")]
         if self._state == "loading":
             lines.append(SidebarLine(LOADING_TEXT))
         elif self._state == "failed":

@@ -6,6 +6,7 @@ import threading
 import time
 from PIL import ImageDraw
 from terrascope.core.config import FETCH_NEW_DATA_FROM_API
+from terrascope.core.i18n import _
 from terrascope.core.layer import Layer, LayerRender, Marker, PanelBox, SidebarLine, SliderSpec
 from terrascope.core.mapdata import MapDataError, load_airports, set_live_progress
 from terrascope.core.view import BLANK_BRAILLE, WRAP_SHIFTS, View
@@ -48,13 +49,13 @@ from terrascope.layers.flights.settings import (
 class FlightsLayer(Layer):
     name = "flights"
     toggle_key = FLIGHT_CONFIG["toggle_key"]
-    info_title = "AIRCRAFT INFO"
+    info_title = _("AIRCRAFT INFO")
     enabled = FLIGHT_CONFIG["enabled"]
     # Bottom row: [info | plane search | country filter]
     panel_layout = (
         PanelBox("info", FLIGHT_CONFIG["panel_ratios"][0]),
-        PanelBox("search", FLIGHT_CONFIG["panel_ratios"][1], "SEARCH PLANE", "callsign / ICAO"),
-        PanelBox("filter", FLIGHT_CONFIG["panel_ratios"][2], "FILTER COUNTRY", "country name"),
+        PanelBox("search", FLIGHT_CONFIG["panel_ratios"][1], _("SEARCH PLANE"), _("callsign / ICAO")),
+        PanelBox("filter", FLIGHT_CONFIG["panel_ratios"][2], _("FILTER COUNTRY"), _("country name")),
     )
 
     def __init__(self) -> None:
@@ -329,10 +330,10 @@ class FlightsLayer(Layer):
         max_minutes = self._history_range_minutes()
         if max_minutes < 1:
             self.minutes_back = 0
-            return SliderSpec("PLANES", 2, 0, "LIVE", status="HISTORY NOT LOADED", disabled=True)
+            return SliderSpec(_("PLANES"), 2, 0, _("LIVE"), status=_("HISTORY NOT LOADED"), disabled=True)
         self.minutes_back = min(self.minutes_back, max_minutes)
-        caption = "LIVE" if self.minutes_back == 0 else f"-{self.minutes_back}m"
-        return SliderSpec("PLANES", max_minutes + 1, max_minutes - self.minutes_back, caption)
+        caption = _("LIVE") if self.minutes_back == 0 else f"-{self.minutes_back}m"
+        return SliderSpec(_("PLANES"), max_minutes + 1, max_minutes - self.minutes_back, caption)
 
     def set_slider(self, index: int) -> None:
         max_minutes = self._history_range_minutes()
@@ -359,12 +360,12 @@ class FlightsLayer(Layer):
     def loading_messages(self) -> list[str]:
         messages = []
         if self.refresh_in_progress:
-            messages.append("LOADING PLANES")
+            messages.append(_("LOADING PLANES"))
         if self.show_airports and self._airports_state == "loading":
-            messages.append("LOADING AIRPORTS")
+            messages.append(_("LOADING AIRPORTS"))
         elif self.show_airports and self._airports_state == "failed":
             detail = f": {self._airports_error[:42]}" if self._airports_error else ""
-            messages.append(f"AIRPORTS UNAVAILABLE{detail}")
+            messages.append(f"{_('AIRPORTS UNAVAILABLE')}{detail}")
         return messages
 
     def hit_test_all(self, x: int, y: int, radius: float | None = None):
@@ -384,7 +385,7 @@ class FlightsLayer(Layer):
                 )
             )
         if self.show_airports:
-            lines.append(SidebarLine("AIRPORT", swatches=(AIRPORT_COLOR,), swatch_glyph=AIRPORT_GLYPH))
+            lines.append(SidebarLine(_("AIRPORT"), swatches=(AIRPORT_COLOR,), swatch_glyph=AIRPORT_GLYPH))
             if self._airports_state == "loading":
                 lines.append(SidebarLine(AIRPORTS_LOADING_TEXT))
             elif self._airports_state == "failed":

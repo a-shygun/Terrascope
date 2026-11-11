@@ -90,6 +90,8 @@ jobs:
             platform: macos_x86_64
           - os: macos-15
             platform: macos_arm64
+          - os: windows-latest
+            platform: windows_x86_64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out release source
@@ -103,6 +105,7 @@ jobs:
           python-version: "3.13"
 
       - name: Build standalone CLI
+        shell: bash
         run: |
           python -m pip install --upgrade pyinstaller
           python -m pip install .
@@ -119,9 +122,23 @@ jobs:
             --collect-all PIL \
             --collect-all yaml \
             --copy-metadata terrascope \
+            $([ "$RUNNER_OS" = Windows ] && echo "--collect-all tzdata") \
             "$RUNNER_TEMP/terrascope_entrypoint.py"
 
+      - name: Package Windows CLI archive
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          $version = $env:RELEASE_TAG -replace '^v', ''
+          dist/terrascope.exe --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Compress-Archive -Path dist/terrascope.exe -DestinationPath "dist/terrascope_${version}_$($env:PLATFORM).zip"
+
       - name: Package macOS and Linux CLI archives
+        if: runner.os != 'Windows'
         env:
           PLATFORM: ${{ matrix.platform }}
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
@@ -220,20 +237,50 @@ jobs:
           path: release-assets/
           merge-multiple: true
 
-      - name: Generate SHA-256 checksums
+      # The manifests only need the hash of the Windows archive. The checksum
+      # file for every release asset is written after the manifests are copied
+      # in, so the manifests are listed in it too.
+      - name: Record SHA-256 of the Windows archive
+        run: |
+          cd release-assets
+          sha256sum terrascope_*_windows_x86_64.zip > "$RUNNER_TEMP/windows-checksums.txt"
+
+      # Scripts come from the commit this workflow runs on, not from the tag:
+      # a tag made before packaging/windows/ existed has no make_manifests.py.
+      - name: Check out packaging scripts
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: source
+
+      - name: Generate Scoop and winget manifests
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          python source/packaging/windows/make_manifests.py \
+            --version "${RELEASE_TAG#v}" \
+            --checksums "$RUNNER_TEMP/windows-checksums.txt" \
+            --output manifests
+          cp manifests/terrascope.json release-assets/
+          cp manifests/winget/*/*.yaml release-assets/
+
+      - name: Generate SHA-256 checksums for all release assets
         run: |
           python - <<'PY'
           import hashlib
           from pathlib import Path
 
-          assets = sorted(path for path in Path("release-assets").iterdir() if path.is_file())
+          checksums = Path("release-assets") / "terrascope_checksums.txt"
+          assets = sorted(
+              path
+              for path in Path("release-assets").iterdir()
+              if path.is_file() and path != checksums
+          )
           lines = [
               f"{hashlib.sha256(asset.read_bytes()).hexdigest()}  {asset.name}"
               for asset in assets
           ]
-          (Path("release-assets") / "terrascope_checksums.txt").write_text(
-              "\n".join(lines) + "\n", encoding="utf-8"
-          )
+          checksums.write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 
       - name: Create release if needed and upload files

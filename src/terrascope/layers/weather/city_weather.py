@@ -10,6 +10,7 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable
 from terrascope.core.config import CACHE_DIR, FETCH_NEW_DATA_FROM_API, USER_AGENT
+from terrascope.core.i18n import _
 from terrascope.core.ui import hex_to_rgb
 from terrascope.layers.weather.config import (
     CITY_CONFIG,
@@ -122,13 +123,13 @@ def fetch_weather_snapshot(latitude: float, longitude: float) -> dict:
         TimeoutError,
         json.JSONDecodeError,
     ) as error:
-        raise WeatherFetchError(f"Weather request failed: {error}") from error
+        raise WeatherFetchError(f"{_('Weather request failed: ')}{error}") from error
     current = payload.get("current")
     if not isinstance(current, dict):
         # Accept responses from older Open-Meteo versions during migration.
         current = payload.get("current_weather")
     if not isinstance(current, dict):
-        raise WeatherFetchError("Weather response missing current_weather")
+        raise WeatherFetchError(_("Weather response missing current_weather"))
     daily = payload.get("daily")
     hourly = payload.get("hourly")
     return {

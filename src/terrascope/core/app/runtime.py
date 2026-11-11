@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from terrascope.core.i18n import _
+
 from .shared import (
     DRAG_FRAME_DELAY_MS,
     Empty,
     FRAME_DELAY_MS,
     HEARTBEAT_SECONDS,
     MAX_KEYS_PER_LOOP,
-    MOUSE_MOTION_OFF,
+    mouse_tracking_sequences,
     PROVINCE_FILE,
     RESIZE_SETTLE_SECONDS,
     TABS,
@@ -47,18 +49,16 @@ class RuntimeMixin:
             elif kind == "province_borders":
                 if error:
                     self.province_state = "failed"
-                    self.province_error = error
                     self.map_statuses.pop("BORDERS", None)
                     border_progress = next(
                         (item for item in download_progress() if item.filename == PROVINCE_FILE),
                         None,
                     )
                     if border_progress is None or border_progress.state != "failed":
-                        self.map_statuses["PROVINCE BORDERS"] = f"PROVINCE BORDERS FAILED: {concise_error_message(error, 80)}"
+                        self.map_statuses["PROVINCE BORDERS"] = f"{_('PROVINCE BORDERS')} {_('FAILED:')} {concise_error_message(error, 80)}"
                 elif self.province_choice == "yes":
                     self.world.set_prepared_provinces(data)
                     self.province_state = "ready"
-                    self.province_error = ""
                     self.map_statuses.pop("BORDERS", None)
                     self.provinces_visible = True
                     for layer in self.world.layers:
@@ -119,8 +119,9 @@ class RuntimeMixin:
                 self.stdscr.refresh()
             except curses.error:
                 pass
-            if sys.stdout.isatty():
-                sys.stdout.write(MOUSE_MOTION_OFF)
+            _, mouse_off = mouse_tracking_sequences()
+            if mouse_off and sys.stdout.isatty():
+                sys.stdout.write(mouse_off)
                 sys.stdout.flush()
             self.colors.restore()
             self.restore_stderr()

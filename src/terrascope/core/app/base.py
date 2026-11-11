@@ -29,7 +29,6 @@ class TerrascopeApp(LifecycleMixin, MouseMixin, TimezoneMixin, InputMixin, Rende
         self.active_tab = START_TAB
         self.province_choice = _saved_province_choice()
         self.province_state = "idle"  # idle | loading | ready | failed; never fetched unless enabled
-        self.province_error = ""
         self.provinces_visible = False
         self.running = True
         self.colors = ColorManager()

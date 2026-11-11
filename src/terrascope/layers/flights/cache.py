@@ -8,6 +8,7 @@ import threading
 import time
 from pathlib import Path
 from terrascope.core.config import FETCH_NEW_DATA_FROM_API
+from terrascope.core.i18n import _
 from terrascope.layers.flights.api import (
     FlightFetchError,
     fetch_opensky_states,
@@ -103,7 +104,7 @@ class FlightCache:
             try:
                 self.save()
             except OSError as error:
-                self.last_error = f"Could not save flight cache: {error}"
+                self.last_error = f"{_('Could not save flight cache: ')}{error}"
             return True
 
     def _merge(self, states: list) -> None:

@@ -5,23 +5,25 @@ from __future__ import annotations
 import math
 from datetime import datetime, timezone
 
+from terrascope.core.i18n import N_, format_number
+
 SYNODIC_MONTH_DAYS = 29.530588853
 
 MOON_EPOCH = datetime(2000, 1, 6, 18, 14, tzinfo=timezone.utc)
 
 MOON_PHASE_NAMES = (
-    "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous",
-    "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent",
+    N_("New Moon"), N_("Waxing Crescent"), N_("First Quarter"), N_("Waxing Gibbous"),
+    N_("Full Moon"), N_("Waning Gibbous"), N_("Last Quarter"), N_("Waning Crescent"),
 )
 
 SUN_PHASES = (
-    (0.0, "Day"),
-    (-6.0, "Civil twilight"),
-    (-12.0, "Nautical twilight"),
-    (-18.0, "Astronomical twilight"),
+    (0.0, N_("Day")),
+    (-6.0, N_("Civil twilight")),
+    (-12.0, N_("Nautical twilight")),
+    (-18.0, N_("Astronomical twilight")),
 )
 
-SUN_NIGHT = "Night"
+SUN_NIGHT = N_("Night")
 
 SUNRISE_ELEVATION = -0.833
 
@@ -87,9 +89,9 @@ def sunrise_sunset(lat: float, lon: float, declination: float, eq_time: float):
         math.sin(math.radians(SUNRISE_ELEVATION)) - math.sin(phi) * math.sin(declination)
     ) / (math.cos(phi) * math.cos(declination) or 1e-9)
     if cos_h <= -1:
-        return "polar day"
+        return N_("polar day")
     if cos_h >= 1:
-        return "polar night"
+        return N_("polar night")
     half_day = math.degrees(math.acos(cos_h))  # degrees of hour angle
     noon = 720 - 4 * lon - eq_time
     return (noon - 4 * half_day) % 1440, (noon + 4 * half_day) % 1440
@@ -116,4 +118,4 @@ def hhmm(minutes: float) -> str:
     return f"{minutes // 60:02d}:{minutes % 60:02d}"
 
 def format_hemisphere(value: float, positive: str, negative: str) -> str:
-    return f"{abs(value):.1f}\u00b0{positive if value >= 0 else negative}"
+    return f"{format_number(abs(value), 1)}\u00b0{positive if value >= 0 else negative}"

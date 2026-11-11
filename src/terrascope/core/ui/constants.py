@@ -10,7 +10,17 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 import numpy as np
+
+# Dim attribute used by Terrascope's own drawing. windows-curses (PDCurses) has
+# no dim attribute (curses.A_DIM is 0 there), so the blink bit stands in: it is
+# unused by Terrascope, and layout.safe_addstr() turns it into a darker colour
+# pair and strips it before anything reaches curses. It has to stay inside the
+# 32-bit chtype: PDCurses hands out colour pairs >= 128 as negative numbers
+# (A_COLOR is -0x1000000), and attributes are passed to curses as a C long.
+# curses itself is not patched, so plugins keep the stock attributes.
+DIM_ATTR = curses.A_DIM or curses.A_BLINK
 from terrascope.core.config import CFG
+from terrascope.core.i18n import N_, _
 from terrascope.core.layer import DEFAULT_INFO_TITLE, InfoImage, Layer, PanelBox, SliderSpec
 from terrascope.core.tabs import TABS
 from terrascope.core.view import BLANK_BRAILLE
@@ -80,10 +90,10 @@ SLIDER_EMPTY = UI["slider_empty"]
 EDGE_STEPS = int(MAP_CONFIG["coast_fade_steps"])
 
 HELP_ITEMS = (
-    ("WASD/ARROWS", "PAN", None),
-    ("+/-/0", "ZOOM", None),
-    ("?", "ABOUT", "about"),
-    (QUIT_KEY, "QUIT", "quit"),
+    ("WASD/ARROWS", _("PAN"), None),
+    ("+/-/0", _("ZOOM"), None),
+    ("?", _("ABOUT"), "about"),
+    (QUIT_KEY, _("QUIT"), "quit"),
 )
 
 HELP_SHORT_KEYS = {"WASD/ARROWS": "WASD"}
@@ -94,13 +104,13 @@ HELP_MIN_GAP = UI["help_min_gap"]
 
 LEGEND_TEXT_COLOR = UI["legend_text_color"]
 
-MAP_BOX_TITLE = "WORLD MAP"
+MAP_BOX_TITLE = _("WORLD MAP")
 
-PANEL_BUTTON_SHOW = f"[{PANEL_KEY}] SHOW PANEL"
+PANEL_BUTTON_SHOW = f"[{PANEL_KEY}] {_('SHOW PANEL')}"
 
-PANEL_BUTTON_HIDE = f"[{PANEL_KEY}] HIDE PANEL"
+PANEL_BUTTON_HIDE = f"[{PANEL_KEY}] {_('HIDE PANEL')}"
 
-INFO_PLACEHOLDER = ("CLICK A MARKER", "", "to inspect its", "information.")
+INFO_PLACEHOLDER = (_("CLICK A MARKER"), "", _("to inspect its"), _("information."))
 
 _BOX = dict(UI["box_chars"])
 
@@ -140,10 +150,10 @@ CONTROLS_COLLAPSED_BUTTON = UI["controls_collapsed_button"]
 CONTROLS_EXPANDED_BUTTON = UI["controls_expanded_button"]
 
 TIMEZONE_OPTIONS: tuple[tuple[str, str | None], ...] = tuple(
-    (str(label), zone) for label, zone in UI["timezones"]
+    (_(str(label)), zone) for label, zone in UI["timezones"]
 )
 
-DROPDOWN_TITLE = "TIMEZONE"
+DROPDOWN_TITLE = _("TIMEZONE")
 
 DROPDOWN_WIDTH = min(UI["dropdown_width"], 34)
 
@@ -159,13 +169,13 @@ DROPDOWN_MAX_HEIGHT = min(UI["dropdown_max_height"], 14)
 
 DROPDOWN_MIN_HEIGHT = min(UI["dropdown_min_height"], 8)
 
-DROPDOWN_PLACEHOLDER = "> search all timezones"
+DROPDOWN_PLACEHOLDER = _("> search all timezones")
 
 DROPDOWN_ACTIVE_MARK = "\u25cf "
 
 DROPDOWN_INACTIVE_MARK = "  "
 
-DROPDOWN_NO_MATCH = "no match"
+DROPDOWN_NO_MATCH = _("no match")
 
 _IGNORED_ZONE_PREFIXES = ("Etc/", "posix/", "right/")
 
@@ -204,13 +214,13 @@ _BANNER_FONT: dict[str, tuple[str, ...]] = {
     "P": ("XXXX.", "X...X", "X...X", "XXXX.", "X....", "X....", "X...."),
 }
 
-WELCOME_TAGLINE = "A live map of the world, drawn in braille, right in your terminal."
+WELCOME_TAGLINE = _("A live map of the world, drawn in braille, right in your terminal.")
 
-WELCOME_DISMISS_HINT = "Esc/click outside: close"
+WELCOME_DISMISS_HINT = _("Esc/click outside: close")
 
-WELCOME_REOPEN_HINT = "? to reopen this guide"
+WELCOME_REOPEN_HINT = _("? to reopen this guide")
 
-WELCOME_SKIP_BUTTON = "[ DON'T SHOW AGAIN ]"
+WELCOME_SKIP_BUTTON = _("[ DON'T SHOW AGAIN ]")
 
 MODAL_PADDING_X = max(4, int(UI["modal_padding_x"]))
 
@@ -221,13 +231,13 @@ MODAL_MARGIN_X = max(2, int(UI["modal_margin_x"]))
 MODAL_MARGIN_Y = max(1, int(UI["modal_margin_y"]))
 
 MODAL_CONTENT: tuple[tuple[str, str | None], ...] = (
-    ("EXPLORE", None),
+    (N_("EXPLORE"), None),
     ("@tabs", None),
     ("", None),
-    ("CONTROLS", None),
-    ("WASD / arrows pan   ·   + / - zoom   ·   0 reset   ·   drag to pan", "text"),
-    ("/ search   ·   O filter   ·   Esc clear   ·   H panel   ·   Q quit", "text"),
-    ("Click markers to inspect them; use < and > when markers overlap.", "text"),
+    (N_("CONTROLS"), None),
+    (N_("WASD / arrows pan   ·   + / - zoom   ·   0 reset   ·   drag to pan"), "text"),
+    (N_("/ search   ·   O filter   ·   Esc clear   ·   H panel   ·   Q quit"), "text"),
+    (N_("Click markers to inspect them; use < and > when markers overlap."), "text"),
 )
 
 SHADE_GLYPHS = ("\u2591", "\u2592", "\u2593")

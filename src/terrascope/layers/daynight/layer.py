@@ -16,9 +16,10 @@ from datetime import datetime, timedelta, timezone
 import numpy as np
 from PIL import Image
 from terrascope.core.config import CFG
+from terrascope.core.i18n import N_, _, format_clock, format_date, format_number
 from terrascope.layers.daynight.astronomy import format_hemisphere, hhmm, moon_info, solar_position, sun_elevation, sun_phase_name, sunrise_sunset
 from terrascope.core.layer import Layer, LayerRender, Marker, PanelBox, SidebarLine, SliderSpec
-from terrascope.core.ui import parse_rgba
+from terrascope.core.ui import parse_rgba, zone_label
 from terrascope.core.view import BLANK_BRAILLE, View, normalize_longitude
 
 NIGHT_CONFIG = CFG["layers"]["night"]
@@ -62,16 +63,16 @@ PHASE_THRESHOLDS = [
 # [CLOCK | SUN | MOON]. The three live boxes are redrawn every frame, so the
 # clock ticks without re-rendering the map.
 PANEL_LAYOUT = (
-    PanelBox("live", NIGHT_CONFIG["panel_ratios"][0], "CLOCK"),
-    PanelBox("live", NIGHT_CONFIG["panel_ratios"][1], "SUN"),
-    PanelBox("live", NIGHT_CONFIG["panel_ratios"][2], "MOON"),
+    PanelBox("live", NIGHT_CONFIG["panel_ratios"][0], N_("CLOCK")),
+    PanelBox("live", NIGHT_CONFIG["panel_ratios"][1], N_("SUN")),
+    PanelBox("live", NIGHT_CONFIG["panel_ratios"][2], N_("MOON")),
 )
 PHASE_LEGEND = (  # (config key, label)
-    ("day_color", "DAY"),
-    ("sunrise_color", "SUNRISE / SUNSET"),
-    ("civil_twilight_color", "CIVIL TWILIGHT"),
-    ("nautical_twilight_color", "NAUTICAL TWILIGHT"),
-    ("astro_twilight_color", "ASTRO TWILIGHT"),
+    ("day_color", _("DAY")),
+    ("sunrise_color", _("SUNRISE / SUNSET")),
+    ("civil_twilight_color", _("CIVIL TWILIGHT")),
+    ("nautical_twilight_color", _("NAUTICAL TWILIGHT")),
+    ("astro_twilight_color", _("ASTRO TWILIGHT")),
 )
 
 # --- info constants -------------------------------------------------------
@@ -96,7 +97,7 @@ class DayNightLayer(Layer):
 
     name = "night"
     toggle_key = NIGHT_CONFIG["toggle_key"]
-    info_title = "DAY / NIGHT"
+    info_title = _("DAY / NIGHT")
     enabled = NIGHT_CONFIG["enabled"]
     wants_country_image = True
     panel_layout = PANEL_LAYOUT
@@ -114,8 +115,8 @@ class DayNightLayer(Layer):
     def slider(self) -> SliderSpec:
         """Scrub solar phases through the 24 hours before and after now."""
         index = self._time_offset_hours + 24
-        caption = "NOW" if self._time_offset_hours == 0 else f"{self._time_offset_hours:+d}h"
-        return SliderSpec("TIME", 49, index, caption, marker=24, wide=True)
+        caption = _("NOW") if self._time_offset_hours == 0 else f"{self._time_offset_hours:+d}h"
+        return SliderSpec(_("TIME"), 49, index, caption, marker=24, wide=True)
 
     def set_slider(self, index: int) -> None:
         self._time_offset_hours = max(-24, min(24, int(index) - 24))
@@ -198,21 +199,21 @@ class DayNightLayer(Layer):
         if title == "CLOCK":
             local = now.astimezone()
             return [
-                ("DATE", f"{now:%Y-%m-%d}"),
-                ("UTC", f"{now:%H:%M:%S}"),
-                ("LOCAL", f"{local:%H:%M:%S} {local.tzname() or ''}".rstrip()),
-                ("DAY", f"{now.timetuple().tm_yday} of year, week {now.isocalendar()[1]}"),
+                (_("DATE"), format_date(now)),
+                (_("UTC"), format_clock(now)),
+                (_("LOCAL"), f"{format_clock(local)} {zone_label(local)}".rstrip()),
+                (_("DAY"), f"{now.timetuple().tm_yday}{_(' of year, week ')}{now.isocalendar()[1]}"),
             ]
         if title == "SUN":
             return self._sun_rows(now)
         if title == "MOON":
             moon = moon_info(now)
             return [
-                ("PHASE", moon["name"]),
-                ("LIT", f"{moon['illumination'] * 100:.0f}%"),
-                ("AGE", f"{moon['age']:.1f} days"),
-                ("NEW IN", f"{moon['to_new']:.1f} days"),
-                ("FULL IN", f"{moon['to_full']:.1f} days"),
+                (_("PHASE"), _(str(moon["name"]))),
+                (_("LIT"), f"{moon['illumination'] * 100:.0f}%"),
+                (_("AGE"), f"{format_number(moon['age'], 1)} {_('days')}"),
+                (_("NEW IN"), f"{format_number(moon['to_new'], 1)} {_('days')}"),
+                (_("FULL IN"), f"{format_number(moon['to_full'], 1)} {_('days')}"),
             ]
         return []
 
@@ -227,25 +228,25 @@ class DayNightLayer(Layer):
         rising = sunrise_sunset(lat, lon, declination, eq_time)
 
         rows = [
-            ("CENTRE", f"{format_hemisphere(lat, 'N', 'S')} {format_hemisphere(lon, 'E', 'W')}"),
-            ("PHASE", f"{sun_phase_name(elevation)} ({elevation:+.1f}\u00b0)"),
+            (_("CENTRE"), f"{format_hemisphere(lat, _('N'), _('S'))} {format_hemisphere(lon, _('E'), _('W'))}"),
+            (_("PHASE"), f"{_(sun_phase_name(elevation))} ({'+' if elevation >= 0 else ''}{format_number(elevation, 1)}\u00b0)"),
         ]
         if isinstance(rising, str):
-            rows.append(("TIMES", rising))
+            rows.append((_("TIMES"), _(rising)))
         else:
             rise, sunset = rising
             day_length = (sunset - rise) % 1440
             rows += [
-                ("RISE", f"{hhmm(rise)} UTC"),
-                ("SET", f"{hhmm(sunset)} UTC"),
-                ("LENGTH", f"{int(day_length // 60)}h{int(day_length % 60):02d}m"),
+                (_("RISE"), f"{hhmm(rise)} {_('UTC')}"),
+                (_("SET"), f"{hhmm(sunset)} {_('UTC')}"),
+                (_("LENGTH"), f"{int(day_length // 60)}h{int(day_length % 60):02d}m"),
             ]
         rows += [
-            ("SOLAR", f"{hhmm(solar_time)} solar time"),
+            (_("SOLAR"), f"{hhmm(solar_time)} {_('solar time')}"),
             (
-                "SUBSOLAR",
-                f"{format_hemisphere(math.degrees(declination), 'N', 'S')} "
-                f"{format_hemisphere(subsolar_lon, 'E', 'W')}",
+                _("SUBSOLAR"),
+                f"{format_hemisphere(math.degrees(declination), _('N'), _('S'))} "
+                f"{format_hemisphere(subsolar_lon, _('E'), _('W'))}",
             ),
         ]
         return rows

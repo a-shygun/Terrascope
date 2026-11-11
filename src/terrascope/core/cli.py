@@ -49,8 +49,12 @@ try:
 except Exception as error:  # a broken terrascope_CONFIG file, for example
     sys.exit(f"terrascope: could not load configuration: {error}")
 
-# Command-line texts (hardcoded; edit here).
-CLI_DESCRIPTION = (
+from terrascope.core import i18n
+from terrascope.core.i18n import N_, _
+
+# Command-line texts (hardcoded; edit here). They are translated when the
+# parser is built (build_parser), so the language must be chosen before that.
+CLI_DESCRIPTION = N_(
     "A Braille terminal map with live air, weather, and quake layers.\n"
     "Every option below overrides the matching value in default.yaml for this run only."
 )
@@ -127,23 +131,24 @@ def _pair(text: str) -> list[int]:
 # The option table: one row per default.yaml setting that has a flag
 # ---------------------------------------------------------------------------
 
-G_STARTUP = "Startup and layers"
-G_DATA = "Data, network and cache"
-G_TERMINAL = "Terminal and main loop"
-G_MAP = "Map appearance"
-G_ZOOM = "Zoom and panning"
-G_LAYOUT = "Screen layout"
-G_BASEMAP = "Place names (basemap layer)"
-G_PLANES = "Planes and airports (PLANES tab)"
-G_CITIES = "Weather: cities and forecast (WEATHER tab)"
-G_RADAR = "Weather: radar / cloud overlay (WEATHER tab)"
-G_QUAKES = "Weather: earthquakes (WEATHER tab)"
-G_NIGHT = "Day / night (TIME tab)"
-G_ADVANCED = "Configuration files and raw settings"
-G_INFO = "Information (print something and exit)"
+G_STARTUP = N_("Startup and layers")
+G_DATA = N_("Data, network and cache")
+G_TERMINAL = N_("Terminal and main loop")
+G_MAP = N_("Map appearance")
+G_ZOOM = N_("Zoom and panning")
+G_LAYOUT = N_("Screen layout")
+G_BASEMAP = N_("Place names (basemap layer)")
+G_PLANES = N_("Planes and airports (PLANES tab)")
+G_CITIES = N_("Weather: cities and forecast (WEATHER tab)")
+G_RADAR = N_("Weather: radar / cloud overlay (WEATHER tab)")
+G_QUAKES = N_("Weather: earthquakes (WEATHER tab)")
+G_NIGHT = N_("Day / night (TIME tab)")
+G_ADVANCED = N_("Configuration files and raw settings")
+G_INFO = N_("Information (print something and exit)")
+G_REGION = N_("Language and regional formats")
 
 GROUP_ORDER = (
-    G_STARTUP, G_DATA, G_TERMINAL, G_MAP, G_ZOOM, G_LAYOUT, G_BASEMAP,
+    G_STARTUP, G_REGION, G_DATA, G_TERMINAL, G_MAP, G_ZOOM, G_LAYOUT, G_BASEMAP,
     G_PLANES, G_CITIES, G_RADAR, G_QUAKES, G_NIGHT, G_ADVANCED, G_INFO,
 )
 
@@ -165,160 +170,165 @@ def _o(group, flags, path, kind, help, metavar=None, choices=None) -> Opt:
     return Opt(group, tuple(flags) if isinstance(flags, (tuple, list)) else (flags,), path, kind, help, metavar, choices)
 
 OPTIONS: tuple[Opt, ...] = (
+    # -- language and regional formats (--lang is read before the parser: see run())
+    _o(G_REGION, "--time-format", "app.time_format", str,
+       N_("Clock format: 24 h or 12 h. The default follows the language."), "FORMAT", ("auto", "24h", "12h")),
+    _o(G_REGION, "--units", "app.units", str,
+       N_("Temperatures and speeds: metric (°C, km/h) or imperial (°F, mph)."), "UNITS", ("auto", "metric", "imperial")),
     # -- startup
     _o(G_STARTUP, "--panel", "app.panel_visible_at_start", "bool",
-       "Show the panel at launch (the H key toggles it)."),
+       N_("Show the panel at launch (the H key toggles it).")),
     # -- data and network
     _o(G_DATA, "--download-timeout", "data.download_timeout_seconds", POS_FLOAT,
-       "Timeout for downloading Natural Earth map data.", "SECONDS"),
+       N_("Timeout for downloading Natural Earth map data."), "SECONDS"),
     _o(G_DATA, "--map-data-url", "data.natural_earth_base_url", str,
-       "Base URL the Natural Earth GeoJSON files are downloaded from.", "URL"),
+       N_("Base URL the Natural Earth GeoJSON files are downloaded from."), "URL"),
     # -- terminal and main loop
     _o(G_TERMINAL, "--redefine-palette", "terminal.redefine_palette", "bool",
-       "Redefine terminal palette slots to the exact colours (turn off if "
-       "colours look wrong or stay garbled after exit)."),
+       N_("Redefine terminal palette slots to the exact colours (turn off if "
+       "colours look wrong or stay garbled after exit).")),
     _o(G_TERMINAL, "--max-color-pairs", "terminal.max_color_pairs", _number(int, 2),
-       "Upper bound on curses colour pairs (default: automatic, capped at 255).", "N"),
+       N_("Upper bound on curses colour pairs (default: automatic, capped at 255)."), "N"),
     _o(G_TERMINAL, "--min-width", "app.min_terminal_width", POS_INT,
-       "Below this many columns the app shows 'Terminal too small'.", "COLS"),
+       N_("Below this many columns the app shows 'Terminal too small'."), "COLS"),
     _o(G_TERMINAL, "--min-height", "app.min_terminal_height", POS_INT,
-       "Below this many rows the app shows 'Terminal too small'.", "ROWS"),
+       N_("Below this many rows the app shows 'Terminal too small'."), "ROWS"),
     _o(G_TERMINAL, "--frame-delay", "app.frame_delay_ms", NONNEG_INT,
-       "Main-loop sleep between passes.", "MS"),
+       N_("Main-loop sleep between passes."), "MS"),
     _o(G_TERMINAL, "--drag-frame-delay", "app.drag_frame_delay_ms", NONNEG_INT,
-       "Main-loop sleep while dragging the map.", "MS"),
+       N_("Main-loop sleep while dragging the map."), "MS"),
     _o(G_TERMINAL, "--heartbeat", "app.heartbeat_seconds", POS_FLOAT,
-       "Forced repaint interval when nothing changes.", "SECONDS"),
+       N_("Forced repaint interval when nothing changes."), "SECONDS"),
     _o(G_TERMINAL, "--max-keys", "app.max_keys_per_loop", POS_INT,
-       "Input events drained per loop pass (so held keys don't lag).", "N"),
+       N_("Input events drained per loop pass (so held keys don't lag)."), "N"),
     _o(G_TERMINAL, "--log-file", "app.log_file", str,
-       "Name of the log file inside the cache directory (stderr goes there).", "NAME"),
+       N_("Name of the log file inside the cache directory (stderr goes there)."), "NAME"),
     # -- map appearance
-    _o(G_MAP, "--country-color", "map.country_color", _color, "Country outlines.", "HEX"),
+    _o(G_MAP, "--country-color", "map.country_color", _color, N_("Country outlines."), "HEX"),
     _o(G_MAP, "--province-color", "map.province_color", _color,
-       "State / province borders (default: the country colour, dimmed).", "HEX"),
+       N_("State / province borders (default: the country colour, dimmed)."), "HEX"),
     _o(G_MAP, "--water-color", "map.water_color", _color_alpha,
-       "Ocean background: #rrggbb, #rrggbbaa (aa = opacity) or 'none' for transparent.", "HEX|none"),
+       N_("Ocean background: #rrggbb, #rrggbbaa (aa = opacity) or 'none' for transparent."), "HEX|none"),
     _o(G_MAP, "--land-color", "map.land_color", _color_alpha,
-       "Land background: #rrggbb, #rrggbbaa (aa = opacity) or 'none' for transparent.", "HEX|none"),
+       N_("Land background: #rrggbb, #rrggbbaa (aa = opacity) or 'none' for transparent."), "HEX|none"),
     _o(G_MAP, "--blend-color", "map.transparent_blend_color", _color,
-       "Colour partial opacity is blended against (roughly your terminal's background).", "HEX"),
+       N_("Colour partial opacity is blended against (roughly your terminal's background)."), "HEX"),
     _o(G_MAP, "--cell-aspect", "map.cell_aspect", POS_FLOAT,
-       "Terminal cell height / width; try 1.8-2.2 if the map looks stretched.", "RATIO"),
+       N_("Terminal cell height / width; try 1.8-2.2 if the map looks stretched."), "RATIO"),
     _o(G_MAP, "--coast-fade-steps", "map.coast_fade_steps", POS_INT,
-       "Shades between water and land (fewer = fewer colour pairs used).", "N"),
+       N_("Shades between water and land (fewer = fewer colour pairs used)."), "N"),
     _o(G_MAP, "--lat-min", "map.lat_min", _number(float, -90, 90),
-       "Southern edge of the visible latitude band.", "DEG"),
+       N_("Southern edge of the visible latitude band."), "DEG"),
     _o(G_MAP, "--lat-max", "map.lat_max", _number(float, -90, 90),
-       "Northern edge of the visible latitude band.", "DEG"),
+       N_("Northern edge of the visible latitude band."), "DEG"),
     # -- zoom and panning
     _o(G_ZOOM, "--zoom-min", "map.zoom.min", POS_FLOAT,
-       "Fully zoomed-out level (also the starting zoom).", "ZOOM"),
-    _o(G_ZOOM, "--zoom-max", "map.zoom.max", POS_FLOAT, "Most zoomed-in level.", "ZOOM"),
+       N_("Fully zoomed-out level (also the starting zoom)."), "ZOOM"),
+    _o(G_ZOOM, "--zoom-max", "map.zoom.max", POS_FLOAT, N_("Most zoomed-in level."), "ZOOM"),
     _o(G_ZOOM, "--zoom-step", "map.zoom.step", _number(float, 1, low_open=True),
-       "Zoom multiplier per key press / wheel notch.", "FACTOR"),
+       N_("Zoom multiplier per key press / wheel notch."), "FACTOR"),
     _o(G_ZOOM, "--pan-step", "map.zoom.pan_step", _number(float, 0, 1, low_open=True),
-       "Fraction of the visible span moved per key press.", "FRACTION"),
+       N_("Fraction of the visible span moved per key press."), "FRACTION"),
     _o(G_ZOOM, "--province-zoom", "map.zoom.province_min", POS_FLOAT,
-       "State / province borders appear from this zoom on.", "ZOOM"),
+       N_("State / province borders appear from this zoom on."), "ZOOM"),
     # -- screen layout
     _o(G_LAYOUT, "--outer-margin", "ui.outer_margin", _pair,
-       "Columns,rows kept free around the screen, e.g. 2,1.", "COLS,ROWS"),
+       N_("Columns,rows kept free around the screen, e.g. 2,1."), "COLS,ROWS"),
     _o(G_LAYOUT, "--panel-height", "ui.panel_height", _number(int, 5),
-       "Horizontal panel height in rows, borders included.", "ROWS"),
+       N_("Horizontal panel height in rows, borders included."), "ROWS"),
     _o(G_LAYOUT, "--panel-orientation", "ui.panel_orientation", str,
-       "Panel placement: horizontal along the bottom or vertical on the left.",
+       N_("Panel placement: horizontal along the bottom or vertical on the left."),
        "MODE", ("horizontal", "vertical")),
-    _o(G_LAYOUT, "--tab-gap", "ui.tab_gap", NONNEG_INT, "Blank columns between tabs.", "COLS"),
-    _o(G_LAYOUT, "--legend-color", "ui.legend_text_color", _color, "Legend text on the map.", "HEX"),
+    _o(G_LAYOUT, "--tab-gap", "ui.tab_gap", NONNEG_INT, N_("Blank columns between tabs."), "COLS"),
+    _o(G_LAYOUT, "--legend-color", "ui.legend_text_color", _color, N_("Legend text on the map."), "HEX"),
     # -- basemap
     _o(G_BASEMAP, "--country-click", "layers.basemap.country_click_expands", "bool",
-       "Clicking a country code toggles its full name."),
+       N_("Clicking a country code toggles its full name.")),
     _o(G_BASEMAP, "--country-max-zoom", "layers.basemap.country_max_zoom", POS_FLOAT,
-       "Country names show up to this zoom, then give way to cities.", "ZOOM"),
+       N_("Country names show up to this zoom, then give way to cities."), "ZOOM"),
     _o(G_BASEMAP, "--capital-min-zoom", "layers.basemap.capital_min_zoom", POS_FLOAT,
-       "National capitals show from this zoom on.", "ZOOM"),
+       N_("National capitals show from this zoom on."), "ZOOM"),
     _o(G_BASEMAP, "--major-city-population", "layers.basemap.major_city_min_population", NONNEG_INT,
-       "Tabs without full detail only label cities at least this big.", "PEOPLE"),
+       N_("Tabs without full detail only label cities at least this big."), "PEOPLE"),
     _o(G_BASEMAP, "--label-padding", "layers.basemap.label_padding", NONNEG_INT,
-       "Blank columns required between two labels on a row.", "COLS"),
+       N_("Blank columns required between two labels on a row."), "COLS"),
     _o(G_BASEMAP, "--max-labels", "layers.basemap.max_labels", POS_INT,
-       "Hard cap on place-name labels.", "N"),
+       N_("Hard cap on place-name labels."), "N"),
     # -- planes and airports
     _o(G_PLANES, "--flights-refresh", "layers.flights.refresh_interval_seconds", POS_INT,
-       "Minimum time between OpenSky requests (anonymous use is rate-limited).", "SECONDS"),
+       N_("Minimum time between OpenSky requests (anonymous use is rate-limited)."), "SECONDS"),
     _o(G_PLANES, "--flights-timeout", "layers.flights.request_timeout_seconds", POS_FLOAT,
-       "OpenSky request timeout.", "SECONDS"),
-    _o(G_PLANES, "--opensky-url", "layers.flights.api_url", str, "OpenSky states endpoint.", "URL"),
+       N_("OpenSky request timeout."), "SECONDS"),
+    _o(G_PLANES, "--opensky-url", "layers.flights.api_url", str, N_("OpenSky states endpoint."), "URL"),
     _o(G_PLANES, "--flight-history", "layers.flights.history_points", POS_INT,
-       "Positions remembered per aircraft (tail length and time-slider range).", "N"),
+       N_("Positions remembered per aircraft (tail length and time-slider range)."), "N"),
     _o(G_PLANES, "--arrow-zoom", "layers.flights.arrow_zoom_threshold", POS_FLOAT,
-       "At this zoom or higher plane dots become heading arrows.", "ZOOM"),
+       N_("At this zoom or higher plane dots become heading arrows."), "ZOOM"),
     _o(G_PLANES, "--airports", "layers.flights.airports.enabled", "bool",
-       "Airport markers on the planes tab (the K key toggles them)."),
+       N_("Airport markers on the planes tab (the K key toggles them).")),
     _o(G_PLANES, "--airport-label-zoom", "layers.flights.airports.label_min_zoom", POS_FLOAT,
-       "IATA/ICAO codes appear from this zoom on.", "ZOOM"),
+       N_("IATA/ICAO codes appear from this zoom on."), "ZOOM"),
     _o(G_PLANES, "--airport-max-labels", "layers.flights.airports.max_labels", POS_INT,
-       "Hard cap on airport markers.", "N"),
+       N_("Hard cap on airport markers."), "N"),
     _o(G_PLANES, "--airport-color", "layers.flights.airports.color", _color,
-       "Airport marker colour.", "HEX"),
+       N_("Airport marker colour."), "HEX"),
     # -- weather: cities
     _o(G_CITIES, "--cities", "layers.weather.cities.enabled", "bool",
-       "City labels with temperatures (the C key toggles them)."),
+       N_("City labels with temperatures (the C key toggles them).")),
     _o(G_CITIES, "--weather-refresh", "layers.weather.cities.weather_refresh_interval_seconds", POS_INT,
-       "How often a city's weather is refreshed.", "SECONDS"),
-    _o(G_CITIES, "--weather-url", "layers.weather.cities.api_url", str, "Open-Meteo endpoint.", "URL"),
+       N_("How often a city's weather is refreshed."), "SECONDS"),
+    _o(G_CITIES, "--weather-url", "layers.weather.cities.api_url", str, N_("Open-Meteo endpoint."), "URL"),
     _o(G_CITIES, "--weather-concurrency", "layers.weather.cities.max_concurrent_requests", POS_INT,
-       "Simultaneous weather requests.", "N"),
+       N_("Simultaneous weather requests."), "N"),
     _o(G_CITIES, "--forecast-days", "layers.weather.cities.forecast_days_ahead", _number(int, 0, 15),
-       "Days after today shown in the forecast box (0-15).", "N"),
+       N_("Days after today shown in the forecast box (0-15)."), "N"),
     _o(G_CITIES, "--city-max-labels", "layers.weather.cities.max_labels", POS_INT,
-       "Most cities labelled (and weather-fetched) at once.", "N"),
+       N_("Most cities labelled (and weather-fetched) at once."), "N"),
     _o(G_CITIES, "--cold-color", "layers.weather.cities.temperature_cold_color", _color,
-       "Colour of the coldest city.", "HEX"),
+       N_("Colour of the coldest city."), "HEX"),
     _o(G_CITIES, "--hot-color", "layers.weather.cities.temperature_hot_color", _color,
-       "Colour of the hottest city.", "HEX"),
+       N_("Colour of the hottest city."), "HEX"),
     # -- weather: radar
-    _o(G_RADAR, "--radar", "layers.weather.radar.enabled", "bool", "Rain radar / cloud overlay."),
+    _o(G_RADAR, "--radar", "layers.weather.radar.enabled", "bool", N_("Rain radar / cloud overlay.")),
     _o(G_RADAR, "--radar-mode", "layers.weather.radar.mode", str,
-       "RainViewer provides radar only; satellite mode is unavailable.", "MODE", ("radar", "satellite")),
+       N_("RainViewer provides radar only; satellite mode is unavailable."), "MODE", ("radar", "satellite")),
     _o(G_RADAR, "--radar-url", "layers.weather.radar.url", str,
-       "RainViewer catalog API (terrascope_RAINVIEWER_URL overrides this).", "URL"),
+       N_("RainViewer catalog API (terrascope_RAINVIEWER_URL overrides this)."), "URL"),
     _o(G_RADAR, "--radar-opacity", "layers.weather.radar.opacity", UNIT_FLOAT,
-       "1 = full palette colours, lower = fainter.", "0-1"),
+       N_("1 = full palette colours, lower = fainter."), "0-1"),
     _o(G_RADAR, "--radar-animate", "layers.weather.radar.animate", "bool",
-       "Loop all frames instead of holding the live frame."),
+       N_("Loop all frames instead of holding the live frame.")),
     _o(G_RADAR, "--radar-past-frames", "layers.weather.radar.past_frames", NONNEG_INT,
-       "Most observed frames kept (10 minutes apart).", "N"),
+       N_("Most observed frames kept (10 minutes apart)."), "N"),
     _o(G_RADAR, "--radar-nowcast-frames", "layers.weather.radar.nowcast_frames", NONNEG_INT,
-       "Legacy setting; RainViewer no longer provides forecast frames.", "N"),
+       N_("Legacy setting; RainViewer no longer provides forecast frames."), "N"),
     _o(G_RADAR, "--radar-history-minutes", "layers.weather.radar.history_minutes", NONNEG_FLOAT,
-       "Drop observed frames older than this (0 = keep everything offered).", "MINUTES"),
+       N_("Drop observed frames older than this (0 = keep everything offered)."), "MINUTES"),
     _o(G_RADAR, "--radar-world-zoom", "layers.weather.radar.world_zoom", _number(int, 1, 4),
-       "Raster detail: each step quadruples the tile requests per frame.", "Z"),
+       N_("Raster detail: each step quadruples the tile requests per frame."), "Z"),
     _o(G_RADAR, "--radar-color-steps", "layers.weather.radar.color_steps", _number(int, 2, 16),
-       "Intensity levels / colours (above ~10 colours may get mixed up).", "N"),
+       N_("Intensity levels / colours (above ~10 colours may get mixed up)."), "N"),
     _o(G_RADAR, "--radar-supersample", "layers.weather.radar.supersample", _number(int, 1, 4),
-       "Samples per half-cell per axis (1 = fastest, 3 = smoothest).", "N"),
+       N_("Samples per half-cell per axis (1 = fastest, 3 = smoothest)."), "N"),
     _o(G_RADAR, "--radar-blend-color", "layers.weather.radar.blend_color", _color,
-       "Colour the radar fades towards (roughly the map's colour).", "HEX"),
+       N_("Colour the radar fades towards (roughly the map's colour)."), "HEX"),
     # -- weather: earthquakes
     _o(G_QUAKES, "--quakes", "layers.weather.earthquakes.enabled", "bool",
-       "Earthquake markers (the E key toggles them)."),
+       N_("Earthquake markers (the E key toggles them).")),
     _o(G_QUAKES, "--quake-min-magnitude", "layers.weather.earthquakes.min_magnitude", FLOAT,
-       "Events below this magnitude are hidden.", "MAG"),
+       N_("Events below this magnitude are hidden."), "MAG"),
     _o(G_QUAKES, "--quake-refresh", "layers.weather.earthquakes.refresh_interval_seconds", POS_INT,
-       "Minimum time between USGS requests.", "SECONDS"),
+       N_("Minimum time between USGS requests."), "SECONDS"),
     _o(G_QUAKES, "--quake-dim-hours", "layers.weather.earthquakes.dim_after_hours", NONNEG_FLOAT,
-       "Quakes older than this are drawn faded.", "HOURS"),
-    _o(G_QUAKES, "--quake-feed", "layers.weather.earthquakes.api_url", str, "USGS GeoJSON feed.", "URL"),
+       N_("Quakes older than this are drawn faded."), "HOURS"),
+    _o(G_QUAKES, "--quake-feed", "layers.weather.earthquakes.api_url", str, N_("USGS GeoJSON feed."), "URL"),
     # -- day / night
     _o(G_NIGHT, "--night-look", "layers.night.look", str,
-       "Starting look: 'tint' (coloured land background) or 'fill' (dotted fill).", "LOOK", ("tint", "fill")),
+       N_("Starting look: 'tint' (coloured land background) or 'fill' (dotted fill)."), "LOOK", ("tint", "fill")),
     _o(G_NIGHT, "--tint-opacity", "layers.night.tint_opacity", UNIT_FLOAT,
-       "Opacity of the land tint (0 = none, 1 = full colour).", "0-1"),
+       N_("Opacity of the land tint (0 = none, 1 = full colour)."), "0-1"),
     _o(G_NIGHT, "--night-update", "layers.night.update_seconds", POS_FLOAT,
-       "How often the day/night bands are recalculated.", "SECONDS"),
+       N_("How often the day/night bands are recalculated."), "SECONDS"),
 )
 
 # Dotted settings that only exist as comments in default.yaml; flags for them
@@ -331,59 +341,70 @@ _CREATABLE = OPTIONAL_KEYS
 
 def _show(value: Any) -> str:
     if isinstance(value, bool):
-        return "on" if value else "off"
+        return _("on") if value else _("off")
     return str(value)
 
 def _option_help(opt: Opt) -> str:
-    text = opt.help
+    text = _(opt.help)
     if opt.choices:
-        text += f" One of: {', '.join(opt.choices)}."
+        text += " " + _("One of: {choices}.").format(choices=", ".join(opt.choices))
     default = config.get_path(opt.path)
     if default is not None and not isinstance(default, (dict, list)):
-        text += f" (default: {_show(default)})"
+        text += " " + _("(default: {value})").format(value=_show(default))
     elif isinstance(default, list):
-        text += f" (default: {','.join(str(item) for item in default)})"
+        text += " " + _("(default: {value})").format(value=",".join(str(item) for item in default))
     return text.replace("%", "%%")
+
+def _lang_from_argv(argv: list[str]) -> str | None:
+    """--lang is read before the parser exists, so that the help text can be
+    translated. The main parser has its own --lang for the help and checks."""
+    scan = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    scan.add_argument("--lang")
+    return scan.parse_known_args(argv)[0].lang
 
 def _tab_names() -> list[str]:
     return [str(item["name"]) for item in config.CFG["tabs"]["items"]]
 
 def build_parser() -> argparse.ArgumentParser:
     tabs = ", ".join(f"{i + 1}={name}" for i, name in enumerate(_tab_names()))
-    epilog = f"""\
-examples:
-  terrascope                                   start on the first tab
-  terrascope --tab planes --offline            planes tab, cached data only
-  terrascope -t 3 --radar-mode radar --radar-opacity 0.8
-  terrascope --water-color '#0b1d2e' --land-color none
-  terrascope --no-airports --flights-refresh 600
-  terrascope --disable-layer night --no-redefine-palette
-  terrascope --set 'map.zoom.max=128' --set 'map.country_code_overrides={{DE: "GER"}}'
-  terrascope --config ~/terrascope.yaml --dump-config
-
-tabs: {tabs}
-
-precedence (later wins):
-  default.yaml  <  $terrascope_CONFIG file  <  --config files  <  flags  <  --set
-
-notes:
-  * Flags with a --no-X form switch a feature on or off (e.g. --airports / --no-airports).
-  * Colours are #rrggbb (quote them in your shell: '#rrggbb').
-  * --set takes YAML values, so colours must be quoted inside: --set 'map.land_color="#101018"'.
-  * Run --dump-config to see every setting you can change with --set.
-
-environment variables:
-  terrascope_OFFLINE=1        same as --offline
-  terrascope_CONFIG=FILE      same as --config FILE (applied first)
-  terrascope_RAINVIEWER_URL   RainViewer catalog API (beats --radar-url)
-  XDG_CACHE_HOME            cache location when --cache-dir is not given
-
-in-app keys: run `terrascope --list-keys`.
-"""
+    examples = [
+        ("terrascope", _("start on the first tab")),
+        ("terrascope --tab planes --offline", _("planes tab, cached data only")),
+        ("terrascope -t 3 --radar-mode radar --radar-opacity 0.8", ""),
+        ("terrascope --water-color '#0b1d2e' --land-color none", ""),
+        ("terrascope --no-airports --flights-refresh 600", ""),
+        ("terrascope --disable-layer night --no-redefine-palette", ""),
+        ("terrascope --set 'map.zoom.max=128' --set 'map.country_code_overrides={DE: \"GER\"}'", ""),
+        ("terrascope --config ~/terrascope.yaml --dump-config", ""),
+    ]
+    epilog = "\n".join([
+        _("examples:"),
+        *[f"  {command.ljust(45)}{note}".rstrip() for command, note in examples],
+        "",
+        f"{_('tabs')}: {tabs}",
+        "",
+        _("precedence (later wins):"),
+        "  default.yaml  <  $terrascope_CONFIG file  <  --config files  <  flags  <  --set",
+        "",
+        _("notes:"),
+        "  * " + _("Flags with a --no-X form switch a feature on or off (e.g. --airports / --no-airports)."),
+        "  * " + _("Colours are #rrggbb (quote them in your shell: '#rrggbb')."),
+        "  * " + _("--set takes YAML values, so colours must be quoted inside: --set 'map.land_color=\"#101018\"'."),
+        "  * " + _("Run --dump-config to see every setting you can change with --set."),
+        "",
+        _("environment variables:"),
+        f"  terrascope_OFFLINE=1        {_('same as --offline')}",
+        f"  terrascope_CONFIG=FILE      {_('same as --config FILE (applied first)')}",
+        f"  terrascope_RAINVIEWER_URL   {_('RainViewer catalog API (beats --radar-url)')}",
+        f"  XDG_CACHE_HOME            {_('cache location when --cache-dir is not given')}",
+        "",
+        _("in-app keys: run `terrascope --list-keys`."),
+        "",
+    ])
     parser = argparse.ArgumentParser(
         prog="terrascope",
         usage="%(prog)s [OPTIONS]",
-        description=CLI_DESCRIPTION,
+        description=_(CLI_DESCRIPTION),
         epilog=epilog,
         formatter_class=lambda prog: argparse.RawDescriptionHelpFormatter(
             prog, max_help_position=34
@@ -391,53 +412,57 @@ in-app keys: run `terrascope --list-keys`.
         add_help=False,
         allow_abbrev=False,
     )
-    groups = {name: parser.add_argument_group(name) for name in GROUP_ORDER}
+    groups = {name: parser.add_argument_group(_(name)) for name in GROUP_ORDER}
+    groups[G_REGION].add_argument(
+        "--lang", metavar="LANG", default=None,
+        help=_("Interface language, e.g. en or pt_BR (default: auto: the config, then the system)."),
+    )
 
     # -- information
     info = groups[G_INFO]
-    info.add_argument("-h", "--help", action="help", help="Show this help and exit.")
+    info.add_argument("-h", "--help", action="help", help=_("Show this help and exit."))
     info.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}",
-                      help="Show the version and exit.")
+                      help=_("Show the version and exit."))
     info.add_argument("-l", "--list-layers", action="store_true",
-                      help="List layers (name, on/off, toggle key) and exit.")
+                      help=_("List layers (name, on/off, toggle key) and exit."))
     info.add_argument("--list-tabs", action="store_true",
-                      help="List tabs (number, name, layers they switch on) and exit.")
+                      help=_("List tabs (number, name, layers they switch on) and exit."))
     info.add_argument("--list-keys", action="store_true",
-                      help="List keyboard shortcuts as currently configured and exit.")
+                      help=_("List keyboard shortcuts as currently configured and exit."))
     info.add_argument("--show-paths", action="store_true",
-                      help="Show cache directory, log file, config files and online/offline state, then exit.")
+                      help=_("Show cache directory, log file, config files and online/offline state, then exit."))
 
     # -- startup
     startup = groups[G_STARTUP]
     startup.add_argument("-t", "--tab", metavar="NAME|N",
-                         help="Tab to open at launch: a name or its number (1 = first).")
+                         help=_("Tab to open at launch: a name or its number (1 = first)."))
     startup.add_argument("-d", "--disable-layer", action="append", default=[], metavar="NAME",
-                         help="Start with a layer disabled, whatever the tab says (repeatable; see --list-layers).")
+                         help=_("Start with a layer disabled, whatever the tab says (repeatable; see --list-layers)."))
 
     # -- data / network / cache
     data = groups[G_DATA]
     data.add_argument("--offline", action="store_true",
-                      help="Use cached data only and disable live API requests.")
+                      help=_("Use cached data only and disable live API requests."))
     data.add_argument("--online", action="store_true",
-                      help="Force live requests on (overrides the config file and terrascope_OFFLINE).")
+                      help=_("Force live requests on (overrides the config file and terrascope_OFFLINE)."))
     data.add_argument("--cache-dir", metavar="DIR",
-                      help="Where caches, downloaded map data and the log file live "
-                           "(default: $XDG_CACHE_HOME/terrascope or ~/.cache/terrascope).")
+                      help=_("Where caches, downloaded map data and the log file live "
+                           "(default: $XDG_CACHE_HOME/terrascope or ~/.cache/terrascope)."))
     data.add_argument("--user-agent", metavar="TEXT",
-                      help="User-Agent sent with every HTTP request "
-                           f"(default: {config.CFG['data']['user_agent']}).".replace("%", "%%"))
+                      help=_("User-Agent sent with every HTTP request (default: {value}).").format(
+                          value=config.CFG["data"]["user_agent"]).replace("%", "%%"))
     data.add_argument("--clear-cache", action="store_true",
-                      help="Delete downloaded map data and flight / weather / quake caches from the cache directory, then exit.")
+                      help=_("Delete downloaded map data and flight / weather / quake caches from the cache directory, then exit."))
 
     # -- advanced
     advanced = groups[G_ADVANCED]
     advanced.add_argument("-c", "--config", action="append", default=[], metavar="FILE",
-                          help="YAML file merged over default.yaml; same layout (repeatable).")
+                          help=_("YAML file merged over default.yaml; same layout (repeatable)."))
     advanced.add_argument("-s", "--set", action="append", default=[], metavar="KEY=VALUE", dest="set_values",
-                          help="Set any default.yaml value by dotted path, value in YAML "
-                               "(repeatable), e.g. --set map.zoom.step=2.")
+                          help=_("Set any default.yaml value by dotted path, value in YAML "
+                               "(repeatable), e.g. --set map.zoom.step=2."))
     advanced.add_argument("--dump-config", action="store_true",
-                          help="Print the effective settings (after all overrides) as YAML and exit.")
+                          help=_("Print the effective settings (after all overrides) as YAML and exit."))
 
     # -- the table
     for opt in OPTIONS:
@@ -606,11 +631,19 @@ def dump_config() -> None:
 
 def run() -> None:
     """Console-script entry point (registered as `terrascope` in pyproject.toml)."""
+    # The language is needed by the help text, so it is chosen before the parser.
+    i18n.activate(_lang_from_argv(sys.argv[1:]))
     parser = build_parser()
     args = parser.parse_args()
+    if args.lang is not None and args.lang.lower() != "auto" and not i18n.is_supported(args.lang):
+        parser.error(
+            f"unsupported language {args.lang!r} (available: {', '.join(i18n.available_languages())})"
+        )
 
     # Every setting must be final before the rest of the app is imported.
     apply_settings(args, parser)
+    # The config files may have changed app.language; --lang still wins.
+    i18n.activate(args.lang)
 
     handled = False
     if args.dump_config:

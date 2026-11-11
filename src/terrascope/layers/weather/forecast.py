@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from datetime import date
+from terrascope.core.i18n import N_, _, format_month_day, format_number, format_speed, format_temperature, speed_value
 from terrascope.layers.weather.city_weather import describe_weather_code, temperature_to_color
 from terrascope.layers.weather.config import (
     CITY_CONFIG,
@@ -109,17 +110,19 @@ def _fit(pieces: list, width: int) -> list:
         out.append((" " * (width - used), None, ""))
     return out
 
+WEEKDAY_ABBREVIATIONS = (N_("Mon"), N_("Tue"), N_("Wed"), N_("Thu"), N_("Fri"), N_("Sat"), N_("Sun"))
+
 def _day_header(day: dict, today: bool) -> list:
     shown = _CITY_TEXT["unknown_date"]
     weekend = False
     try:
         parsed = date.fromisoformat(str(day.get("date")))
-        shown = parsed.strftime("%a %m-%d")
+        shown = f"{_(WEEKDAY_ABBREVIATIONS[parsed.weekday()])} {format_month_day(parsed)}"
         weekend = parsed.weekday() >= 5
     except ValueError:
         pass
     if today:
-        return [("TODAY ", FORECAST_TODAY_COLOR, "bold"), (shown, None, "bold")]
+        return [(_("TODAY "), FORECAST_TODAY_COLOR, "bold"), (shown, None, "bold")]
     return [(shown, FORECAST_WEEKEND_COLOR if weekend else None, "bold")]
 
 def _day_conditions(day: dict) -> list:
@@ -130,12 +133,12 @@ def _temp_extremes(day: dict) -> list:
     """Compact daily low-to-high range, with colour showing each endpoint."""
     low, high = day.get("tmin"), day.get("tmax")
     if low is None or high is None:
-        return [("N/A", None, "dim")]
+        return [(_("N/A"), None, "dim")]
     cold, hot = forecast_temp_color(low), forecast_temp_color(high)
     return [
-        ("▼ ", cold, ""), (f"{low:.0f}°", cold, "bold"),
+        ("▼ ", cold, ""), (format_temperature(low, unit=False), cold, "bold"),
         ("  →  ", None, "dim"),
-        ("▲ ", hot, ""), (f"{high:.0f}°", hot, "bold"),
+        ("▲ ", hot, ""), (format_temperature(high, unit=False), hot, "bold"),
     ]
 
 def _temp_sparkline(hours: list, width: int) -> list:
@@ -159,12 +162,12 @@ def _temp_sparkline(hours: list, width: int) -> list:
 def _precip_row(day: dict) -> list:
     amount, chance = day.get("precip"), day.get("pop")
     if amount is None:
-        return [("☂ ", None, "dim"), ("N/A", None, "dim")]
+        return [("☂ ", None, "dim"), (_("N/A"), None, "dim")]
     color = _step_color(amount, PRECIP_STEPS)
     if amount < PRECIP_STEPS[0][0]:
-        pieces = [("☂ ", color, ""), ("dry", color, "dim")]
+        pieces = [("☂ ", color, ""), (_("dry"), color, "dim")]
     else:
-        pieces = [("☂ ", color, ""), (f"{amount:.1f} mm", color, "bold")]
+        pieces = [("☂ ", color, ""), (f"{format_number(amount, 1)}{_(' mm')}", color, "bold")]
     if chance is not None:
         pieces.append((f"  {chance:.0f}%", color, "dim"))
     return pieces
@@ -172,11 +175,13 @@ def _precip_row(day: dict) -> list:
 def _wind_row(day: dict) -> list:
     wind, gust = day.get("wind"), day.get("gust")
     if wind is None:
-        return [("≈ ", None, "dim"), ("N/A", None, "dim")]
+        return [("≈ ", None, "dim"), (_("N/A"), None, "dim")]
     color = _step_color(gust if gust is not None else wind, WIND_STEPS)
-    pieces = [("≈ ", color, ""), (f"{wind:.0f} km/h", color, "bold")]
+    pieces = [("≈ ", color, ""), (format_speed(wind), color, "bold")]
     if gust is not None:
-        pieces.append((f"  gust {gust:.0f}", color, "dim"))
+        # Same unit as the wind figure beside it (the unit is not repeated: the row
+        # is cut at the 21-column minimum, see _fit).
+        pieces.append((f"  {_('gust')} {speed_value(gust)}", color, "dim"))
     return pieces
 
 def _sun_row(day: dict) -> list:
@@ -189,7 +194,7 @@ def _sun_row(day: dict) -> list:
         pieces += [(" " if pieces else "", None, ""), ("↓", SUNSET_COLOR, ""), (sunset, None, "")]
     uv = day.get("uv")
     if uv is not None:
-        pieces += [("  UV ", None, "dim"), (f"{uv:.0f}", _step_color(uv, UV_STEPS), "bold")]
+        pieces += [(_("  UV "), None, "dim"), (f"{uv:.0f}", _step_color(uv, UV_STEPS), "bold")]
     return pieces or NO_DATA
 
 def _day_rows(day: dict, today: bool, cell: int) -> list[list]:
@@ -243,7 +248,7 @@ def forecast_vertical_lines(
 def forecast_placeholder() -> list[list]:
     """What the forecast box shows while no city is selected: how to use it and
     a key to the icons, colours and glyphs."""
-    icons: list = [("ICONS  ", None, "dim")]
+    icons: list = [(_("ICONS  "), None, "dim")]
     for name, label in (
         ("clear", "clear"), ("partly", "partly cloudy"), ("cloud", "cloudy"), ("fog", "fog"),
         ("drizzle", "drizzle"), ("rain", "rain"), ("snow", "snow"), ("storm", "thunder"),
@@ -251,17 +256,17 @@ def forecast_placeholder() -> list[list]:
         glyph, color = WEATHER_ICONS.get(name) or WEATHER_ICONS["unknown"]
         icons += [(glyph + " ", color, "bold"), (label + "   ", None, "")]
     cold, hot = int(FORECAST_COLD_C), int(FORECAST_HOT_C)
-    scale: list = [("TEMP   ", None, "dim"), (f"{cold}° ", None, "dim")]
+    scale: list = [(_("TEMP   "), None, "dim"), (f"{format_temperature(cold, unit=False)} ", None, "dim")]
     for degrees in range(cold, hot + 1, 5):
         scale.append(("██", forecast_temp_color(degrees), ""))
-    scale.append((f" {hot}°C", None, "dim"))
+    scale.append((f" {format_temperature(hot)}", None, "dim"))
     key: list = [
-        ("READ   ", None, "dim"), ("▼ → ▲", forecast_temp_color(20), "bold"),
-        (" daily low to high · chart shows the hourly temperature", None, "dim"),
+        (_("READ   "), None, "dim"), ("▼ → ▲", forecast_temp_color(20), "bold"),
+        (_(" daily low to high · chart shows the hourly temperature"), None, "dim"),
     ]
     return [
-        [("CLICK A CITY NAME", None, "bold")],
-        [("its icon and temperature appear on the map, its forecast fills this box.", None, "dim")],
+        [(_("CLICK A CITY NAME"), None, "bold")],
+        [(_("its icon and temperature appear on the map, its forecast fills this box."), None, "dim")],
         [],
         icons,
         scale,
@@ -279,10 +284,10 @@ def forecast_vertical_placeholder(width: int, height: int) -> list[list]:
     snow = WEATHER_ICONS["snow"]
     storm = WEATHER_ICONS["storm"]
     lines = [
-        [("CLICK A CITY NAME", None, "bold")],
-        [("to show its forecast here.", None, "dim")],
+        [(_("CLICK A CITY NAME"), None, "bold")],
+        [(_("to show its forecast here."), None, "dim")],
         [],
-        [("ICONS", None, "dim")],
+        [(_("ICONS"), None, "dim")],
         [(f"{sun[0]} clear", sun[1], "bold"), (" · ", None, "dim"), (f"{partly[0]} partly", partly[1], "bold")],
         [
             (f"{cloud[0]} cloud", cloud[1], "bold"), (" · ", None, "dim"),
@@ -290,10 +295,10 @@ def forecast_vertical_placeholder(width: int, height: int) -> list[list]:
             (f"{rain[0]} rain", rain[1], "bold"),
         ],
         [(f"{snow[0]} snow", snow[1], "bold"), (" · ", None, "dim"), (f"{storm[0]} storm", storm[1], "bold")],
-        [("TEMP ", None, "dim"), ("COLD ", None, "dim")]
+        [(_("TEMP "), None, "dim"), (_("COLD "), None, "dim")]
         + [("██", forecast_temp_color(value), "") for value in range(-10, 31, 10)]
-        + [(" HOT", None, "dim")],
-        [("RANGE", None, "dim"), ("▼ low → ▲ high", forecast_temp_color(20), "bold")],
-        [("CHART", None, "dim"), ("hourly temperature", forecast_temp_color(25), "")],
+        + [(_(" HOT"), None, "dim")],
+        [(_("RANGE"), None, "dim"), (_("▼ low → ▲ high"), forecast_temp_color(20), "bold")],
+        [(_("CHART"), None, "dim"), (_("hourly temperature"), forecast_temp_color(25), "")],
     ]
     return [_fit(line, width) for line in lines[:height]]

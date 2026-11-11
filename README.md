@@ -26,8 +26,8 @@ details may still change.
 
 ## Requirements
 
-- Python 3.10 or newer on macOS or Linux/Unix
-- A UTF-8 terminal
+- Python 3.10 or newer on macOS, Linux/Unix, or Windows 10/11
+- A UTF-8 terminal (on Windows: Windows Terminal or the classic console host)
 - A terminal with 256-color or true-color support for the best appearance
 - Network access for first-run map downloads and live data layers (optional)
 
@@ -37,6 +37,7 @@ Python dependencies are declared in `pyproject.toml`:
 - `Pillow`
 - `PyYAML`
 - `pyshp`
+- `windows-curses` and `tzdata` (Windows only, installed automatically)
 
 ## Installation
 
@@ -112,6 +113,29 @@ The `.deb`, `.rpm`, and `.tar.gz` builds all ship the same PyInstaller
 desktop entry and icon, so it runs without installation. SHA-256 checksums
 for every file are published as `terrascope_checksums.txt` next to the
 release assets.
+
+### Windows
+
+`pipx install terrascope` works on Windows as on the other platforms; the
+Windows-only dependencies (`windows-curses`, `tzdata`) are pulled in
+automatically. Tagged releases also attach a standalone build, so Python is
+not required:
+
+```powershell
+# Scoop, straight from the release manifest
+scoop install https://github.com/a-shygun/Terrascope/releases/latest/download/terrascope.json
+
+# winget (once the package is published in winget-pkgs)
+winget install AShygun.Terrascope
+
+# Portable zip: terrascope_<version>_windows_x86_64.zip from the Releases page
+Expand-Archive .\terrascope_1.0.0_windows_x86_64.zip -DestinationPath .\terrascope
+.\terrascope\terrascope.exe --help
+```
+
+Windows Terminal gives the best result; the classic console host also works.
+Use a font with Braille glyphs, such as Cascadia Mono (the Windows Terminal
+default).
 
 For local development:
 
@@ -381,6 +405,35 @@ Terrascope has no telemetry or analytics. When live layers are enabled, network
 requests go to the configured data providers. Weather requests include the
 coordinates of displayed cities; providers also receive your IP address and
 the Terrascope User-Agent. `--offline` disables live requests.
+
+## Translations
+
+The interface uses gettext, domain `terrascope`. Brazilian Portuguese (`pt_BR`)
+is included. The language is chosen in this order: `--lang`, `app.language` in
+the config, the `LANGUAGE` / `LC_ALL` / `LC_MESSAGES` / `LANG` variables, the
+Windows interface language, and English. Clock and units follow the language:
+24-hour time, °C, km/h, a decimal comma and `dd/mm/yyyy` dates in `pt_BR`.
+Override them with `--time-format 24h|12h` and `--units metric|imperial`, or with
+`app.time_format` and `app.units` in the config.
+
+Catalogues live in `src/terrascope/locale/<lang>/LC_MESSAGES/terrascope.po`.
+The `.mo` files are compiled at build time (`hatch_build.py`, with Babel) and are
+not kept in git. To add a language:
+
+```bash
+pip install babel
+pybabel extract -F babel.cfg -k N_ -o src/terrascope/locale/terrascope.pot .
+pybabel init -i src/terrascope/locale/terrascope.pot -d src/terrascope/locale -l de_DE -D terrascope
+# translate src/terrascope/locale/de_DE/LC_MESSAGES/terrascope.po, then:
+pybabel compile -D terrascope -d src/terrascope/locale
+```
+
+To check a layout with a pseudo-language (accented, 30% longer text):
+
+```bash
+python tools/pseudo_locale.py /tmp/pseudo
+terrascope_LOCALE_DIR=/tmp/pseudo terrascope --lang xx
+```
 
 ## Development Checks
 
