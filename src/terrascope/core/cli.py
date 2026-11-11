@@ -635,7 +635,7 @@ def run() -> None:
     i18n.activate(_lang_from_argv(sys.argv[1:]))
     parser = build_parser()
     args = parser.parse_args()
-    if args.lang not in (None, "auto") and not i18n.is_supported(args.lang):
+    if args.lang is not None and args.lang.lower() != "auto" and not i18n.is_supported(args.lang):
         parser.error(
             f"unsupported language {args.lang!r} (available: {', '.join(i18n.available_languages())})"
         )

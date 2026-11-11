@@ -48,6 +48,12 @@ def test_auto_is_accepted_as_a_language(tmp_path):
     assert result.returncode == 0, result.stderr
 
 
+@pytest.mark.parametrize("value", ["AUTO", "Auto"])
+def test_auto_is_accepted_in_any_case(tmp_path, value):
+    result = _run(["--lang", value, "--list-tabs"], tmp_path)
+    assert result.returncode == 0, result.stderr
+
+
 def test_unsupported_language_is_an_error(tmp_path):
     result = _run(["--lang", "fr", "--list-tabs"], tmp_path)
     assert result.returncode == 2
