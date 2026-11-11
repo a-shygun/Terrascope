@@ -9,7 +9,7 @@ import pytest
 
 from terrascope.core import config, i18n
 from terrascope.core.ui.constants import SLIDER_CAPTION_WIDTH
-from terrascope.layers.weather.forecast import _wind_row
+from terrascope.layers.weather.forecast import _precip_row, _wind_row
 from terrascope.layers.weather.layer import WeatherLayer
 
 
@@ -55,6 +55,17 @@ def test_gust_row_fits_the_minimum_column(language):
     assert len(_text(_wind_row({"wind": 10.0, "gust": 20.0}))) <= 21
     language("pt_BR", "imperial")
     assert len(_text(_wind_row({"wind": 45.0, "gust": 80.0}))) <= 21
+
+
+# --- N3: the dry-day caption is translated like the rest of the forecast ----------
+
+def test_dry_day_caption_is_translated(language):
+    language("en")
+    assert _text(_precip_row({"precip": 0.0, "pop": 10.0})) == "☂ dry  10%"
+    language("pt_BR")
+    row = _text(_precip_row({"precip": 0.0, "pop": 10.0}))
+    assert row == "☂ sem chuva  10%"
+    assert len(row) <= 21
 
 
 # --- item 6: the radar age caption fits the slider caption -------------------------

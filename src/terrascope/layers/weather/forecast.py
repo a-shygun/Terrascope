@@ -166,7 +166,7 @@ def _precip_row(day: dict) -> list:
         return [("☂ ", None, "dim"), (_("N/A"), None, "dim")]
     color = _step_color(amount, PRECIP_STEPS)
     if amount < PRECIP_STEPS[0][0]:
-        pieces = [("☂ ", color, ""), ("dry", color, "dim")]
+        pieces = [("☂ ", color, ""), (_("dry"), color, "dim")]
     else:
         pieces = [("☂ ", color, ""), (f"{format_number(amount, 1)}{_(' mm')}", color, "bold")]
     if chance is not None:

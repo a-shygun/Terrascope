@@ -1379,6 +1379,10 @@ msgstr ""
 msgid "N/A"
 msgstr ""
 
+#: src/terrascope/layers/weather/forecast.py:169
+msgid "dry"
+msgstr ""
+
 #: src/terrascope/layers/flights/settings.py:90
 #: src/terrascope/layers/weather/earthquakes.py:48
 msgid "UNKNOWN"
