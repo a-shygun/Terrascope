@@ -78,17 +78,50 @@ def load_layer_classes() -> list[tuple[type, str]]:
         loaded.append((layer_class, origin))
     return loaded
 
+def _layer_key_settings(node: Any) -> list:
+    """The toggle_key and look_key settings anywhere under `node` (a section of
+    default.yaml), for example the airports, cities and earthquakes keys."""
+    found: list = []
+    if isinstance(node, dict):
+        for name, value in node.items():
+            if str(name).endswith(("toggle_key", "look_key")):
+                found.append(value)
+            else:
+                found.extend(_layer_key_settings(value))
+    return found
+
 def reserved_toggle_keys() -> frozenset[str]:
     """Single characters a plugin layer may not use as its toggle key: the keys
-    the app itself reads (see app.keys in default.yaml), the digits (tabs), and
-    r, x, y, n (radar refresh and other fixed keys)."""
+    the app itself reads (see app.keys in default.yaml), the digits (tabs), r, x,
+    y, n (radar refresh and other fixed keys), and the keys of the built-in
+    layers' own settings (toggle_key and look_key under layers:)."""
     from terrascope.core.config import CFG
 
     keys = set("0123456789rxyn")
-    for value in CFG["app"]["keys"].values():
+    values: list = list(CFG["app"]["keys"].values()) + _layer_key_settings(CFG["layers"])
+    for value in values:
         for item in value if isinstance(value, (list, tuple)) else [value]:
-            keys.update(str(item).lower())
+            if item:
+                keys.update(str(item).lower())
     return frozenset(key.lower() for key in keys)
+
+def toggle_key_problem(key: Any, taken: dict[str, str], reserved: frozenset[str]) -> str | None:
+    """Why a layer's toggle key cannot be used, or None when it can. A key is
+    empty (no key of its own) or one visible ASCII character that the app does not
+    reserve and no accepted layer uses. `taken` maps the lower-case keys of the
+    layers already accepted to their names."""
+    if key is None or key == "":
+        return None
+    if not isinstance(key, str):
+        return f"toggle key must be one character, got {key!r}"
+    if len(key) != 1 or not key.isascii() or not key.isprintable() or key.isspace():
+        return f"toggle key must be one visible character, got {key!r}"
+    lower = key.lower()
+    if lower in reserved:
+        return f"toggle key {key!r} is used by the app or a built-in layer"
+    if lower in taken:
+        return f"toggle key {key!r} is already used by layer {taken[lower]!r}"
+    return None
 
 def _text(item: dict, key: str, required: bool = False) -> str:
     value = item.get(key)

@@ -128,10 +128,75 @@ def test_plugin_cannot_take_a_key_the_app_uses(entry_points, fake_entry_point, c
     assert "used by the app" in caplog.text
 
 
-def test_repeated_toggle_key_between_layers_is_still_an_error(entry_points, fake_entry_point):
+def test_plugin_with_a_built_in_layers_key_is_skipped(entry_points, fake_entry_point, caplog):
     entry_points[plugins.LAYER_GROUP] = [fake_entry_point("clash", KeyClashLayer)]
-    with pytest.raises(ValueError, match="both use key 'p'"):
+    with caplog.at_level("WARNING", logger="terrascope.plugins"):
+        layers = registry.build_layers()
+    assert "clash" not in [layer.name for layer in layers]
+    assert "used by the app or a built-in layer" in caplog.text
+
+
+def test_second_plugin_with_the_same_key_is_skipped_and_the_first_kept(entry_points, fake_entry_point, caplog):
+    second = type("SecondDemo", (DemoLayer,), {"name": "second-demo"})
+    entry_points[plugins.LAYER_GROUP] = [
+        fake_entry_point("demo", DemoLayer),
+        fake_entry_point("second", second),
+    ]
+    with caplog.at_level("WARNING", logger="terrascope.plugins"):
+        names = [layer.name for layer in registry.build_layers()]
+    assert names[-1] == "demo"
+    assert "second-demo" not in names
+    assert "already used by layer 'demo'" in caplog.text
+
+
+def test_two_built_in_layers_with_one_key_are_still_an_error(monkeypatch):
+    class SameKeyLayer(Layer):
+        name = "same-key"
+        toggle_key = "j"
+
+        def build(self, view) -> LayerRender:
+            return LayerRender(None, "#000000")
+
+    monkeypatch.setattr(registry, "ALL_LAYER_CLASSES", (DemoLayer, SameKeyLayer))
+    with pytest.raises(ValueError, match="both use key 'j'"):
         registry.build_layers()
+
+
+@pytest.mark.parametrize("key", ["k", "c", "e", "l"])
+def test_plugin_cannot_take_a_built_in_layers_own_key(entry_points, fake_entry_point, caplog, key):
+    """k (airports), c (cities), e (earthquakes) and l (day/night look) are read by
+    built-in layers, not by app.keys, so they are reserved from their settings."""
+    clash = type("KeyClash", (DemoLayer,), {"name": f"clash-{key}", "toggle_key": key})
+    entry_points[plugins.LAYER_GROUP] = [fake_entry_point("clash", clash)]
+    with caplog.at_level("WARNING", logger="terrascope.plugins"):
+        names = [layer.name for layer in registry.build_layers()]
+    assert f"clash-{key}" not in names
+    assert "used by the app or a built-in layer" in caplog.text
+
+
+@pytest.mark.parametrize("key", [5, b"k", "jk", " ", "\n", "ñ"])
+def test_toggle_key_that_is_not_one_visible_ascii_character_is_skipped(entry_points, fake_entry_point, caplog, key):
+    odd = type("OddKey", (DemoLayer,), {"name": "odd", "toggle_key": key})
+    entry_points[plugins.LAYER_GROUP] = [fake_entry_point("odd", odd)]
+    with caplog.at_level("WARNING", logger="terrascope.plugins"):
+        names = [layer.name for layer in registry.build_layers()]
+    assert "odd" not in names
+    assert "toggle key must be" in caplog.text
+
+
+def test_toggle_key_set_in_init_is_checked_as_well(entry_points, fake_entry_point, caplog):
+    class InitKey(DemoLayer):
+        name = "init-key"
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.toggle_key = 7  # the class says nothing; the instance sets a number
+
+    entry_points[plugins.LAYER_GROUP] = [fake_entry_point("init", InitKey)]
+    with caplog.at_level("WARNING", logger="terrascope.plugins"):
+        names = [layer.name for layer in registry.build_layers()]
+    assert "init-key" not in names
+    assert "toggle key must be one character" in caplog.text
 
 
 def test_reserved_keys_cover_the_app_keys_digits_and_fixed_letters(entry_points):

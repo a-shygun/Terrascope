@@ -344,12 +344,16 @@ shows `plugin:terrascope-demo` for the new entries. Uninstalling the package
 removes them.
 
 A plugin that fails to load, is not a `Layer` subclass, or cannot be started is
-skipped with a warning, and the app starts without it. A toggle key used by two
-layers still stops the app with an error, as it does for built-in layers. A plugin
-layer whose toggle key is a key the app reads is skipped with a warning: the digits,
+skipped with a warning, and the app starts without it. A plugin layer is skipped
+with a warning too when its toggle key is not one visible ASCII character (a number,
+or `"jk"`, for example), or when the key is taken: by the app, by a built-in layer,
+or by a plugin layer that was added before it. The keys the app takes are the digits,
 the keys of `app.keys` in `default.yaml` (for example `q`, `h`, `o`, `w`, `a`, `s`,
-`d`, `z`, `0`, `+`, `-`), and `r`, `x`, `y`, `n`. Pick a letter that none of these
-uses, and check the list with `terrascope --list-keys` and `--list-layers`.
+`d`, `z`, `0`, `+`, `-`), `r`, `x`, `y`, `n`, and the keys of the built-in layers
+(`toggle_key` and `look_key` under `layers:`: `k` airports, `c` cities, `e`
+earthquakes, `l` day/night look). Two built-in layers with one key still stop the app
+with an error. Pick a letter that none of these uses, and check the list with
+`terrascope --list-keys` and `--list-layers`.
 Plugin layers are drawn on top of the built-in ones, in the order their
 entry points are found.
 
