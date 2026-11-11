@@ -407,12 +407,21 @@ def timezone_choices(query: str) -> list[tuple[str, str | None]]:
             rest.append((label, name))
     return starts + rest
 
+ZONE_ABBREVIATION_MAX_LENGTH = 6
+
 def zone_label(moment: datetime, fallback: str = "") -> str:
     """Short zone label for an aware datetime: the abbreviation ("CET", "-03")
     or, when there is none, the UTC offset ("+0330"). Windows reports the
-    local zone by its long, localised name ("Pacific Standard Time")."""
+    local zone by its long, localised name ("Pacific Standard Time"), and
+    some locales use names with no space (Chinese, Japanese), so anything that
+    is not a short ASCII abbreviation falls back to the offset too."""
     label = moment.tzname() or fallback
-    if " " in label:
+    if (
+        not label
+        or " " in label
+        or not label.isascii()
+        or len(label) > ZONE_ABBREVIATION_MAX_LENGTH
+    ):
         label = f"{moment:%z}"
     return label
 
