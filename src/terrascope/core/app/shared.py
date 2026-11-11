@@ -66,6 +66,16 @@ if sys.platform == "win32":
     MOUSE_MASK = curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION
 MOUSE_MOTION_ON = "\033[?1003l\033[?1002h\033[?1006h"
 MOUSE_MOTION_OFF = "\033[?1006l\033[?1002l\033[?1003l"
+
+def mouse_tracking_sequences(platform: str = sys.platform) -> tuple[str, str]:
+    """(on, off) xterm mouse-tracking sequences. Windows reads mouse input
+    through the console API (PDCurses), so nothing is requested there: Windows
+    Terminal would start sending SGR reports next to the console events, and the
+    classic console would print the sequences as text."""
+    if platform == "win32":
+        return "", ""
+    return MOUSE_MOTION_ON, MOUSE_MOTION_OFF
+
 DRAG_RESUME_SECONDS = APP_CONFIG["drag_resume_seconds"]
 DRAG_FRAME_DELAY_MS = APP_CONFIG["drag_frame_delay_ms"]
 COLOR_RESET_MIN_SECONDS = 3.0

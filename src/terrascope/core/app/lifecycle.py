@@ -8,7 +8,7 @@ from .shared import (
     LOG_FILE,
     Layout,
     MOUSE_MASK,
-    MOUSE_MOTION_ON,
+    mouse_tracking_sequences,
     PROVINCE_CHOICE_FILE,
     PanelBox,
     TABS,
@@ -102,8 +102,9 @@ class LifecycleMixin:
         self.stdscr.nodelay(True)
         curses.mousemask(MOUSE_MASK)
         curses.mouseinterval(0)
-        if sys.stdout.isatty():
-            sys.stdout.write(MOUSE_MOTION_ON)
+        mouse_on, _ = mouse_tracking_sequences()
+        if mouse_on and sys.stdout.isatty():
+            sys.stdout.write(mouse_on)
             sys.stdout.flush()
         self.colors.setup()
 

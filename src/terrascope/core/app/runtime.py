@@ -8,7 +8,7 @@ from .shared import (
     FRAME_DELAY_MS,
     HEARTBEAT_SECONDS,
     MAX_KEYS_PER_LOOP,
-    MOUSE_MOTION_OFF,
+    mouse_tracking_sequences,
     PROVINCE_FILE,
     RESIZE_SETTLE_SECONDS,
     TABS,
@@ -119,8 +119,9 @@ class RuntimeMixin:
                 self.stdscr.refresh()
             except curses.error:
                 pass
-            if sys.stdout.isatty():
-                sys.stdout.write(MOUSE_MOTION_OFF)
+            _, mouse_off = mouse_tracking_sequences()
+            if mouse_off and sys.stdout.isatty():
+                sys.stdout.write(mouse_off)
                 sys.stdout.flush()
             self.colors.restore()
             self.restore_stderr()
