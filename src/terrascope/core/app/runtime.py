@@ -49,7 +49,6 @@ class RuntimeMixin:
             elif kind == "province_borders":
                 if error:
                     self.province_state = "failed"
-                    self.province_error = error
                     self.map_statuses.pop("BORDERS", None)
                     border_progress = next(
                         (item for item in download_progress() if item.filename == PROVINCE_FILE),
@@ -60,7 +59,6 @@ class RuntimeMixin:
                 elif self.province_choice == "yes":
                     self.world.set_prepared_provinces(data)
                     self.province_state = "ready"
-                    self.province_error = ""
                     self.map_statuses.pop("BORDERS", None)
                     self.provinces_visible = True
                     for layer in self.world.layers:

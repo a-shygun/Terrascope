@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from terrascope.core.i18n import _
-
 from .shared import (
     ARROW_HIT_TOLERANCE,
     DRAG_RESUME_SECONDS,
@@ -45,12 +43,6 @@ def pointer_event_kind(state: int, dragging: bool, pdcurses: bool) -> str | None
     if state & curses.BUTTON1_PRESSED:
         return "press"
     return None
-def is_border_download_failure(message: str) -> bool:
-    """True for a failed state/province download status, such as
-    "DOWNLOAD BORDERS 10M FAILED: ..." (the size is part of the name)."""
-    return message.startswith(f"{_('DOWNLOAD')} {_('BORDERS')}") and _("FAILED") in message
-
-
 class MouseMixin:
 
     def handle_mouse(self) -> None:
@@ -157,9 +149,8 @@ class MouseMixin:
                     elif action == "toggle-radar-status":
                         self.radar_status_expanded = not self.radar_status_expanded
                     else:
+                        # Same as the X key (input.py): only the message is dismissed.
                         self.dismissed_statuses.add(message)
-                        if message.startswith(_("PROVINCE BORDERS")) or is_border_download_failure(message):
-                            self.province_error = ""
                     self.world.dirty = True
                     return
             for row, x0, x1, enabled in self._province_prompt_hits:

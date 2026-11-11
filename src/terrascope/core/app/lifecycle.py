@@ -27,7 +27,6 @@ class LifecycleMixin:
         self.province_choice = "yes" if enabled else "no"
         self.provinces_visible = False
         self.world.show_provinces = False
-        self.province_error = ""
         self.map_statuses.pop("PROVINCE BORDERS", None)
         self.map_statuses.pop("BORDERS", None)
         self.dismissed_statuses = {
