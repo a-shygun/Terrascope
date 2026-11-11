@@ -11,14 +11,14 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 import numpy as np
 
-# windows-curses (PDCurses) has no dim attribute: A_DIM is 0 there, so dim text
-# could not be told apart. Borrow the blink bit (unused by Terrascope) as a dim
-# marker; layout.safe_addstr() turns it into a darker colour pair and strips it
-# before anything reaches curses. It has to stay inside the 32-bit chtype:
-# PDCurses hands out colour pairs >= 128 as negative numbers (A_COLOR is
-# -0x1000000), and attributes are passed to curses as a C long.
-if sys.platform == "win32" and not curses.A_DIM:
-    curses.A_DIM = curses.A_BLINK
+# Dim attribute used by Terrascope's own drawing. windows-curses (PDCurses) has
+# no dim attribute (curses.A_DIM is 0 there), so the blink bit stands in: it is
+# unused by Terrascope, and layout.safe_addstr() turns it into a darker colour
+# pair and strips it before anything reaches curses. It has to stay inside the
+# 32-bit chtype: PDCurses hands out colour pairs >= 128 as negative numbers
+# (A_COLOR is -0x1000000), and attributes are passed to curses as a C long.
+# curses itself is not patched, so plugins keep the stock attributes.
+DIM_ATTR = curses.A_DIM or curses.A_BLINK
 from terrascope.core.config import CFG
 from terrascope.core.layer import DEFAULT_INFO_TITLE, InfoImage, Layer, PanelBox, SliderSpec
 from terrascope.core.tabs import TABS

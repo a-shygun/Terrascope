@@ -7,6 +7,7 @@ from .colors import (
     hex_to_rgb,
 )
 from .constants import (
+    DIM_ATTR,
     BLANK_BRAILLE,
     EDGE_STEPS,
     KM_PER_DEGREE_LAT,
@@ -276,7 +277,7 @@ def draw_background(area: _MapArea) -> None:
     # country colour, dimmed.
     configured = MAP_CONFIG.get("province_color")
     province_color = configured or country_color
-    province_extra = 0 if configured else curses.A_DIM
+    province_extra = 0 if configured else DIM_ATTR
     province_lines = area.frame.province_lines
     empty = (BLANK_BRAILLE, " ")
     for row in range(area.height):
@@ -352,7 +353,7 @@ def _draw_markers_pass(area: _MapArea, labels: bool) -> None:
             if not (marker.glyph and "\u2800" <= marker.glyph[0] <= "\u28ff"):
                 attributes |= curses.A_BOLD
             if marker.dim:
-                attributes = (attributes & ~curses.A_BOLD) | curses.A_DIM
+                attributes = (attributes & ~curses.A_BOLD) | DIM_ATTR
             if marker.selected:
                 attributes |= curses.A_REVERSE
             if marker.label:
@@ -401,13 +402,13 @@ def _legend_segments(line) -> list[tuple[str, str | None, int]]:
         segments.append((" ", None, 0))
         segments.append((line.swatch_glyph, swatch, 0))
     if line.choices:  # a clickable toggle: "[ TINT  FILL ]" with the active one lit
-        segments.append(("[", None, curses.A_DIM))
+        segments.append(("[", None, DIM_ATTR))
         for index, choice in enumerate(line.choices):
             lit = index == line.choice_index
             segments.append(
-                (f" {choice} ", None, curses.A_REVERSE | curses.A_BOLD if lit else curses.A_DIM)
+                (f" {choice} ", None, curses.A_REVERSE | curses.A_BOLD if lit else DIM_ATTR)
             )
-        segments.append(("]", None, curses.A_DIM))
+        segments.append(("]", None, DIM_ATTR))
     for item in line.legend_items:
         glyph, color, label = _parse_legend_item(item)
         if any(segment[0] for segment in segments):
@@ -548,7 +549,7 @@ def draw_slider(area: _MapArea, spec: SliderSpec, center_lat: float) -> None:
 
     first, length = track
     label_x = first - len(spec.label) - 1
-    dim = curses.A_DIM if spec.disabled else 0
+    dim = DIM_ATTR if spec.disabled else 0
     _put_on_map(area, row, label_x, spec.label, extra=dim)
 
     last_step = max(0, spec.steps - 1)
@@ -558,7 +559,7 @@ def draw_slider(area: _MapArea, spec: SliderSpec, center_lat: float) -> None:
         step = round(offset * last_step / max(1, length - 1))
         if spec.disabled:
             glyph = SLIDER_EMPTY
-            extra = curses.A_DIM
+            extra = DIM_ATTR
         elif offset == knob:
             glyph = SLIDER_KNOB
             extra = 0
@@ -570,7 +571,7 @@ def draw_slider(area: _MapArea, spec: SliderSpec, center_lat: float) -> None:
             extra = 0
         else:
             glyph = SLIDER_FILLED if offset < knob else SLIDER_EMPTY
-            extra = curses.A_DIM if glyph == SLIDER_EMPTY else 0
+            extra = DIM_ATTR if glyph == SLIDER_EMPTY else 0
         _put_on_map(area, row, first + offset, glyph, extra=extra)
 
     caption = spec.caption[:SLIDER_CAPTION_WIDTH]
@@ -583,7 +584,7 @@ def draw_slider(area: _MapArea, spec: SliderSpec, center_lat: float) -> None:
         status_start = MAP_EDGE_PAD_X
         status = spec.status[:max(0, status_end - status_start)]
         if status:
-            _put_on_map(area, row, status_start, status, extra=curses.A_DIM)
+            _put_on_map(area, row, status_start, status, extra=DIM_ATTR)
 
 def panel_button_slot(
     map_rect: Rect, panel_visible: bool, enabled: bool = True

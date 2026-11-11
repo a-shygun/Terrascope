@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .shared import (
+    DIM_ATTR,
     KEYS,
     TABS,
     curses,
@@ -101,36 +102,36 @@ class InputMixin:
 
     def search_box_lines(self, hint: str | None) -> list[tuple[str, int]]:
         if self.mode == "search":
-            return [(self.search_buffer + "█", curses.A_BOLD), ("", 0), ("Enter apply  Esc cancel", curses.A_DIM)]
+            return [(self.search_buffer + "█", curses.A_BOLD), ("", 0), ("Enter apply  Esc cancel", DIM_ATTR)]
         if self.world.search_text:
-            return [(self.world.search_text, curses.A_BOLD), ("", 0), ("/ edit  Esc clear", curses.A_DIM)]
+            return [(self.world.search_text, curses.A_BOLD), ("", 0), ("/ edit  Esc clear", DIM_ATTR)]
         if hint == "/ search  ·  O filter":
-            return [(hint, 0), ("callsign / ICAO", curses.A_DIM)]
-        return [("/ or click to search", 0), (hint or "", curses.A_DIM)]
+            return [(hint, 0), ("callsign / ICAO", DIM_ATTR)]
+        return [("/ or click to search", 0), (hint or "", DIM_ATTR)]
 
     def filter_box_lines(self, hint: str | None, room: int) -> list[tuple[str, int]]:
         if self.mode == "filter":
             lines = [
                 (self.filter_buffer + "█", curses.A_BOLD),
-                (self._plane_count_line(), curses.A_DIM),
+                (self._plane_count_line(), DIM_ATTR),
             ]
             suggestions = self.filter_suggestions()
             if not suggestions:
-                lines.append(("no match", curses.A_DIM))
+                lines.append(("no match", DIM_ATTR))
             for option in suggestions[self.filter_scroll : self.filter_scroll + max(0, room - 1)]:
                 selected = option in self.filter_selected
-                lines.append((("[x] " if selected else "[ ] ") + option, curses.A_BOLD if selected else curses.A_DIM))
+                lines.append((("[x] " if selected else "[ ] ") + option, curses.A_BOLD if selected else DIM_ATTR))
             return lines
         if self.world.filter_value:
             return [
                 (self.world.filter_value, curses.A_BOLD),
-                (self._plane_count_line(), curses.A_DIM),
-                ("O edit  Esc clear", curses.A_DIM),
+                (self._plane_count_line(), DIM_ATTR),
+                ("O edit  Esc clear", DIM_ATTR),
             ]
         return [
             (self._plane_count_line(), curses.A_BOLD),
             ("O or click to filter", 0),
-            (hint or "", curses.A_DIM),
+            (hint or "", DIM_ATTR),
         ]
 
     def _slider_spec(self):

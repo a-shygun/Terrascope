@@ -6,6 +6,7 @@ import sys
 
 from . import colors
 from .constants import (
+    DIM_ATTR,
     BOX_GAP,
     CONTROLS_COLLAPSED_BUTTON,
     CONTROLS_EXPANDED_BUTTON,
@@ -68,14 +69,14 @@ _DIM_DEFAULT_TEXT = "#7f7f7f"  # dim text without a colour of its own
 
 def safe_addstr(window, y: int, x: int, text: str, attributes: int = 0) -> None:
     if _PDCURSES:
-        if attributes & curses.A_DIM:
+        if attributes & DIM_ATTR:
             manager = colors.ACTIVE
             if manager is not None and manager.enabled:
                 if attributes & curses.A_COLOR:
                     attributes = manager.dimmed(attributes)
                 else:
                     attributes |= manager.get_pair(_DIM_DEFAULT_TEXT)
-            attributes &= ~curses.A_DIM
+            attributes &= ~DIM_ATTR
         if attributes & curses.A_COLOR:
             attributes &= ~curses.A_BOLD
     try:
@@ -274,7 +275,7 @@ def draw_tab_bar(
         if index == active:
             attrs |= curses.A_REVERSE | curses.A_BOLD
         else:
-            attrs |= curses.A_DIM
+            attrs |= DIM_ATTR
         safe_addstr(window, top, x, text, attrs)
     slots = tab_slots(tabs, left, width)
     tabs_end = (slots[-1][1] + len(slots[-1][2])) if slots else left
@@ -311,7 +312,7 @@ def draw_help_bar(
             x = right - total
             spans: dict[str, tuple[int, int]] = {}
             for text, bold, action in segments:
-                safe_addstr(window, top, x, text, curses.A_BOLD if bold else curses.A_DIM)
+                safe_addstr(window, top, x, text, curses.A_BOLD if bold else DIM_ATTR)
                 if action:
                     start = spans.get(action, (x, x))[0]
                     spans[action] = (start, x + len(text))
@@ -365,8 +366,8 @@ def draw_controls_bar(
     button_text = CONTROLS_EXPANDED_BUTTON if expanded else CONTROLS_COLLAPSED_BUTTON
     if expanded:
         orientation_text = "LEFT" if panel_orientation == "vertical" else "BOTTOM"
-        safe_addstr(window, top, layout.orientation_x, orientation_text, curses.A_BOLD | curses.A_DIM)
-    safe_addstr(window, top, layout.button_x, button_text, curses.A_DIM)
+        safe_addstr(window, top, layout.orientation_x, orientation_text, curses.A_BOLD | DIM_ATTR)
+    safe_addstr(window, top, layout.button_x, button_text, DIM_ATTR)
     safe_addstr(window, top, layout.datetime_x, time_text, curses.A_BOLD)
     return replace(layout, help_hits=help_hits)
 

@@ -10,6 +10,7 @@ from threading import Thread
 from terrascope.core.config import CACHE_DIR, CFG
 from terrascope.core.layer import PanelBox
 from terrascope.core.ui import (
+    DIM_ATTR,
     GITHUB_URL,
     MAP_EDGE_PAD_Y,
     ColorManager,
