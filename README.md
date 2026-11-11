@@ -338,6 +338,19 @@ def demo_tabs():
     ]
 ```
 
+A plugin that draws dim text should use `DIM_ATTR` from `terrascope.core.ui.constants`
+instead of `curses.A_DIM`. On Windows, PDCurses has no dim attribute, so `curses.A_DIM`
+is 0 there, and `DIM_ATTR` stands in with `curses.A_BLINK`. For a Terrascope that
+does not have it yet:
+
+```python
+try:
+    from terrascope.core.ui.constants import DIM_ATTR
+except ImportError:
+    import curses
+    DIM_ATTR = curses.A_DIM
+```
+
 Install the package in the same environment as Terrascope (`pip install -e .`),
 then run `terrascope --list-layers` and `terrascope --list-tabs`: the last column
 shows `plugin:terrascope-demo` for the new entries. Uninstalling the package
