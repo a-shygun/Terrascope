@@ -24,6 +24,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX",
     "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
     "Topic :: Terminals",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
@@ -32,6 +33,8 @@ dependencies = [
     "Pillow>=10.0",
     "PyYAML>=6.0",
     "pyshp>=2.3",
+    "tzdata; sys_platform == 'win32'",
+    "windows-curses>=2.3; sys_platform == 'win32'",
 ]
 
 [project.urls]

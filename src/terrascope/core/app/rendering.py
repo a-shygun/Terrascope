@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .shared import (
     COLOR_RESET_MIN_SECONDS,
+    DIM_ATTR,
     MIN_TERMINAL_HEIGHT,
     MIN_TERMINAL_WIDTH,
     STATUS_OFFSET,
@@ -275,7 +276,7 @@ class RenderingMixin:
                         self.stdscr, layout.map, self.frame, self.colors,
                         row, map_left + offset_x,
                         shown,
-                        curses.A_BOLD if is_error else curses.A_DIM,
+                        curses.A_BOLD if is_error else DIM_ATTR,
                     )
                     if is_error and suffix:
                         start = map_left + offset_x + len(shown) - 3

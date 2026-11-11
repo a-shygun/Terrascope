@@ -14,10 +14,35 @@ from .shared import (
     curses,
     info_arrow_positions,
     panel_button_slot,
+    sys,
     tab_slots,
     time,
     webbrowser
 )
+
+def pointer_event_kind(state: int, dragging: bool, pdcurses: bool) -> str | None:
+    """Kind of pointer event for a curses mouse state, or None if it is ignored.
+
+    PDCurses reports motion with the button held as bstate 0, so during a drag
+    bstate 0 is motion. A move report with no button bit at all is a plain hover:
+    the button was released where the window could not see it, so the grab is
+    dropped ("lost_release") instead of panning with the pointer. Other platforms
+    keep the drag as before."""
+    if state & SCROLL_UP:
+        return "scroll_up"
+    if state & SCROLL_DOWN:
+        return "scroll_down"
+    if state & curses.BUTTON1_RELEASED:
+        return "release"
+    if state & curses.REPORT_MOUSE_POSITION:
+        if pdcurses and dragging and not state & curses.BUTTON1_PRESSED:
+            return "lost_release"
+        return "motion"
+    if state == 0 and dragging:
+        return "motion"
+    if state & curses.BUTTON1_PRESSED:
+        return "press"
+    return None
 
 class MouseMixin:
 
@@ -27,17 +52,13 @@ class MouseMixin:
             _, mouse_x, mouse_y, _, state = curses.getmouse()
         except curses.error:
             return
-        if state & SCROLL_UP:
-            kind = "scroll_up"
-        elif state & SCROLL_DOWN:
-            kind = "scroll_down"
-        elif state & curses.BUTTON1_RELEASED:
-            kind = "release"
-        elif state & curses.REPORT_MOUSE_POSITION:
-            kind = "motion"
-        elif state & curses.BUTTON1_PRESSED:
-            kind = "press"
-        else:
+        dragging = self._drag is not None or bool(self._slider_drag)
+        kind = pointer_event_kind(state, dragging, sys.platform == "win32")
+        if kind is None:
+            return
+        if kind == "lost_release":
+            self._drag = None
+            self._slider_drag = False
             return
         self._mouse_event(kind, mouse_x, mouse_y)
 

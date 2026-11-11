@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import sys
+
+from . import colors
 from .constants import (
+    DIM_ATTR,
     BOX_GAP,
     CONTROLS_COLLAPSED_BUTTON,
     CONTROLS_EXPANDED_BUTTON,
@@ -56,7 +60,25 @@ from .constants import (
     timezone
 )
 
+# PDCurses (windows-curses) shows A_BOLD on a coloured cell as "colour index + 8",
+# which lands on another palette slot (white labels turned blue), and has no dim
+# attribute (constants.py maps A_DIM to the unused blink bit there). So on Windows dim is
+# drawn as a darker colour pair and bold is kept only for uncoloured text.
+_PDCURSES = sys.platform == "win32"
+_DIM_DEFAULT_TEXT = "#7f7f7f"  # dim text without a colour of its own
+
 def safe_addstr(window, y: int, x: int, text: str, attributes: int = 0) -> None:
+    if _PDCURSES:
+        if attributes & DIM_ATTR:
+            manager = colors.ACTIVE
+            if manager is not None and manager.enabled:
+                if attributes & curses.A_COLOR:
+                    attributes = manager.dimmed(attributes)
+                else:
+                    attributes |= manager.get_pair(_DIM_DEFAULT_TEXT)
+            attributes &= ~DIM_ATTR
+        if attributes & curses.A_COLOR:
+            attributes &= ~curses.A_BOLD
     try:
         window.addnstr(y, x, text, max(0, window.getmaxyx()[1] - x - 1), attributes)
     except curses.error:
@@ -253,7 +275,7 @@ def draw_tab_bar(
         if index == active:
             attrs |= curses.A_REVERSE | curses.A_BOLD
         else:
-            attrs |= curses.A_DIM
+            attrs |= DIM_ATTR
         safe_addstr(window, top, x, text, attrs)
     slots = tab_slots(tabs, left, width)
     tabs_end = (slots[-1][1] + len(slots[-1][2])) if slots else left
@@ -290,7 +312,7 @@ def draw_help_bar(
             x = right - total
             spans: dict[str, tuple[int, int]] = {}
             for text, bold, action in segments:
-                safe_addstr(window, top, x, text, curses.A_BOLD if bold else curses.A_DIM)
+                safe_addstr(window, top, x, text, curses.A_BOLD if bold else DIM_ATTR)
                 if action:
                     start = spans.get(action, (x, x))[0]
                     spans[action] = (start, x + len(text))
@@ -344,8 +366,8 @@ def draw_controls_bar(
     button_text = CONTROLS_EXPANDED_BUTTON if expanded else CONTROLS_COLLAPSED_BUTTON
     if expanded:
         orientation_text = "LEFT" if panel_orientation == "vertical" else "BOTTOM"
-        safe_addstr(window, top, layout.orientation_x, orientation_text, curses.A_BOLD | curses.A_DIM)
-    safe_addstr(window, top, layout.button_x, button_text, curses.A_DIM)
+        safe_addstr(window, top, layout.orientation_x, orientation_text, curses.A_BOLD | DIM_ATTR)
+    safe_addstr(window, top, layout.button_x, button_text, DIM_ATTR)
     safe_addstr(window, top, layout.datetime_x, time_text, curses.A_BOLD)
     return replace(layout, help_hits=help_hits)
 
@@ -385,12 +407,30 @@ def timezone_choices(query: str) -> list[tuple[str, str | None]]:
             rest.append((label, name))
     return starts + rest
 
+ZONE_ABBREVIATION_MAX_LENGTH = 6
+
+def zone_label(moment: datetime, fallback: str = "") -> str:
+    """Short zone label for an aware datetime: the abbreviation ("CET", "-03")
+    or, when there is none, the UTC offset ("+0330"). Windows reports the
+    local zone by its long, localised name ("Pacific Standard Time"), and
+    some locales use names with no space (Chinese, Japanese), so anything that
+    is not a short ASCII abbreviation falls back to the offset too."""
+    label = moment.tzname() or fallback
+    if (
+        not label
+        or " " in label
+        or not label.isascii()
+        or len(label) > ZONE_ABBREVIATION_MAX_LENGTH
+    ):
+        label = f"{moment:%z}"
+    return label
+
 def current_time_text(timezone_name: str | None) -> str:
     """YYYY-MM-DD HH:MM:SS plus a short zone label, for the chosen timezone
     (None = local system time)."""
     try:
         now = datetime.now(ZoneInfo(timezone_name)) if timezone_name else datetime.now().astimezone()
-        label = now.tzname() or timezone_name or ""
+        label = zone_label(now, timezone_name or "")
     except (ZoneInfoNotFoundError, ValueError, OSError):
         now = datetime.now(timezone.utc)
         label = "UTC"

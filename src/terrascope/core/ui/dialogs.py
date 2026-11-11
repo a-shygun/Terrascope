@@ -6,6 +6,7 @@ from .colors import (
     ColorManager
 )
 from .constants import (
+    DIM_ATTR,
     BANNER_COLOR,
     BANNER_FILL,
     BANNER_ROWS,
@@ -401,7 +402,7 @@ def draw_rich_box(window, rect: Rect, title: str, lines, colors) -> None:
             if style == "bold":
                 attributes |= curses.A_BOLD
             elif style == "dim":
-                attributes |= curses.A_DIM
+                attributes |= DIM_ATTR
             x = _put_clipped(window, top + 1 + offset, x, text, limit_x, attributes)
 
 def _draw_label_value_rows(

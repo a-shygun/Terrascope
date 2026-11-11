@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
+
 from .constants import (
+    DIM_ATTR,
     TERMINAL_CONFIG,
     _XTERM_BASIC_16_RGB,
     _XTERM_CUBE_LEVELS,
@@ -61,19 +64,36 @@ def rgb_to_nearest_xterm_256(rgb: tuple[int, int, int], exclude=()) -> int:
     )
     return _nearest_by_distance(rgb, candidates)
 
-def rgb_to_nearest_basic(rgb: tuple[int, int, int]) -> int:
-    basic_colors = (
-        curses.COLOR_BLACK,
-        curses.COLOR_RED,
-        curses.COLOR_GREEN,
-        curses.COLOR_YELLOW,
-        curses.COLOR_BLUE,
-        curses.COLOR_MAGENTA,
-        curses.COLOR_CYAN,
-        curses.COLOR_WHITE
+def rgb_to_nearest_basic(rgb: tuple[int, int, int], bright: bool = False) -> int:
+    """Nearest of the eight basic colours, or of the sixteen when bright is set.
+    The bright set has the grey at index 8, the only grey a 16-colour terminal
+    offers; without it a dimmed white quantises back to white."""
+    candidates = (
+        (color, _XTERM_BASIC_16_RGB[color])
+        for color in range(16 if bright else 8)
     )
-    candidates = ((color, _XTERM_BASIC_16_RGB[color]) for color in basic_colors)
     return _nearest_by_distance(rgb, candidates)
+
+def osc_palette_reset_works(platform: str = sys.platform, environ=os.environ) -> bool:
+    """OSC 104 (reset palette) is written everywhere except the classic Windows
+    console, which has no escape-sequence parser and would print it. Windows
+    Terminal (WT_SESSION set) honours it."""
+    return platform != "win32" or bool(environ.get("WT_SESSION"))
+
+def pair_id_limit(a_color: int) -> int:
+    """Number of colour pair ids the A_COLOR field can hold (ids 0 .. n-1).
+    ncurses keeps the pair in 0xff00, so 256; PDCurses keeps it in the top byte
+    (A_COLOR = -0x1000000), which gives the same 256. The field's lowest set bit
+    is its shift. A mask with no bits in the low 32 bits (a 64-bit chtype)
+    falls back to 256 instead of a negative shift."""
+    mask = a_color & 0xFFFFFFFF
+    if not mask:
+        return 256
+    shift = (mask & -mask).bit_length() - 1
+    return (mask >> shift) + 1
+
+# The ColorManager of the running app, for drawing helpers that only see attributes.
+ACTIVE = None
 
 def _rgb_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> int:
     return sum((x - y) ** 2 for x, y in zip(a, b))
@@ -99,6 +119,11 @@ class ColorManager:
         self.exhausted = False
         self._pair_by_hex: dict[str, int] = {}
         self._pair_colors: dict[str, tuple] = {}  # key -> (fg rgb, bg rgb or None)
+        self._key_by_pair: dict[int, str] = {}  # colour-pair attribute -> "fg|bg" key
+        # (fg slot, bg slot) -> pair attribute: colours that resolve to the same
+        # palette slots share one pair id instead of spending another.
+        self._pair_by_slots: dict[tuple[int, int], int] = {}
+        self._dimmed_by_attr: dict[int, int] = {}  # attributes -> dimmed attributes
         self._slot_by_hex: dict[str, int] = {}
         self._redefined: set[int] = set()  # palette slots this app changed
         self._next_pair_id = 1
@@ -114,11 +139,13 @@ class ColorManager:
         except curses.error:
             pass
         self.enabled = True
+        global ACTIVE
+        ACTIVE = self
         wanted = bool(TERMINAL_CONFIG.get("redefine_palette", True))
         self.supports_exact_color = (
             wanted and curses.can_change_color() and curses.COLORS > self.FIRST_FREE_SLOT
         )
-        limit = min(curses.COLOR_PAIRS, (curses.A_COLOR >> 8) + 1)
+        limit = min(curses.COLOR_PAIRS, pair_id_limit(curses.A_COLOR))
         configured = TERMINAL_CONFIG.get("max_color_pairs")
         if configured:
             limit = min(limit, int(configured) + 1)
@@ -136,18 +163,21 @@ class ColorManager:
         resource is the ~255 pairs."""
         self._pair_by_hex.clear()
         self._pair_colors.clear()
+        self._key_by_pair.clear()
+        self._pair_by_slots.clear()
+        self._dimmed_by_attr.clear()
         self._next_pair_id = 1
         self.exhausted = False
 
     def restore(self) -> None:
         """Put the terminal's palette back if it was redefined (xterm OSC 104)."""
-        if self._redefined and sys.stdout.isatty():
+        if self._redefined and sys.stdout.isatty() and osc_palette_reset_works():
             try:
                 sys.stdout.write("\033]104\007")
                 sys.stdout.flush()
             except OSError:
                 pass
-            self._redefined.clear()
+        self._redefined.clear()
 
     def get_pair(self, hex_color: str, background: str | None = None) -> int:
         if not self.enabled:
@@ -160,7 +190,33 @@ class ColorManager:
             return cached
         attribute = self._create_pair(key, fg, bg)
         self._pair_by_hex[key] = attribute
+        self._key_by_pair.setdefault(attribute, key)
         return attribute
+
+    def dimmed(self, attributes: int) -> int:
+        """DIM_ATTR drawn as a colour: the cell's colour pair with the foreground
+        halfway to its background. PDCurses (windows-curses) ignores A_DIM on
+        coloured text, which left inactive tabs and hints at full brightness."""
+        cached = self._dimmed_by_attr.get(attributes)
+        if cached is not None:
+            return cached
+        result = self._dimmed(attributes)
+        self._dimmed_by_attr[attributes] = result
+        return result
+
+    def _dimmed(self, attributes: int) -> int:
+        key = self._key_by_pair.get(attributes & curses.A_COLOR)
+        if key is None:
+            return attributes
+        fg, bg = key.split("|", 1)
+        bg = None if bg == "None" else bg
+        try:
+            fg_rgb = hex_to_rgb(fg)
+            base = hex_to_rgb(bg) if bg else (0, 0, 0)
+        except ValueError:
+            return attributes
+        mixed = "#{:02x}{:02x}{:02x}".format(*((a + b) // 2 for a, b in zip(fg_rgb, base)))
+        return (attributes & ~curses.A_COLOR & ~DIM_ATTR) | self.get_pair(mixed, bg)
 
     def _slot_for_hex(self, hex_color: str) -> int | None:
         """Resolve a hex colour to a terminal colour slot (cached per colour)."""
@@ -181,9 +237,6 @@ class ColorManager:
             bg_rgb = hex_to_rgb(background) if background else None
         except ValueError:
             return 0
-        if self._next_pair_id >= self._pair_limit:
-            self.exhausted = True
-            return self._closest_pair(fg_rgb, bg_rgb)
         foreground = self._slot_for_hex(hex_color)
         if foreground is None:
             return 0
@@ -192,6 +245,15 @@ class ColorManager:
             resolved = self._slot_for_hex(background)
             if resolved is not None:
                 bg_slot = resolved
+        slots = (foreground, bg_slot)
+        shared = self._pair_by_slots.get(slots)
+        if shared is not None:
+            # Same palette slots, so the same pair looks identical on screen.
+            self._pair_colors[key] = (fg_rgb, bg_rgb)
+            return shared
+        if self._next_pair_id >= self._pair_limit:
+            self.exhausted = True
+            return self._closest_pair(fg_rgb, bg_rgb)
         pair_id = self._next_pair_id
         self._next_pair_id += 1
         try:
@@ -204,6 +266,7 @@ class ColorManager:
         attribute = curses.color_pair(pair_id)
         self._pair_colors[key] = (fg_rgb, bg_rgb)
         self._pair_by_hex[key] = attribute
+        self._pair_by_slots[slots] = attribute
         return attribute
 
     def _closest_pair(self, fg_rgb, bg_rgb) -> int:
@@ -241,4 +304,4 @@ class ColorManager:
                 pass
         if curses.COLORS >= 256:
             return rgb_to_nearest_xterm_256(rgb, self._redefined)
-        return rgb_to_nearest_basic(rgb)
+        return rgb_to_nearest_basic(rgb, bright=curses.COLORS >= 16)
