@@ -13,6 +13,7 @@ class Terrascope < Formula
   head "https://github.com/a-shygun/Terrascope.git", branch: "main"
   license "MIT"
 
+  depends_on "jpeg-turbo"
   depends_on "python@3.13"
 
   pypi_packages package_name: "terrascope",
